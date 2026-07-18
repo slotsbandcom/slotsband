@@ -49,48 +49,38 @@ export default async function HomePage({ params }: HomePageProps) {
       <SiteHeader lang={safeLang} currentPath={`/${safeLang}`} />
 
       {/* Hero */}
-      <header className="bg-white pt-4 pb-4 md:pt-8 md:pb-8 border-b border-[#E5E8F0]">
+      <header className="bg-white pt-3 pb-3 md:pt-6 md:pb-6 border-b border-[#E5E8F0]">
         <div className="max-w-[1280px] mx-auto px-4 md:px-12">
-          <div className="flex flex-col lg:flex-row items-center gap-6 lg:gap-10">
+          <div className="flex flex-col lg:flex-row items-center gap-4 lg:gap-8">
             {/* Left text */}
-            <div className="flex-1 space-y-3 max-w-xl w-full">
-              <h1 className="font-display font-bold text-3xl md:text-4xl lg:text-5xl text-[#1b1b1c] leading-tight text-balance">
+            <div className="flex-1 space-y-2 max-w-xl w-full">
+              <h1 className="font-display font-bold text-2xl md:text-3xl lg:text-4xl text-[#1b1b1c] leading-snug text-balance">
                 {t.hero.title}{" "}
                 <span className="text-[#2D1783] relative">
                   {t.hero.titleHighlight}
-                  <span className="absolute bottom-1 left-0 w-full h-2 bg-[#FFD700]/40 -z-10 rounded" aria-hidden="true" />
+                  <span className="absolute bottom-0.5 left-0 w-full h-1.5 bg-[#FFD700]/40 -z-10 rounded" aria-hidden="true" />
                 </span>
                 {t.hero.titleSuffix ? ` ${t.hero.titleSuffix}` : ""}
               </h1>
-              <p className="text-base md:text-lg text-[#787585] leading-relaxed">
+              <p className="text-sm md:text-base text-[#787585] leading-snug">
                 {t.hero.subtitle}
               </p>
               {/* Trust pills */}
-              <div className="flex flex-wrap gap-2 pt-1">
+              <div className="flex flex-wrap gap-1.5 pt-0.5">
                 {[t.hero.trust1, t.hero.trust2, t.hero.trust3].map((trust) => (
-                  <div key={trust} className="flex items-center gap-1.5 bg-[#F8F9FD] border border-[#E5E8F0] px-3 py-1.5 rounded-full">
+                  <div key={trust} className="flex items-center gap-1 bg-[#F8F9FD] border border-[#E5E8F0] px-2.5 py-1 rounded-full">
                     <span
-                      className="material-symbols-outlined text-[#FFD700] text-[16px]"
+                      className="material-symbols-outlined text-[#FFD700] text-[14px]"
                       style={{ fontVariationSettings: "'FILL' 1" }}
                       aria-hidden="true"
                     >
                       check_circle
                     </span>
-                    <span className="text-[10px] font-bold text-[#2D1783] uppercase tracking-wide whitespace-nowrap">
+                    <span className="text-[9px] font-bold text-[#2D1783] uppercase tracking-wide whitespace-nowrap">
                       {trust}
                     </span>
                   </div>
                 ))}
-              </div>
-              {/* Mobile CTA */}
-              <div className="flex gap-3 pt-1">
-                <a
-                  href={`/${safeLang}/nettikasinot`}
-                  className="flex-1 sm:flex-none inline-flex items-center justify-center gap-2 bg-[#2D1783] text-white font-bold text-sm px-6 py-3.5 rounded-full hover:bg-[#3e2db2] active:scale-95 transition-all"
-                >
-                  {t.hero.cta}
-                  <span className="material-symbols-outlined text-[16px]" aria-hidden="true">arrow_forward</span>
-                </a>
               </div>
             </div>
 
