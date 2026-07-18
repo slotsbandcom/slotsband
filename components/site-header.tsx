@@ -46,12 +46,12 @@ export function SiteHeader({ lang, currentPath }: SiteHeaderProps) {
   }, [])
 
   return (
-    <header className="sticky top-0 z-50 bg-white border-b border-[#E5E8F0] shadow-sm">
+    <header className="sticky top-0 z-50 bg-[#2D1783] shadow-lg">
       {/* ── Row 1: Logo / Nav / Lang / Hamburger ── */}
       <div className="max-w-[1280px] mx-auto px-4 md:px-12 h-14 flex items-center justify-between gap-3">
-        {/* Logo */}
+        {/* Logo — yellow on dark, no wrapper needed */}
         <Link href={`/${lang}`} className="flex-shrink-0 flex items-center" aria-label="SlotsBand – etusivu">
-          <SlotsbandLogo variant="dark" height={28} />
+          <SlotsbandLogo variant="light" height={28} />
         </Link>
 
         {/* Desktop nav */}
@@ -60,7 +60,7 @@ export function SiteHeader({ lang, currentPath }: SiteHeaderProps) {
             <Link
               key={item.href}
               href={item.href}
-              className="text-sm font-semibold text-[#474554] hover:text-[#2D1783] transition-colors whitespace-nowrap"
+              className="text-sm font-semibold text-white/80 hover:text-white transition-colors whitespace-nowrap"
             >
               {item.label}
             </Link>
@@ -70,7 +70,7 @@ export function SiteHeader({ lang, currentPath }: SiteHeaderProps) {
         {/* Desktop search */}
         <div className="relative hidden lg:block group">
           <span
-            className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-[#787585] group-focus-within:text-[#2D1783] transition-colors text-[20px]"
+            className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-white/50 group-focus-within:text-white transition-colors text-[20px]"
             aria-hidden="true"
           >
             search
@@ -79,7 +79,7 @@ export function SiteHeader({ lang, currentPath }: SiteHeaderProps) {
             type="search"
             placeholder={t.search}
             aria-label={t.search}
-            className="bg-[#F8F9FD] border border-[#E5E8F0] focus:border-[#2D1783] focus:ring-2 focus:ring-[#2D1783]/20 rounded-xl pl-9 pr-4 py-2 w-[200px] focus:w-[260px] transition-all duration-300 text-sm outline-none"
+            className="bg-white/10 border border-white/20 focus:border-white/60 focus:bg-white/15 rounded-xl pl-9 pr-4 py-2 w-[200px] focus:w-[260px] transition-all duration-300 text-sm text-white placeholder:text-white/50 outline-none"
           />
         </div>
 
@@ -92,17 +92,17 @@ export function SiteHeader({ lang, currentPath }: SiteHeaderProps) {
               aria-haspopup="listbox"
               aria-expanded={langOpen}
               aria-label="Vaihda kieli"
-              className="flex items-center gap-1 bg-[#F8F9FD] border border-[#E5E8F0] px-2.5 py-1.5 rounded-xl text-xs font-semibold hover:border-[#2D1783] transition-colors"
+              className="flex items-center gap-1 bg-white/10 border border-white/20 hover:bg-white/20 px-2.5 py-1.5 rounded-xl text-xs font-semibold text-white transition-colors"
             >
               <span aria-hidden="true">{LANG_FLAGS[lang]}</span>
-              <span className="text-[#2D1783]">{LANG_LABELS[lang]}</span>
-              <span className="material-symbols-outlined text-[14px] text-[#787585]" aria-hidden="true">expand_more</span>
+              <span>{LANG_LABELS[lang]}</span>
+              <span className="material-symbols-outlined text-[14px] text-white/70" aria-hidden="true">expand_more</span>
             </button>
             {langOpen && (
               <ul
                 role="listbox"
                 aria-label="Valitse kieli"
-                className="absolute right-0 top-full mt-1 bg-white border border-[#E5E8F0] rounded-xl shadow-lg py-1 min-w-[100px] z-50"
+                className="absolute right-0 top-full mt-1 bg-white border border-[#E5E8F0] rounded-xl shadow-xl py-1 min-w-[100px] z-50"
               >
                 {(["fi", "uk", "en"] as Lang[]).map((l) => (
                   <li key={l} role="option" aria-selected={l === lang}>
@@ -120,10 +120,10 @@ export function SiteHeader({ lang, currentPath }: SiteHeaderProps) {
             )}
           </div>
 
-          {/* Desktop CTA */}
+          {/* Desktop CTA — yellow on purple for max contrast */}
           <Link
             href={`/${lang}/nettikasinot`}
-            className="hidden sm:inline-flex items-center bg-[#2D1783] text-white font-semibold text-xs px-4 py-2 rounded-full hover:bg-[#3e2db2] active:scale-95 transition-all whitespace-nowrap"
+            className="hidden sm:inline-flex items-center bg-[#FFD700] text-[#2D1783] font-bold text-xs px-4 py-2 rounded-full hover:bg-[#ffe033] active:scale-95 transition-all whitespace-nowrap"
           >
             {t.hero.cta}
           </Link>
@@ -131,7 +131,7 @@ export function SiteHeader({ lang, currentPath }: SiteHeaderProps) {
           {/* Mobile hamburger */}
           <button
             onClick={() => setMobileOpen(!mobileOpen)}
-            className="lg:hidden p-1.5 text-[#2D1783] -mr-1"
+            className="lg:hidden p-1.5 text-white -mr-1"
             aria-label={mobileOpen ? "Sulje valikko" : "Avaa valikko"}
             aria-expanded={mobileOpen}
           >
@@ -143,10 +143,10 @@ export function SiteHeader({ lang, currentPath }: SiteHeaderProps) {
       </div>
 
       {/* ── Row 2: Always-visible search bar on mobile ── */}
-      <div className="lg:hidden border-t border-[#E5E8F0] px-4 py-2.5 bg-[#F8F9FD]">
+      <div className="lg:hidden border-t border-white/15 px-4 py-2.5">
         <div className="relative">
           <span
-            className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-[#787585] text-[20px]"
+            className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-white/50 text-[20px]"
             aria-hidden="true"
           >
             search
@@ -155,7 +155,7 @@ export function SiteHeader({ lang, currentPath }: SiteHeaderProps) {
             type="search"
             placeholder={t.search}
             aria-label={t.search}
-            className="w-full bg-white border border-[#E5E8F0] focus:border-[#2D1783] focus:ring-2 focus:ring-[#2D1783]/20 rounded-xl pl-9 pr-4 py-2.5 text-sm outline-none"
+            className="w-full bg-white/10 border border-white/20 focus:border-white/60 rounded-xl pl-9 pr-4 py-2.5 text-sm text-white placeholder:text-white/50 outline-none"
           />
         </div>
       </div>
@@ -163,7 +163,7 @@ export function SiteHeader({ lang, currentPath }: SiteHeaderProps) {
       {/* ── Mobile drawer menu ── */}
       {mobileOpen && (
         <nav
-          className="lg:hidden bg-white border-t border-[#E5E8F0]"
+          className="lg:hidden border-t border-white/15"
           aria-label="Mobiilinavigaatio"
         >
           <ul className="px-4 py-3 space-y-0.5">
@@ -172,19 +172,19 @@ export function SiteHeader({ lang, currentPath }: SiteHeaderProps) {
                 <Link
                   href={item.href}
                   onClick={() => setMobileOpen(false)}
-                  className="flex items-center justify-between py-3 text-sm font-semibold text-[#474554] hover:text-[#2D1783] transition-colors border-b border-[#E5E8F0] last:border-0"
+                  className="flex items-center justify-between py-3 text-sm font-semibold text-white/80 hover:text-white transition-colors border-b border-white/10 last:border-0"
                 >
                   {item.label}
-                  <span className="material-symbols-outlined text-[18px] text-[#E5E8F0]" aria-hidden="true">chevron_right</span>
+                  <span className="material-symbols-outlined text-[18px] text-white/30" aria-hidden="true">chevron_right</span>
                 </Link>
               </li>
             ))}
           </ul>
-          <div className="px-4 pb-4">
+          <div className="px-4 pb-4 pt-1">
             <Link
               href={`/${lang}/nettikasinot`}
               onClick={() => setMobileOpen(false)}
-              className="block w-full bg-[#2D1783] text-white font-semibold text-sm py-3.5 rounded-xl text-center hover:bg-[#3e2db2] active:scale-95 transition-all"
+              className="block w-full bg-[#FFD700] text-[#2D1783] font-bold text-sm py-3.5 rounded-xl text-center hover:bg-[#ffe033] active:scale-95 transition-all"
             >
               {t.hero.cta}
             </Link>
