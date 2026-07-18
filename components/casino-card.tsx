@@ -51,98 +51,99 @@ export function CasinoCard({ casino, lang, rank }: CasinoCardProps) {
     <article className="casino-card bg-white rounded-2xl border border-[#E5E8F0] overflow-hidden">
       {/* Mobile layout */}
       <div className="md:hidden">
-        {/* Top row: rank badge + logo + name + stars */}
-        <div className="flex items-center gap-3 px-4 pt-4 pb-3 border-b border-[#E5E8F0]">
-          {rank && (
-            <span className="w-7 h-7 rounded-full bg-[#2D1783] text-white flex items-center justify-center text-xs font-bold flex-shrink-0">
-              {rank}
-            </span>
-          )}
-          <div className="w-14 h-14 bg-[#F0EDEE] rounded-xl flex items-center justify-center p-1.5 overflow-hidden flex-shrink-0">
+
+        {/* Row 1: logo + name / rating / badges */}
+        <div className="flex items-center gap-3 px-4 pt-4 pb-3">
+          {/* Logo */}
+          <div className="w-16 h-16 bg-[#F0EDEE] rounded-xl flex items-center justify-center p-2 overflow-hidden flex-shrink-0">
             {casino.logo_url ? (
               <Image
                 src={casino.logo_url}
                 alt={`${casino.name} logo`}
-                width={56}
-                height={56}
+                width={64}
+                height={64}
                 className="w-full h-full object-contain"
                 loading="lazy"
               />
             ) : (
-              <span className="material-symbols-outlined text-[#2D1783] text-2xl" aria-hidden="true">casino</span>
+              <span className="material-symbols-outlined text-[#2D1783] text-3xl" aria-hidden="true">casino</span>
             )}
           </div>
-          <div className="flex-1 min-w-0">
-            <p className="font-display font-bold text-[#1b1b1c] text-sm leading-tight truncate">{casino.name}</p>
+
+          {/* Name + rating + badges */}
+          <div className="flex-1 min-w-0 space-y-1">
+            <p className="font-display font-bold text-[#1b1b1c] text-base leading-tight">{casino.name}</p>
             <StarRating rating={casino.rating} />
-            {/* Badges inline */}
-            <div className="flex flex-wrap gap-1 mt-1">
+            <div className="flex flex-wrap gap-1">
               {casino.badge && (
-                <span className={`px-2 py-0.5 rounded text-[9px] font-bold uppercase tracking-wide ${badgeStyle}`}>
+                <span className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wide ${badgeStyle}`}>
                   {casino.badge}
                 </span>
               )}
               {casino.is_pikakasino && (
-                <span className="bg-[#eae7e8] text-[#474554] px-2 py-0.5 rounded text-[9px] font-bold uppercase flex items-center gap-0.5">
-                  <span className="material-symbols-outlined text-[10px]" aria-hidden="true">bolt</span>
+                <span className="bg-[#eae7e8] text-[#474554] px-2 py-0.5 rounded text-[10px] font-bold uppercase flex items-center gap-0.5">
+                  <span className="material-symbols-outlined text-[11px]" aria-hidden="true">bolt</span>
                   Pika
                 </span>
               )}
               {casino.is_new && (
-                <span className="bg-[#eae7e8] text-[#474554] px-2 py-0.5 rounded text-[9px] font-bold uppercase">Uusi</span>
+                <span className="bg-[#eae7e8] text-[#474554] px-2 py-0.5 rounded text-[10px] font-bold uppercase">Uusi</span>
               )}
             </div>
           </div>
         </div>
 
-        {/* Bonus headline */}
-        <div className="px-4 py-3 bg-[#F8F9FD] border-b border-[#E5E8F0]">
+        {/* Row 2: Bonus headline */}
+        <div className="mx-4 mb-3 px-3 py-2.5 bg-[#F0EDFF] rounded-xl border border-[#D6CEFF]">
           <h3 className="font-display font-bold text-[#2D1783] text-sm leading-snug line-clamp-2">
             {casino.welcome_bonus_text}
           </h3>
         </div>
 
-        {/* Stats row */}
-        <div className="grid grid-cols-4 divide-x divide-[#E5E8F0] border-b border-[#E5E8F0]">
-          <div className="px-3 py-2.5 flex flex-col gap-0.5">
-            <p className="text-[9px] font-bold text-[#787585] uppercase tracking-wide leading-none">{t.minDeposit}</p>
-            <p className="text-xs font-bold text-[#1b1b1c] mt-0.5">{casino.min_deposit}€</p>
+        {/* Row 3: Stats — 2×2 grid so labels have room to breathe */}
+        <div className="grid grid-cols-2 gap-px bg-[#E5E8F0] border-t border-b border-[#E5E8F0] mx-0">
+          <div className="bg-white px-4 py-2.5">
+            <p className="text-[10px] font-semibold text-[#787585] uppercase tracking-wide">{t.minDeposit}</p>
+            <p className="text-sm font-bold text-[#1b1b1c] mt-0.5">{casino.min_deposit}€</p>
           </div>
-          <div className="px-3 py-2.5 flex flex-col gap-0.5">
-            <p className="text-[9px] font-bold text-[#787585] uppercase tracking-wide leading-none">{t.withdrawalSpeed}</p>
-            <WithdrawalBadge hours={casino.withdrawal_time_max_hours} />
+          <div className="bg-white px-4 py-2.5">
+            <p className="text-[10px] font-semibold text-[#787585] uppercase tracking-wide">{t.withdrawalSpeed}</p>
+            <div className="mt-0.5">
+              <WithdrawalBadge hours={casino.withdrawal_time_max_hours} />
+            </div>
           </div>
-          <div className="px-3 py-2.5 flex flex-col gap-0.5">
-            <p className="text-[9px] font-bold text-[#787585] uppercase tracking-wide leading-none">{t.license}</p>
-            <p className="text-[11px] font-bold text-[#1b1b1c] mt-0.5 leading-tight">{casino.license_authority}</p>
+          <div className="bg-white px-4 py-2.5">
+            <p className="text-[10px] font-semibold text-[#787585] uppercase tracking-wide">{t.license}</p>
+            <p className="text-sm font-bold text-[#1b1b1c] mt-0.5">{casino.license_authority}</p>
           </div>
-          <div className="px-3 py-2.5 flex flex-col gap-0.5">
-            <p className="text-[9px] font-bold text-[#787585] uppercase tracking-wide leading-none">{t.bonusType}</p>
-            <p className="text-[11px] font-bold text-[#1b1b1c] mt-0.5 leading-tight">
-              {casino.welcome_bonus_wagering === 0 ? "Vapaa" : `${casino.welcome_bonus_wagering}x`}
+          <div className="bg-white px-4 py-2.5">
+            <p className="text-[10px] font-semibold text-[#787585] uppercase tracking-wide">{t.bonusType}</p>
+            <p className="text-sm font-bold text-[#1b1b1c] mt-0.5">
+              {casino.welcome_bonus_wagering === 0 ? "Kierrätysvapaa" : `${casino.welcome_bonus_wagering}x`}
             </p>
           </div>
         </div>
 
-        {/* CTA row */}
+        {/* Row 4: CTAs */}
         <div className="flex gap-2 px-4 py-3">
           <a
             href={`/${lang}/mene/${casino.mene_slug}`}
             rel="nofollow sponsored noopener noreferrer"
             target="_blank"
-            className="flex-1 bg-[#2D1783] text-white font-bold text-sm py-3 rounded-xl text-center flex items-center justify-center gap-1.5 hover:bg-[#3e2db2] active:scale-95 transition-all"
+            className="flex-1 bg-[#2D1783] text-white font-bold text-sm py-3.5 rounded-xl text-center flex items-center justify-center gap-1.5 hover:bg-[#3e2db2] active:scale-95 transition-all"
           >
             {t.playNow}
             <span className="material-symbols-outlined text-[16px]" aria-hidden="true">arrow_forward</span>
           </a>
           <Link
             href={`/${lang}/nettikasinot/${casino.slug}`}
-            className="px-4 py-3 rounded-xl border border-[#E5E8F0] text-[#474554] font-semibold text-sm hover:text-[#2D1783] hover:border-[#2D1783] transition-all text-center whitespace-nowrap"
+            className="px-4 py-3.5 rounded-xl border border-[#E5E8F0] text-[#474554] font-semibold text-sm hover:text-[#2D1783] hover:border-[#2D1783] transition-all text-center whitespace-nowrap"
           >
             {t.readReview}
           </Link>
         </div>
-        <p className="text-[9px] text-[#787585] text-center pb-2.5">
+
+        <p className="text-[9px] text-[#787585] text-center pb-3">
           {lang === "fi" ? "18+ | Pelaa vastuullisesti" : "18+ | Gamble responsibly"}
         </p>
       </div>
@@ -153,16 +154,8 @@ export function CasinoCard({ casino, lang, rank }: CasinoCardProps) {
         <div className="w-1.5 bg-[#FFD700] flex-shrink-0 rounded-l-2xl" />
 
         <div className="flex items-center gap-6 p-6 lg:p-8 flex-1">
-          {/* Rank + Logo */}
-          <div className="w-40 flex-shrink-0 flex flex-col items-center gap-3">
-            {rank && (
-              <div className="flex items-center gap-1.5">
-                <span className="w-7 h-7 rounded-full bg-[#2D1783] text-white flex items-center justify-center text-xs font-bold">
-                  {rank}
-                </span>
-                <StarRating rating={casino.rating} />
-              </div>
-            )}
+          {/* Logo */}
+          <div className="w-32 flex-shrink-0 flex flex-col items-center gap-3">
             <div className="w-24 h-24 bg-[#F0EDEE] rounded-2xl flex items-center justify-center p-3 overflow-hidden">
               {casino.logo_url ? (
                 <Image
