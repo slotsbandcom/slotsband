@@ -119,7 +119,7 @@ export default async function HomePage({ params }: HomePageProps) {
       </section>
 
       {/* Casino listing */}
-      <main className="py-12">
+      <main className="pt-[15px] pb-12">
         <div className="max-w-[1280px] mx-auto px-4 md:px-12">
           <div className="flex flex-col md:flex-row justify-between items-start md:items-end mb-8 gap-4">
             <div>
