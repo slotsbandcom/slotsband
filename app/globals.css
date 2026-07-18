@@ -1,0 +1,170 @@
+@import 'tailwindcss';
+@import 'tw-animate-css';
+@import 'shadcn/tailwind.css';
+
+@custom-variant dark (&:is(.dark *));
+
+@theme inline {
+  /* SlotsBand Brand Colors */
+  --color-brand-primary: #2D1783;
+  --color-brand-primary-dark: #1e0f5c;
+  --color-brand-primary-light: #3e2db2;
+  --color-brand-accent: #FFD700;
+  --color-brand-accent-light: #FFF4B0;
+  --color-brand-accent-dim: #FFE866;
+  --color-brand-success: #27AE60;
+  --color-brand-surface: #F8F9FD;
+  --color-brand-border: #E5E8F0;
+  --color-brand-outline: #787585;
+
+  /* Shadcn tokens */
+  --color-sidebar-ring: var(--sidebar-ring);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar: var(--sidebar);
+  --color-chart-5: var(--chart-5);
+  --color-chart-4: var(--chart-4);
+  --color-chart-3: var(--chart-3);
+  --color-chart-2: var(--chart-2);
+  --color-chart-1: var(--chart-1);
+  --color-ring: var(--ring);
+  --color-input: var(--input);
+  --color-border: var(--border);
+  --color-destructive: var(--destructive);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-accent: var(--accent);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-muted: var(--muted);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-secondary: var(--secondary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-primary: var(--primary);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-popover: var(--popover);
+  --color-card-foreground: var(--card-foreground);
+  --color-card: var(--card);
+  --color-foreground: var(--foreground);
+  --color-background: var(--background);
+  --radius-sm: calc(var(--radius) * 0.6);
+  --radius-md: calc(var(--radius) * 0.8);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) * 1.4);
+  --radius-2xl: calc(var(--radius) * 1.8);
+
+  /* Fonts */
+  --font-sans: 'Inter', 'Inter Fallback', sans-serif;
+  --font-display: 'Hanken Grotesk', 'Hanken Grotesk Fallback', sans-serif;
+}
+
+:root {
+  color-scheme: light;
+  --background: #ffffff;
+  --foreground: #1b1b1c;
+  --card: #ffffff;
+  --card-foreground: #1b1b1c;
+  --popover: #ffffff;
+  --popover-foreground: #1b1b1c;
+  --primary: #2D1783;
+  --primary-foreground: #ffffff;
+  --secondary: #FFD700;
+  --secondary-foreground: #1b1b1c;
+  --muted: #F8F9FD;
+  --muted-foreground: #787585;
+  --accent: #FFD700;
+  --accent-foreground: #1b1b1c;
+  --destructive: oklch(0.577 0.245 27.325);
+  --border: #E5E8F0;
+  --input: #E5E8F0;
+  --ring: #2D1783;
+  --radius: 0.75rem;
+  --sidebar: #F8F9FD;
+  --sidebar-foreground: #1b1b1c;
+  --sidebar-primary: #2D1783;
+  --sidebar-primary-foreground: #ffffff;
+  --sidebar-accent: #F0EDEE;
+  --sidebar-accent-foreground: #1b1b1c;
+  --sidebar-border: #E5E8F0;
+  --sidebar-ring: #2D1783;
+  --chart-1: #2D1783;
+  --chart-2: #FFD700;
+  --chart-3: #27AE60;
+  --chart-4: #3e2db2;
+  --chart-5: #FFF4B0;
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+  body {
+    @apply bg-background text-foreground;
+    font-family: var(--font-sans);
+  }
+}
+
+/* Casino card hover */
+.casino-card {
+  transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1), box-shadow 0.3s ease;
+}
+.casino-card:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 8px 30px rgba(45, 23, 131, 0.1);
+}
+
+/* Hero slider */
+.slider-wrapper {
+  display: flex;
+  transition: transform 0.6s cubic-bezier(0.645, 0.045, 0.355, 1);
+  height: 100%;
+}
+.slide {
+  min-width: 100%;
+  height: 100%;
+  flex-shrink: 0;
+}
+.slider-dot {
+  height: 8px;
+  width: 8px;
+  background-color: rgba(45, 23, 131, 0.2);
+  border-radius: 50%;
+  display: inline-block;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+.slider-dot.active {
+  background-color: #2D1783;
+  width: 24px;
+  border-radius: 4px;
+}
+
+/* Scrollbar */
+.custom-scrollbar::-webkit-scrollbar {
+  width: 5px;
+  height: 5px;
+}
+.custom-scrollbar::-webkit-scrollbar-track {
+  background: #f1f1f1;
+}
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background: #2D1783;
+  border-radius: 10px;
+}
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+/* Star rating fill */
+.star-filled {
+  color: #FFD700;
+}
+.star-empty {
+  color: #E5E8F0;
+}
