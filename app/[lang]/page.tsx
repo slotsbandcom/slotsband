@@ -49,15 +49,11 @@ export default async function HomePage({ params }: HomePageProps) {
       <SiteHeader lang={safeLang} currentPath={`/${safeLang}`} />
 
       {/* Hero */}
-      <header className="bg-white pt-8 pb-8 md:pt-12 md:pb-12 border-b border-[#E5E8F0]">
+      <header className="bg-white pt-4 pb-4 md:pt-8 md:pb-8 border-b border-[#E5E8F0]">
         <div className="max-w-[1280px] mx-auto px-4 md:px-12">
-          <div className="flex flex-col lg:flex-row items-center gap-8 lg:gap-10">
+          <div className="flex flex-col lg:flex-row items-center gap-6 lg:gap-10">
             {/* Left text */}
-            <div className="flex-1 space-y-4 max-w-xl w-full">
-              <span className="inline-flex items-center gap-1.5 bg-[#FFF4B0] text-[#775900] px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider">
-                <span className="material-symbols-outlined text-[12px]" aria-hidden="true">update</span>
-                {t.hero.badge}
-              </span>
+            <div className="flex-1 space-y-3 max-w-xl w-full">
               <h1 className="font-display font-bold text-3xl md:text-4xl lg:text-5xl text-[#1b1b1c] leading-tight text-balance">
                 {t.hero.title}{" "}
                 <span className="text-[#2D1783] relative">
@@ -107,7 +103,7 @@ export default async function HomePage({ params }: HomePageProps) {
       </header>
 
       {/* Quick filter bar */}
-      <section className="bg-[#F8F9FD] py-4 border-b border-[#E5E8F0]" aria-label="Pikafiltterit">
+      <section className="bg-[#F8F9FD] py-1.5 border-b border-[#E5E8F0]" aria-label="Pikafiltterit">
         <div className="max-w-[1280px] mx-auto px-4 md:px-12">
           <div className="flex gap-2 overflow-x-auto pb-1 no-scrollbar -mx-4 px-4 md:mx-0 md:px-0">
             {[
