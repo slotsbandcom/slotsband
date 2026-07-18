@@ -2,8 +2,8 @@
 
 import { useState } from "react"
 import Link from "next/link"
-import Image from "next/image"
 import { usePathname } from "next/navigation"
+import { SlotsbandLogo } from "@/components/slotsband-logo"
 
 const NAV_ITEMS = [
   { icon: "dashboard", label: "Dashboard", href: "/admin" },
@@ -29,7 +29,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
         <div className={`flex items-center ${collapsed ? "justify-center px-3" : "px-5"} h-16 border-b border-white/10`}>
           {!collapsed && (
             <Link href="/admin" className="flex items-center gap-2">
-              <Image src="/slotsband-logo.png" alt="SlotsBand" width={120} height={30} className="h-7 w-auto brightness-0 invert" />
+              <SlotsbandLogo variant="light" height={26} />
             </Link>
           )}
           <button

@@ -1,10 +1,10 @@
 "use client"
 
 import Link from "next/link"
-import Image from "next/image"
 import { useState } from "react"
 import type { Lang } from "@/lib/types"
 import { TRANSLATIONS } from "@/lib/data"
+import { SlotsbandLogo } from "@/components/slotsband-logo"
 
 const LANG_FLAGS: Record<Lang, string> = {
   fi: "🇫🇮",
@@ -48,14 +48,7 @@ export function SiteHeader({ lang, currentPath }: SiteHeaderProps) {
         {/* Logo + Nav */}
         <div className="flex items-center gap-8">
           <Link href={`/${lang}`} className="flex items-center flex-shrink-0">
-            <Image
-              src="/slotsband-logo.png"
-              alt="SlotsBand"
-              width={160}
-              height={40}
-              className="h-9 w-auto object-contain"
-              priority
-            />
+            <SlotsbandLogo variant="dark" height={32} />
           </Link>
           <div className="hidden lg:flex gap-6 items-center">
             {navLinks.map((item) => (

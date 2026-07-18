@@ -1,7 +1,7 @@
 import Link from "next/link"
-import Image from "next/image"
 import type { Lang } from "@/lib/types"
 import { TRANSLATIONS } from "@/lib/data"
+import { SlotsbandLogo } from "@/components/slotsband-logo"
 
 interface SiteFooterProps {
   lang: Lang
@@ -40,13 +40,7 @@ export function SiteFooter({ lang }: SiteFooterProps) {
           {/* Brand col */}
           <div className="md:col-span-1">
             <Link href={`/${lang}`} className="inline-block mb-4">
-              <Image
-                src="/slotsband-logo.png"
-                alt="SlotsBand"
-                width={140}
-                height={35}
-                className="h-8 w-auto object-contain"
-              />
+              <SlotsbandLogo variant="dark" height={30} />
             </Link>
             <p className="text-sm text-[#787585] leading-relaxed">
               {t.description}
