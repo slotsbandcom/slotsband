@@ -121,10 +121,10 @@ export default async function HomePage({ params }: HomePageProps) {
         </div>
       </header>
 
-      {/* Quick filter bar */}
-      <section className="bg-[#F8F9FD] py-1.5 border-b border-[#E5E8F0]" aria-label="Pikafiltterit">
+      {/* Quick filter bar — desktop only */}
+      <section className="hidden md:block bg-[#F8F9FD] py-1.5 border-b border-[#E5E8F0]" aria-label="Pikafiltterit">
         <div className="max-w-[1280px] mx-auto px-4 md:px-12">
-          <div className="flex gap-2 overflow-x-auto pb-1 no-scrollbar -mx-4 px-4 md:mx-0 md:px-0">
+          <div className="flex gap-2 overflow-x-auto pb-1 no-scrollbar">
             {[
               { icon: "bolt", label: t.filters.quickCasinos, filter: "pikakasino" },
               { icon: "new_releases", label: t.filters.newCasinos, filter: "uudet" },
