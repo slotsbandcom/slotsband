@@ -23,7 +23,7 @@ export function HeroSlider({ lang }: HeroSliderProps) {
   const slide = HERO_SLIDES[current]
 
   return (
-    <div className="relative w-full aspect-[16/9] md:aspect-[2.4/1] rounded-2xl overflow-hidden shadow-2xl border border-[#E5E8F0]">
+    <div className="relative w-full aspect-[2.2/1] md:aspect-[2.4/1] rounded-2xl overflow-hidden shadow-2xl border border-[#E5E8F0]">
       {/* Slides */}
       <div
         className="slider-wrapper h-full"

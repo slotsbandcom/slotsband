@@ -51,10 +51,41 @@ export default async function HomePage({ params }: HomePageProps) {
       {/* Hero */}
       <header className="bg-white pt-3 pb-3 md:pt-6 md:pb-6 border-b border-[#E5E8F0]">
         <div className="max-w-[1280px] mx-auto px-4 md:px-12">
-          <div className="flex flex-col lg:flex-row items-center gap-4 lg:gap-8">
-            {/* Left text */}
-            <div className="flex-1 space-y-2 max-w-xl w-full">
-              <h1 className="font-display font-bold text-2xl md:text-3xl lg:text-4xl text-[#1b1b1c] leading-snug text-balance">
+
+          {/* Mobile layout: slider on top, compact text strip below */}
+          <div className="lg:hidden flex flex-col gap-2">
+            <HeroSlider lang={safeLang} />
+            {/* Compact text row */}
+            <div className="flex items-center justify-between gap-3">
+              <h1 className="font-display font-bold text-base text-[#1b1b1c] leading-snug">
+                {t.hero.title}{" "}
+                <span className="text-[#2D1783]">{t.hero.titleHighlight}</span>
+                {t.hero.titleSuffix ? ` ${t.hero.titleSuffix}` : ""}
+              </h1>
+              {/* Trust pills — 3 compact icons only */}
+              <div className="flex-shrink-0 flex gap-1">
+                {[t.hero.trust1, t.hero.trust2, t.hero.trust3].map((trust) => (
+                  <div key={trust} className="flex items-center gap-1 bg-[#F8F9FD] border border-[#E5E8F0] px-2 py-1 rounded-full">
+                    <span
+                      className="material-symbols-outlined text-[#FFD700] text-[12px]"
+                      style={{ fontVariationSettings: "'FILL' 1" }}
+                      aria-hidden="true"
+                    >
+                      check_circle
+                    </span>
+                    <span className="text-[8px] font-bold text-[#2D1783] uppercase tracking-wide whitespace-nowrap hidden sm:inline">
+                      {trust}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+
+          {/* Desktop layout: text left, slider right */}
+          <div className="hidden lg:flex flex-row items-center gap-8">
+            <div className="flex-1 space-y-2 max-w-xl">
+              <h1 className="font-display font-bold text-3xl lg:text-4xl text-[#1b1b1c] leading-snug text-balance">
                 {t.hero.title}{" "}
                 <span className="text-[#2D1783] relative">
                   {t.hero.titleHighlight}
@@ -65,7 +96,6 @@ export default async function HomePage({ params }: HomePageProps) {
               <p className="text-sm md:text-base text-[#787585] leading-snug">
                 {t.hero.subtitle}
               </p>
-              {/* Trust pills */}
               <div className="flex flex-wrap gap-1.5 pt-0.5">
                 {[t.hero.trust1, t.hero.trust2, t.hero.trust3].map((trust) => (
                   <div key={trust} className="flex items-center gap-1 bg-[#F8F9FD] border border-[#E5E8F0] px-2.5 py-1 rounded-full">
@@ -83,12 +113,11 @@ export default async function HomePage({ params }: HomePageProps) {
                 ))}
               </div>
             </div>
-
-            {/* Hero slider — hidden on small mobile, shown md+ */}
-            <div className="hidden md:block flex-1 w-full max-w-xl">
+            <div className="flex-1 w-full max-w-xl">
               <HeroSlider lang={safeLang} />
             </div>
           </div>
+
         </div>
       </header>
 
