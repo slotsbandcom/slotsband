@@ -55,15 +55,15 @@ export default async function HomePage({ params }: HomePageProps) {
           {/* Mobile layout: slider on top, compact text strip below */}
           <div className="lg:hidden flex flex-col gap-2">
             <HeroSlider lang={safeLang} />
-            {/* Compact text row */}
-            <div className="flex items-center justify-between gap-3">
-              <h1 className="font-display font-bold text-base text-[#1b1b1c] leading-snug">
+            {/* Compact text row — centered on mobile */}
+            <div className="flex items-center justify-center gap-3">
+              <h1 className="font-display font-bold text-base text-[#1b1b1c] leading-snug text-center">
                 {t.hero.title}{" "}
                 <span className="text-[#2D1783]">{t.hero.titleHighlight}</span>
                 {t.hero.titleSuffix ? ` ${t.hero.titleSuffix}` : ""}
               </h1>
-              {/* Trust pills — 3 compact icons only */}
-              <div className="flex-shrink-0 flex gap-1">
+              {/* Trust pills — hidden on mobile, shown on desktop */}
+              <div className="hidden md:flex flex-shrink-0 gap-1">
                 {[t.hero.trust1, t.hero.trust2, t.hero.trust3].map((trust) => (
                   <div key={trust} className="flex items-center gap-1 bg-[#F8F9FD] border border-[#E5E8F0] px-2 py-1 rounded-full">
                     <span
