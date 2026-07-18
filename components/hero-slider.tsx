@@ -20,10 +20,8 @@ export function HeroSlider({ lang }: HeroSliderProps) {
     return () => clearInterval(interval)
   }, [next])
 
-  const slide = HERO_SLIDES[current]
-
   return (
-    <div className="relative w-full aspect-[2.2/1] md:aspect-[2.4/1] rounded-2xl overflow-hidden shadow-2xl border border-[#E5E8F0]">
+    <div className="relative w-full h-[168px] md:aspect-[2.6/1] md:h-auto rounded-2xl overflow-hidden shadow-xl border border-[#E5E8F0]">
       {/* Slides */}
       <div
         className="slider-wrapper h-full"
@@ -36,12 +34,34 @@ export function HeroSlider({ lang }: HeroSliderProps) {
             className={`slide ${s.bgColor} flex items-center justify-center`}
             aria-hidden={idx !== current}
           >
-            <div className="px-8 md:px-14 flex flex-col items-center text-center space-y-4">
-              <h4 className={`font-display font-bold text-xl md:text-2xl tracking-tight ${s.accentColor ?? s.textColor}`}>
+            {/* Mobile layout: stacked centered */}
+            <div className="md:hidden w-full px-4 flex flex-col items-center text-center gap-1.5">
+              <p className={`font-display font-bold text-[11px] uppercase tracking-widest ${s.accentColor ?? s.textColor}`}>
+                {s.casinoName}
+              </p>
+              <p className={`font-display font-bold text-base leading-tight ${s.bonusColor}`}>
+                {s.bonus}
+              </p>
+              <p className={`text-[9px] font-bold uppercase tracking-wider opacity-60 ${s.textColor}`}>
+                {s.subtext}
+              </p>
+              <a
+                href={`/${lang}/mene/${s.slug}`}
+                rel="nofollow sponsored noopener noreferrer"
+                target="_blank"
+                className={`${s.btnClass} mt-1 px-6 py-2 rounded-full font-bold text-xs hover:opacity-90 active:scale-95 transition-all`}
+              >
+                {lang === "fi" ? "Pelaa Nyt" : "Play Now"}
+              </a>
+            </div>
+
+            {/* Desktop layout: centered vertical stack */}
+            <div className="hidden md:flex px-14 flex-col items-center text-center space-y-3">
+              <h4 className={`font-display font-bold text-2xl tracking-tight ${s.accentColor ?? s.textColor}`}>
                 {s.casinoName}
               </h4>
               <div className="space-y-1">
-                <p className={`font-display font-bold text-lg md:text-2xl ${s.bonusColor}`}>
+                <p className={`font-display font-bold text-2xl ${s.bonusColor}`}>
                   {s.bonus}
                 </p>
                 <p className={`text-[10px] font-bold uppercase tracking-widest opacity-70 ${s.textColor}`}>
@@ -62,7 +82,7 @@ export function HeroSlider({ lang }: HeroSliderProps) {
       </div>
 
       {/* Dots */}
-      <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex items-center gap-1.5">
+      <div className="absolute bottom-2.5 left-1/2 -translate-x-1/2 flex items-center gap-1.5">
         {HERO_SLIDES.map((_, idx) => (
           <button
             key={idx}
@@ -76,17 +96,17 @@ export function HeroSlider({ lang }: HeroSliderProps) {
       {/* Prev/Next arrows */}
       <button
         onClick={() => setCurrent((c) => (c - 1 + HERO_SLIDES.length) % HERO_SLIDES.length)}
-        className="absolute left-3 top-1/2 -translate-y-1/2 w-8 h-8 bg-white/80 rounded-full flex items-center justify-center hover:bg-white transition-colors shadow"
+        className="absolute left-2 top-1/2 -translate-y-1/2 w-7 h-7 md:w-8 md:h-8 bg-white/80 rounded-full flex items-center justify-center hover:bg-white transition-colors shadow"
         aria-label="Previous slide"
       >
-        <span className="material-symbols-outlined text-[#2D1783] text-[18px]">chevron_left</span>
+        <span className="material-symbols-outlined text-[#2D1783] text-[16px] md:text-[18px]">chevron_left</span>
       </button>
       <button
         onClick={next}
-        className="absolute right-3 top-1/2 -translate-y-1/2 w-8 h-8 bg-white/80 rounded-full flex items-center justify-center hover:bg-white transition-colors shadow"
+        className="absolute right-2 top-1/2 -translate-y-1/2 w-7 h-7 md:w-8 md:h-8 bg-white/80 rounded-full flex items-center justify-center hover:bg-white transition-colors shadow"
         aria-label="Next slide"
       >
-        <span className="material-symbols-outlined text-[#2D1783] text-[18px]">chevron_right</span>
+        <span className="material-symbols-outlined text-[#2D1783] text-[16px] md:text-[18px]">chevron_right</span>
       </button>
     </div>
   )
