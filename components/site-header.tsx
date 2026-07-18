@@ -1,22 +1,13 @@
 "use client"
 
 import Link from "next/link"
-import { useState } from "react"
+import { useState, useRef, useEffect } from "react"
 import type { Lang } from "@/lib/types"
 import { TRANSLATIONS } from "@/lib/data"
 import { SlotsbandLogo } from "@/components/slotsband-logo"
 
-const LANG_FLAGS: Record<Lang, string> = {
-  fi: "🇫🇮",
-  uk: "🇬🇧",
-  en: "🌐",
-}
-
-const LANG_LABELS: Record<Lang, string> = {
-  fi: "FI",
-  uk: "UK",
-  en: "EN",
-}
+const LANG_FLAGS: Record<Lang, string> = { fi: "🇫🇮", uk: "🇬🇧", en: "🌐" }
+const LANG_LABELS: Record<Lang, string> = { fi: "FI", uk: "UK", en: "EN" }
 
 interface SiteHeaderProps {
   lang: Lang
@@ -27,6 +18,7 @@ export function SiteHeader({ lang, currentPath }: SiteHeaderProps) {
   const t = TRANSLATIONS[lang]
   const [mobileOpen, setMobileOpen] = useState(false)
   const [langOpen, setLangOpen] = useState(false)
+  const langRef = useRef<HTMLDivElement>(null)
 
   const basePath = `/${lang}`
 
@@ -42,72 +34,96 @@ export function SiteHeader({ lang, currentPath }: SiteHeaderProps) {
     return currentPath.replace(/^\/(fi|uk|en)/, `/${targetLang}`)
   }
 
+  // Close lang dropdown when clicking outside
+  useEffect(() => {
+    function handleClickOutside(e: MouseEvent) {
+      if (langRef.current && !langRef.current.contains(e.target as Node)) {
+        setLangOpen(false)
+      }
+    }
+    document.addEventListener("mousedown", handleClickOutside)
+    return () => document.removeEventListener("mousedown", handleClickOutside)
+  }, [])
+
   return (
-    <nav className="h-[72px] w-full sticky top-0 z-50 bg-white border-b border-[#E5E8F0] shadow-sm">
-      <div className="max-w-[1280px] mx-auto px-4 md:px-12 flex justify-between items-center h-full">
-        {/* Logo + Nav */}
-        <div className="flex items-center gap-8">
-          <Link href={`/${lang}`} className="flex items-center flex-shrink-0">
-            <SlotsbandLogo variant="dark" height={32} />
-          </Link>
-          <div className="hidden lg:flex gap-6 items-center">
-            {navLinks.map((item) => (
-              <Link
-                key={item.href}
-                href={item.href}
-                className="text-sm font-semibold text-[#474554] hover:text-[#2D1783] transition-colors"
-              >
-                {item.label}
-              </Link>
-            ))}
-          </div>
+    <header className="sticky top-0 z-50 bg-white border-b border-[#E5E8F0] shadow-sm">
+      {/* ── Row 1: Logo / Nav / Lang / Hamburger ── */}
+      <div className="max-w-[1280px] mx-auto px-4 md:px-12 h-14 flex items-center justify-between gap-3">
+        {/* Logo */}
+        <Link href={`/${lang}`} className="flex-shrink-0 flex items-center" aria-label="SlotsBand – etusivu">
+          <SlotsbandLogo variant="dark" height={28} />
+        </Link>
+
+        {/* Desktop nav */}
+        <nav className="hidden lg:flex gap-5 items-center flex-1 ml-4" aria-label="Päänavigaatio">
+          {navLinks.map((item) => (
+            <Link
+              key={item.href}
+              href={item.href}
+              className="text-sm font-semibold text-[#474554] hover:text-[#2D1783] transition-colors whitespace-nowrap"
+            >
+              {item.label}
+            </Link>
+          ))}
+        </nav>
+
+        {/* Desktop search */}
+        <div className="relative hidden lg:block group">
+          <span
+            className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-[#787585] group-focus-within:text-[#2D1783] transition-colors text-[20px]"
+            aria-hidden="true"
+          >
+            search
+          </span>
+          <input
+            type="search"
+            placeholder={t.search}
+            aria-label={t.search}
+            className="bg-[#F8F9FD] border border-[#E5E8F0] focus:border-[#2D1783] focus:ring-2 focus:ring-[#2D1783]/20 rounded-xl pl-9 pr-4 py-2 w-[200px] focus:w-[260px] transition-all duration-300 text-sm outline-none"
+          />
         </div>
 
-        {/* Right side */}
-        <div className="flex items-center gap-3">
-          {/* Search */}
-          <div className="relative hidden md:block group">
-            <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-[#787585] group-focus-within:text-[#2D1783] transition-colors text-[20px]">
-              search
-            </span>
-            <input
-              type="text"
-              placeholder={t.search}
-              className="bg-[#F8F9FD] border border-[#E5E8F0] focus:border-[#2D1783] focus:ring-2 focus:ring-[#2D1783]/20 rounded-xl pl-9 pr-4 py-2 w-[220px] focus:w-[280px] transition-all duration-300 text-sm outline-none"
-            />
-          </div>
-
+        {/* Right controls */}
+        <div className="flex items-center gap-2">
           {/* Language switcher */}
-          <div className="relative">
+          <div className="relative" ref={langRef}>
             <button
               onClick={() => setLangOpen(!langOpen)}
-              className="flex items-center gap-1.5 bg-[#F8F9FD] border border-[#E5E8F0] px-3 py-2 rounded-xl text-sm font-semibold hover:border-[#2D1783] transition-colors"
+              aria-haspopup="listbox"
+              aria-expanded={langOpen}
+              aria-label="Vaihda kieli"
+              className="flex items-center gap-1 bg-[#F8F9FD] border border-[#E5E8F0] px-2.5 py-1.5 rounded-xl text-xs font-semibold hover:border-[#2D1783] transition-colors"
             >
-              <span>{LANG_FLAGS[lang]}</span>
+              <span aria-hidden="true">{LANG_FLAGS[lang]}</span>
               <span className="text-[#2D1783]">{LANG_LABELS[lang]}</span>
-              <span className="material-symbols-outlined text-[16px] text-[#787585]">expand_more</span>
+              <span className="material-symbols-outlined text-[14px] text-[#787585]" aria-hidden="true">expand_more</span>
             </button>
             {langOpen && (
-              <div className="absolute right-0 top-full mt-1 bg-white border border-[#E5E8F0] rounded-xl shadow-lg py-1 min-w-[120px] z-50">
+              <ul
+                role="listbox"
+                aria-label="Valitse kieli"
+                className="absolute right-0 top-full mt-1 bg-white border border-[#E5E8F0] rounded-xl shadow-lg py-1 min-w-[100px] z-50"
+              >
                 {(["fi", "uk", "en"] as Lang[]).map((l) => (
-                  <Link
-                    key={l}
-                    href={getLangPath(l)}
-                    onClick={() => setLangOpen(false)}
-                    className={`flex items-center gap-2 px-4 py-2 text-sm hover:bg-[#F8F9FD] transition-colors ${l === lang ? "text-[#2D1783] font-bold" : "text-[#474554]"}`}
-                  >
-                    <span>{LANG_FLAGS[l]}</span>
-                    <span>{LANG_LABELS[l]}</span>
-                  </Link>
+                  <li key={l} role="option" aria-selected={l === lang}>
+                    <Link
+                      href={getLangPath(l)}
+                      onClick={() => setLangOpen(false)}
+                      className={`flex items-center gap-2 px-3 py-2 text-xs hover:bg-[#F8F9FD] transition-colors ${l === lang ? "text-[#2D1783] font-bold" : "text-[#474554]"}`}
+                    >
+                      <span aria-hidden="true">{LANG_FLAGS[l]}</span>
+                      <span>{LANG_LABELS[l]}</span>
+                    </Link>
+                  </li>
                 ))}
-              </div>
+              </ul>
             )}
           </div>
 
-          {/* CTA */}
+          {/* Desktop CTA */}
           <Link
             href={`/${lang}/nettikasinot`}
-            className="hidden sm:inline-flex items-center bg-[#2D1783] text-white font-semibold text-sm px-5 py-2.5 rounded-full hover:bg-[#3e2db2] active:scale-95 transition-all"
+            className="hidden sm:inline-flex items-center bg-[#2D1783] text-white font-semibold text-xs px-4 py-2 rounded-full hover:bg-[#3e2db2] active:scale-95 transition-all whitespace-nowrap"
           >
             {t.hero.cta}
           </Link>
@@ -115,38 +131,66 @@ export function SiteHeader({ lang, currentPath }: SiteHeaderProps) {
           {/* Mobile hamburger */}
           <button
             onClick={() => setMobileOpen(!mobileOpen)}
-            className="lg:hidden p-2 text-[#2D1783]"
-            aria-label="Toggle menu"
+            className="lg:hidden p-1.5 text-[#2D1783] -mr-1"
+            aria-label={mobileOpen ? "Sulje valikko" : "Avaa valikko"}
+            aria-expanded={mobileOpen}
           >
-            <span className="material-symbols-outlined">
+            <span className="material-symbols-outlined text-[26px]" aria-hidden="true">
               {mobileOpen ? "close" : "menu"}
             </span>
           </button>
         </div>
       </div>
 
-      {/* Mobile menu */}
-      {mobileOpen && (
-        <div className="lg:hidden bg-white border-t border-[#E5E8F0] px-4 py-4 space-y-2">
-          {navLinks.map((item) => (
-            <Link
-              key={item.href}
-              href={item.href}
-              onClick={() => setMobileOpen(false)}
-              className="block py-2.5 text-sm font-semibold text-[#474554] hover:text-[#2D1783] transition-colors border-b border-[#E5E8F0]"
-            >
-              {item.label}
-            </Link>
-          ))}
-          <div className="pt-2">
-            <input
-              type="text"
-              placeholder={t.search}
-              className="w-full bg-[#F8F9FD] border border-[#E5E8F0] rounded-xl px-4 py-2 text-sm outline-none"
-            />
-          </div>
+      {/* ── Row 2: Always-visible search bar on mobile ── */}
+      <div className="lg:hidden border-t border-[#E5E8F0] px-4 py-2.5 bg-[#F8F9FD]">
+        <div className="relative">
+          <span
+            className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-[#787585] text-[20px]"
+            aria-hidden="true"
+          >
+            search
+          </span>
+          <input
+            type="search"
+            placeholder={t.search}
+            aria-label={t.search}
+            className="w-full bg-white border border-[#E5E8F0] focus:border-[#2D1783] focus:ring-2 focus:ring-[#2D1783]/20 rounded-xl pl-9 pr-4 py-2.5 text-sm outline-none"
+          />
         </div>
+      </div>
+
+      {/* ── Mobile drawer menu ── */}
+      {mobileOpen && (
+        <nav
+          className="lg:hidden bg-white border-t border-[#E5E8F0]"
+          aria-label="Mobiilinavigaatio"
+        >
+          <ul className="px-4 py-3 space-y-0.5">
+            {navLinks.map((item) => (
+              <li key={item.href}>
+                <Link
+                  href={item.href}
+                  onClick={() => setMobileOpen(false)}
+                  className="flex items-center justify-between py-3 text-sm font-semibold text-[#474554] hover:text-[#2D1783] transition-colors border-b border-[#E5E8F0] last:border-0"
+                >
+                  {item.label}
+                  <span className="material-symbols-outlined text-[18px] text-[#E5E8F0]" aria-hidden="true">chevron_right</span>
+                </Link>
+              </li>
+            ))}
+          </ul>
+          <div className="px-4 pb-4">
+            <Link
+              href={`/${lang}/nettikasinot`}
+              onClick={() => setMobileOpen(false)}
+              className="block w-full bg-[#2D1783] text-white font-semibold text-sm py-3.5 rounded-xl text-center hover:bg-[#3e2db2] active:scale-95 transition-all"
+            >
+              {t.hero.cta}
+            </Link>
+          </div>
+        </nav>
       )}
-    </nav>
+    </header>
   )
 }

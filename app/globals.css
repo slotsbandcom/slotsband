@@ -99,10 +99,30 @@
 @layer base {
   * {
     @apply border-border outline-ring/50;
+    /* Remove tap highlight on mobile */
+    -webkit-tap-highlight-color: transparent;
+  }
+  html {
+    scroll-behavior: smooth;
+    /* Prevent font-size inflation on iOS */
+    -webkit-text-size-adjust: 100%;
+    text-size-adjust: 100%;
   }
   body {
     @apply bg-background text-foreground;
     font-family: var(--font-sans);
+    /* Improve text rendering */
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+  /* Touch targets: minimum 44×44px for interactive elements */
+  button, a, [role="button"] {
+    touch-action: manipulation;
+  }
+  /* Prevent horizontal overflow on mobile */
+  main, section, article, header, footer, nav {
+    max-width: 100%;
+    overflow-x: hidden;
   }
 }
 

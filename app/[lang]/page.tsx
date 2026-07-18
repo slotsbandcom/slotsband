@@ -49,45 +49,57 @@ export default async function HomePage({ params }: HomePageProps) {
       <SiteHeader lang={safeLang} currentPath={`/${safeLang}`} />
 
       {/* Hero */}
-      <header className="bg-white pt-10 pb-10 border-b border-[#E5E8F0]">
+      <header className="bg-white pt-8 pb-8 md:pt-12 md:pb-12 border-b border-[#E5E8F0]">
         <div className="max-w-[1280px] mx-auto px-4 md:px-12">
-          <div className="flex flex-col lg:flex-row items-center gap-10">
+          <div className="flex flex-col lg:flex-row items-center gap-8 lg:gap-10">
             {/* Left text */}
-            <div className="flex-1 space-y-5 max-w-xl">
-              <span className="inline-flex items-center gap-2 bg-[#FFF4B0] text-[#775900] px-4 py-1.5 rounded-full text-xs font-bold uppercase tracking-wider">
-                <span className="material-symbols-outlined text-[14px]">update</span>
+            <div className="flex-1 space-y-4 max-w-xl w-full">
+              <span className="inline-flex items-center gap-1.5 bg-[#FFF4B0] text-[#775900] px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider">
+                <span className="material-symbols-outlined text-[12px]" aria-hidden="true">update</span>
                 {t.hero.badge}
               </span>
-              <h1 className="font-display font-bold text-4xl md:text-5xl text-[#1b1b1c] leading-tight text-balance">
+              <h1 className="font-display font-bold text-3xl md:text-4xl lg:text-5xl text-[#1b1b1c] leading-tight text-balance">
                 {t.hero.title}{" "}
                 <span className="text-[#2D1783] relative">
                   {t.hero.titleHighlight}
-                  <span className="absolute bottom-1 left-0 w-full h-2.5 bg-[#FFD700]/40 -z-10 rounded" />
+                  <span className="absolute bottom-1 left-0 w-full h-2 bg-[#FFD700]/40 -z-10 rounded" aria-hidden="true" />
                 </span>
                 {t.hero.titleSuffix ? ` ${t.hero.titleSuffix}` : ""}
               </h1>
-              <p className="text-lg text-[#787585] leading-relaxed">
+              <p className="text-base md:text-lg text-[#787585] leading-relaxed">
                 {t.hero.subtitle}
               </p>
-              <div className="flex flex-wrap gap-4 pt-2">
+              {/* Trust pills */}
+              <div className="flex flex-wrap gap-2 pt-1">
                 {[t.hero.trust1, t.hero.trust2, t.hero.trust3].map((trust) => (
-                  <div key={trust} className="flex items-center gap-2">
+                  <div key={trust} className="flex items-center gap-1.5 bg-[#F8F9FD] border border-[#E5E8F0] px-3 py-1.5 rounded-full">
                     <span
-                      className="material-symbols-outlined text-[#FFD700] text-[20px]"
+                      className="material-symbols-outlined text-[#FFD700] text-[16px]"
                       style={{ fontVariationSettings: "'FILL' 1" }}
+                      aria-hidden="true"
                     >
                       check_circle
                     </span>
-                    <span className="text-xs font-bold text-[#2D1783] uppercase tracking-wide">
+                    <span className="text-[10px] font-bold text-[#2D1783] uppercase tracking-wide whitespace-nowrap">
                       {trust}
                     </span>
                   </div>
                 ))}
               </div>
+              {/* Mobile CTA */}
+              <div className="flex gap-3 pt-1">
+                <a
+                  href={`/${safeLang}/nettikasinot`}
+                  className="flex-1 sm:flex-none inline-flex items-center justify-center gap-2 bg-[#2D1783] text-white font-bold text-sm px-6 py-3.5 rounded-full hover:bg-[#3e2db2] active:scale-95 transition-all"
+                >
+                  {t.hero.cta}
+                  <span className="material-symbols-outlined text-[16px]" aria-hidden="true">arrow_forward</span>
+                </a>
+              </div>
             </div>
 
-            {/* Right hero slider */}
-            <div className="flex-1 w-full max-w-xl">
+            {/* Hero slider — hidden on small mobile, shown md+ */}
+            <div className="hidden md:block flex-1 w-full max-w-xl">
               <HeroSlider lang={safeLang} />
             </div>
           </div>
@@ -95,9 +107,9 @@ export default async function HomePage({ params }: HomePageProps) {
       </header>
 
       {/* Quick filter bar */}
-      <section className="bg-[#F8F9FD] py-6 border-b border-[#E5E8F0]">
+      <section className="bg-[#F8F9FD] py-4 border-b border-[#E5E8F0]" aria-label="Pikafiltterit">
         <div className="max-w-[1280px] mx-auto px-4 md:px-12">
-          <div className="flex gap-3 overflow-x-auto pb-1 no-scrollbar">
+          <div className="flex gap-2 overflow-x-auto pb-1 no-scrollbar -mx-4 px-4 md:mx-0 md:px-0">
             {[
               { icon: "bolt", label: t.filters.quickCasinos, filter: "pikakasino" },
               { icon: "new_releases", label: t.filters.newCasinos, filter: "uudet" },
@@ -108,12 +120,12 @@ export default async function HomePage({ params }: HomePageProps) {
               <a
                 key={item.filter}
                 href={`/${safeLang}/nettikasinot?filter=${item.filter}`}
-                className="flex-shrink-0 bg-white border border-[#E5E8F0] px-5 py-2.5 rounded-xl flex items-center gap-2.5 hover:border-[#FFD700] hover:shadow-md transition-all group cursor-pointer"
+                className="flex-shrink-0 bg-white border border-[#E5E8F0] px-3.5 py-2 rounded-xl flex items-center gap-2 hover:border-[#FFD700] hover:shadow-md transition-all group"
               >
-                <span className="material-symbols-outlined text-[#2D1783] group-hover:text-[#FFD700] transition-colors text-[18px]">
+                <span className="material-symbols-outlined text-[#2D1783] group-hover:text-[#FFD700] transition-colors text-[16px]" aria-hidden="true">
                   {item.icon}
                 </span>
-                <span className="text-xs font-bold text-[#1b1b1c] whitespace-nowrap">{item.label}</span>
+                <span className="text-[11px] font-bold text-[#1b1b1c] whitespace-nowrap">{item.label}</span>
               </a>
             ))}
           </div>
