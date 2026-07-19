@@ -20,26 +20,17 @@ const FALLBACK: StreamStatus = {
   kick:    { isLive: false, viewers: 0, title: "" },
 }
 
-const fetcher = (url: string) =>
-  fetch(url).then(r => {
-    if (!r.ok) throw new Error("fetch failed")
-    return r.json()
-  })
-
 /**
  * Polls /api/stream-status every 60 seconds.
  * Falls back to all-OFFLINE on error — never shows fake LIVE.
- * On error retries after 120 seconds.
+ * Fetcher and deduping are provided by the global SWRConfig in swr-provider.tsx.
  */
 export function useStreamStatus() {
   const { data, isLoading } = useSWR<StreamStatus>(
     "/api/stream-status",
-    fetcher,
     {
       refreshInterval: 60_000,
-      errorRetryInterval: 120_000,
       fallbackData: FALLBACK,
-      revalidateOnFocus: false,
     }
   )
 
