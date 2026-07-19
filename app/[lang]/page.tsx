@@ -2,6 +2,7 @@ import type { Metadata } from "next"
 import type { Lang } from "@/lib/types"
 import { CASINOS, TRANSLATIONS } from "@/lib/data"
 import { HeroSlider } from "@/components/hero-slider"
+import { StreamStatusBadge } from "@/components/stream-status-badge"
 import { CasinoCard } from "@/components/casino-card"
 
 const VALID_LANGS: Lang[] = ["fi", "uk", "en"]
@@ -275,6 +276,47 @@ export default async function HomePage({ params }: HomePageProps) {
                   ))}
                 </ol>
               </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Watch us live widget */}
+      <section className="bg-[#0d0820] py-8 md:py-10">
+        <div className="max-w-[1280px] mx-auto px-4 md:px-12">
+          <div className="flex flex-col sm:flex-row items-center gap-6 sm:gap-10">
+            {/* Text side */}
+            <div className="flex-1 text-center sm:text-left">
+              <div className="flex items-center justify-center sm:justify-start gap-2 mb-2">
+                <StreamStatusBadge platform="any" size="md" showViewers />
+              </div>
+              <h2 className="font-display font-bold text-xl md:text-2xl text-white leading-snug">
+                {safeLang === "fi" ? "Seuraa meitä livenä" : "Watch us live"}
+              </h2>
+              <p className="text-white/50 text-sm mt-1 leading-snug">
+                {safeLang === "fi"
+                  ? "Bonushuntit, rafflet ja eksklusiiviset kasinostriimit Kickissä, Twitchissä ja YouTubessa."
+                  : "Bonus hunts, raffles and exclusive casino streams on Kick, Twitch and YouTube."}
+              </p>
+              <a
+                href={`/${safeLang}/bonushunt`}
+                className="inline-flex items-center gap-2 mt-4 bg-[#53FC18] text-black font-bold text-sm px-5 py-2.5 rounded-full hover:opacity-90 active:scale-95 transition-all"
+              >
+                <span className="material-symbols-outlined text-[16px]" aria-hidden="true">live_tv</span>
+                {safeLang === "fi" ? "Avaa Bonushunt" : "Open Bonus Hunt"}
+              </a>
+            </div>
+            {/* Platform pills */}
+            <div className="flex gap-3">
+              {(["kick", "twitch", "youtube"] as const).map(p => (
+                <div key={p} className="flex flex-col items-center gap-1.5">
+                  <div className="w-12 h-12 rounded-2xl flex items-center justify-center font-black text-sm"
+                    style={{ backgroundColor: p === "kick" ? "#53FC18" : p === "twitch" ? "#9146FF" : "#FF0000", color: p === "kick" ? "#000" : "#fff" }}>
+                    {p === "kick" ? "K" : p === "twitch" ? "T" : "YT"}
+                  </div>
+                  <StreamStatusBadge platform={p} size="sm" className="justify-center" />
+                </div>
+              ))}
             </div>
           </div>
         </div>

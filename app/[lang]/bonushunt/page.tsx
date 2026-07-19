@@ -4,6 +4,8 @@ import { useState, useEffect } from "react"
 import { BONUS_HUNTS } from "@/lib/data"
 import type { Lang } from "@/lib/types"
 import type { BonusHuntSlot } from "@/lib/types"
+import { useStreamStatus } from "@/hooks/use-stream-status"
+import { StreamStatusBadge } from "@/components/stream-status-badge"
 
 // ─── Helpers ────────────────────────────────────────────────────────────────
 
@@ -308,6 +310,8 @@ export default function BonusHuntPage({ params }: { params: { lang: string } }) 
   const allTimeBest = allCompleted.length ? Math.max(...allCompleted.map(s => s.multiplier ?? 0)) : 1240
   const allTimeROI = past.length ? Math.max(...past.map(h => Math.round(((h.total_won - h.total_invested) / h.total_invested) * 100))) : 140
 
+  const { status: streamStatus, anyLive } = useStreamStatus()
+
   const [tab, setTab] = useState<"slots" | "predictions" | "archive">("slots")
   const [showModal, setShowModal] = useState(false)
   const [predictions, setPredictions] = useState<Prediction[]>([
@@ -332,15 +336,9 @@ export default function BonusHuntPage({ params }: { params: { lang: string } }) 
           {/* Top bar */}
           <div className="flex items-center justify-between mb-4">
             <div className="flex items-center gap-2">
-              {active.is_active ? (
-                <span className="flex items-center gap-2 bg-red-500/20 border border-red-500/30 text-red-400 text-[11px] font-bold uppercase px-3 py-1.5 rounded-full">
-                  {pulse()} LIVE
-                </span>
-              ) : (
-                <span className="flex items-center gap-1.5 bg-white/5 border border-white/10 text-white/50 text-[11px] font-bold uppercase px-3 py-1.5 rounded-full">
-                  <span className="material-symbols-outlined text-[12px]" aria-hidden="true">history</span> Päättynyt
-                </span>
-              )}
+              <span className="flex items-center gap-2 bg-white/5 border border-white/10 px-3 py-1.5 rounded-full">
+                <StreamStatusBadge platform="any" size="sm" showViewers />
+              </span>
               <span className="text-white/30 text-xs hidden sm:inline">{active.date}</span>
             </div>
             <button
@@ -430,7 +428,7 @@ export default function BonusHuntPage({ params }: { params: { lang: string } }) 
             {tab === "slots" && (
               <div className="space-y-4">
                 {/* Stream embed — always shown on slots tab */}
-                <StreamEmbed isLive={active.is_active} />
+                <StreamEmbed isLive={anyLive} />
 
                 {/* Slots table */}
                 <div className="bg-[#1a0e3a] border border-white/10 rounded-2xl overflow-hidden">

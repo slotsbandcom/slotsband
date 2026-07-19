@@ -4,6 +4,8 @@ import { useState, useEffect } from "react"
 import Link from "next/link"
 import { RAFFLES } from "@/lib/data"
 import type { Lang } from "@/lib/types"
+import { useStreamStatus } from "@/hooks/use-stream-status"
+import { StreamStatusBadge } from "@/components/stream-status-badge"
 
 function useCountdown(target: string) {
   const [timeLeft, setTimeLeft] = useState({ d: 0, h: 0, m: 0, s: 0 })
@@ -38,6 +40,7 @@ export default function RafflesPage({ params }: { params: { lang: string } }) {
   const lang = (params.lang as Lang) || "fi"
   const active = RAFFLES[0]
   const countdown = useCountdown(active.ends_at)
+  const { anyLive } = useStreamStatus()
 
   return (
     <div className="min-h-screen bg-[#F8F9FD]">
@@ -49,10 +52,17 @@ export default function RafflesPage({ params }: { params: { lang: string } }) {
         <div className="max-w-[1280px] mx-auto px-4 md:px-12 relative z-10">
           <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-8">
             <div className="max-w-lg">
-              <span className="inline-flex items-center gap-1.5 bg-[#FFD700] text-[#2D1783] text-[10px] font-bold uppercase px-3 py-1 rounded-full mb-3">
-                <span className="material-symbols-outlined text-[12px]" aria-hidden="true">fiber_manual_record</span>
-                Aktiivinen raffle
-              </span>
+              <div className="flex items-center gap-2 mb-3">
+                <span className="inline-flex items-center gap-1.5 bg-[#FFD700] text-[#2D1783] text-[10px] font-bold uppercase px-3 py-1 rounded-full">
+                  <span className="material-symbols-outlined text-[12px]" aria-hidden="true">fiber_manual_record</span>
+                  Aktiivinen raffle
+                </span>
+                {anyLive && (
+                  <span className="inline-flex items-center gap-1.5 bg-red-500/20 border border-red-500/30 px-3 py-1 rounded-full">
+                    <StreamStatusBadge platform="any" size="sm" showViewers />
+                  </span>
+                )}
+              </div>
               <h1 className="font-display font-bold text-3xl md:text-4xl text-white text-balance leading-snug">
                 {active.title}
               </h1>

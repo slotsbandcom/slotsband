@@ -6,6 +6,7 @@ import { createPortal } from "react-dom"
 import type { Lang } from "@/lib/types"
 import { TRANSLATIONS } from "@/lib/data"
 import { SlotsbandLogo } from "@/components/slotsband-logo"
+import { StreamDot } from "@/components/stream-status-badge"
 
 const LANG_FLAGS: Record<Lang, string> = { fi: "🇫🇮", uk: "🇬🇧", en: "🌐" }
 const LANG_LABELS: Record<Lang, string> = { fi: "FI", uk: "UK", en: "EN" }
@@ -62,15 +63,19 @@ export function SiteHeader({ lang, currentPath }: SiteHeaderProps) {
 
         {/* Desktop nav */}
         <nav className="hidden lg:flex gap-5 items-center flex-1 ml-4" aria-label="Päänavigaatio">
-          {navLinks.map((item) => (
-            <Link
-              key={item.href}
-              href={item.href}
-              className="text-sm font-semibold text-white/80 hover:text-white transition-colors whitespace-nowrap"
-            >
-              {item.label}
-            </Link>
-          ))}
+          {navLinks.map((item) => {
+            const isBonushunt = item.href.endsWith("/bonushunt")
+            return (
+              <Link
+                key={item.href}
+                href={item.href}
+                className="flex items-center gap-1.5 text-sm font-semibold text-white/80 hover:text-white transition-colors whitespace-nowrap"
+              >
+                {item.label}
+                {isBonushunt && <StreamDot />}
+              </Link>
+            )
+          })}
         </nav>
 
         {/* Desktop search */}
@@ -184,18 +189,24 @@ export function SiteHeader({ lang, currentPath }: SiteHeaderProps) {
           aria-label="Mobiilinavigaatio"
         >
           <ul className="px-4 py-3 space-y-0.5">
-            {navLinks.map((item) => (
-              <li key={item.href}>
-                <Link
-                  href={item.href}
-                  onClick={() => setMobileOpen(false)}
-                  className="flex items-center justify-between py-3 text-sm font-semibold text-white/80 hover:text-white transition-colors border-b border-white/10 last:border-0"
-                >
-                  {item.label}
-                  <span className="material-symbols-outlined text-[18px] text-white/30" aria-hidden="true">chevron_right</span>
-                </Link>
-              </li>
-            ))}
+            {navLinks.map((item) => {
+              const isBonushunt = item.href.endsWith("/bonushunt")
+              return (
+                <li key={item.href}>
+                  <Link
+                    href={item.href}
+                    onClick={() => setMobileOpen(false)}
+                    className="flex items-center justify-between py-3 text-sm font-semibold text-white/80 hover:text-white transition-colors border-b border-white/10 last:border-0"
+                  >
+                    <span className="flex items-center gap-2">
+                      {item.label}
+                      {isBonushunt && <StreamDot />}
+                    </span>
+                    <span className="material-symbols-outlined text-[18px] text-white/30" aria-hidden="true">chevron_right</span>
+                  </Link>
+                </li>
+              )
+            })}
           </ul>
           <div className="px-4 pb-4 pt-1">
             <Link
