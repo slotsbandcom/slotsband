@@ -164,6 +164,129 @@ function PredictionModal({ games, onClose, onSubmit }: {
   )
 }
 
+// ─── Stream Embed ─────────────────────────────────────────────────────────────
+
+type StreamPlatform = "twitch" | "youtube" | "kick"
+
+const PLATFORM_CONFIG: Record<StreamPlatform, { label: string; color: string }> = {
+  twitch:  { label: "Twitch",   color: "#9146FF" },
+  youtube: { label: "YouTube",  color: "#FF0000" },
+  kick:    { label: "Kick",     color: "#53FC18" },
+}
+
+// Platform letter badges used instead of SVGs to avoid Turbopack path-parsing issues
+const PLATFORM_BADGE: Record<StreamPlatform, string> = {
+  twitch: "T",
+  youtube: "YT",
+  kick: "K",
+}
+
+function StreamEmbed({ isLive }: { isLive: boolean }) {
+  const [platform, setPlatform] = useState<StreamPlatform>("twitch")
+  const [youtubeUrl, setYoutubeUrl] = useState("")
+
+  function getYoutubeId(url: string): string | null {
+    const match = url.match(/(?:v=|youtu\.be\/|embed\/)([a-zA-Z0-9_-]{11})/)
+    return match ? match[1] : null
+  }
+
+  const ytId = getYoutubeId(youtubeUrl)
+
+  return (
+    <div className="bg-[#1a0e3a] border border-white/10 rounded-2xl overflow-hidden">
+      {/* Platform tabs */}
+      <div className="flex border-b border-white/10">
+        {(Object.keys(PLATFORM_CONFIG) as StreamPlatform[]).map(p => {
+          const cfg = PLATFORM_CONFIG[p]
+          const active = platform === p
+          return (
+            <button
+              key={p}
+              onClick={() => setPlatform(p)}
+              className={`flex items-center gap-2 px-4 py-3 text-xs font-bold uppercase tracking-wide transition-colors border-b-2 -mb-px ${
+                active ? "border-current" : "border-transparent text-white/40 hover:text-white/70"
+              }`}
+              style={active ? { color: cfg.color, borderColor: cfg.color } : {}}
+              aria-pressed={active}
+            >
+              <span
+                className="inline-flex items-center justify-center rounded text-[9px] font-black w-5 h-4 flex-shrink-0"
+                style={{ backgroundColor: active ? cfg.color : "rgba(255,255,255,0.1)", color: active ? "#000" : "#fff" }}
+                aria-hidden="true"
+              >
+                {PLATFORM_BADGE[p]}
+              </span>
+              {cfg.label}
+            </button>
+          )
+        })}
+        {isLive && (
+          <div className="ml-auto flex items-center gap-1.5 pr-4">
+            <span className="relative flex h-2 w-2">
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75" />
+              <span className="relative inline-flex rounded-full h-2 w-2 bg-red-500" />
+            </span>
+            <span className="text-[10px] font-bold text-red-400 uppercase tracking-wider">Live</span>
+          </div>
+        )}
+      </div>
+
+      {/* Embed area — 16:9 */}
+      <div className="relative w-full aspect-video bg-[#0d0820]">
+        {platform === "twitch" && (
+          <iframe
+            src="https://player.twitch.tv/?channel=slotsband&parent=slotsband.com&autoplay=false"
+            title="SlotsBand Twitch stream"
+            allowFullScreen
+            className="absolute inset-0 w-full h-full"
+            allow="autoplay; fullscreen"
+          />
+        )}
+
+        {platform === "youtube" && (
+          ytId ? (
+            <iframe
+              src={`https://www.youtube.com/embed/${ytId}?autoplay=0`}
+              title="SlotsBand YouTube stream"
+              allowFullScreen
+              className="absolute inset-0 w-full h-full"
+              allow="autoplay; fullscreen"
+            />
+          ) : (
+            <div className="absolute inset-0 flex flex-col items-center justify-center gap-4 p-6">
+              <span className="inline-flex items-center justify-center w-14 h-10 rounded-lg bg-[#FF0000] text-white text-sm font-black" aria-hidden="true">YT</span>
+              <p className="text-white/50 text-sm text-center">
+                {youtubeUrl && !ytId
+                  ? "Virheellinen YouTube-linkki"
+                  : "Anna YouTube-streamin URL avataksesi lähetyksen"}
+              </p>
+              <div className="flex w-full max-w-sm gap-2">
+                <input
+                  type="url"
+                  value={youtubeUrl}
+                  onChange={e => setYoutubeUrl(e.target.value)}
+                  placeholder="https://youtube.com/watch?v=..."
+                  className="flex-1 bg-white/5 border border-white/10 focus:border-[#FF0000]/60 rounded-xl px-3 py-2 text-white text-xs placeholder:text-white/30 outline-none transition-colors"
+                />
+              </div>
+            </div>
+          )
+        )}
+
+        {platform === "kick" && (
+          <iframe
+            src="https://player.kick.com/slotsband"
+            title="SlotsBand Kick stream"
+            allowFullScreen
+            className="absolute inset-0 w-full h-full"
+            allow="autoplay; fullscreen"
+          />
+        )}
+      </div>
+    </div>
+  )
+}
+
 // ─── Main page ───────────────────────────────────────────────────────────────
 
 export default function BonusHuntPage({ params }: { params: { lang: string } }) {
@@ -304,29 +427,8 @@ export default function BonusHuntPage({ params }: { params: { lang: string } }) 
             {/* ── TAB: SLOTS ── */}
             {tab === "slots" && (
               <div className="space-y-4">
-                {/* Twitch embed placeholder */}
-                {active.is_active && (
-                  <div className="relative w-full aspect-video bg-[#1a0e3a] border border-white/10 rounded-2xl overflow-hidden flex items-center justify-center">
-                    <div className="text-center">
-                      <span className="material-symbols-outlined text-[48px] text-[#9146FF] mb-3 block" aria-hidden="true">live_tv</span>
-                      <p className="text-white font-bold text-sm">Twitch Stream</p>
-                      <p className="text-white/40 text-xs mt-1">SlotsBand live nyt</p>
-                      <a
-                        href="https://twitch.tv"
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="inline-flex items-center gap-1.5 mt-3 bg-[#9146FF] text-white font-bold text-xs px-4 py-2 rounded-full hover:bg-[#a055ff] transition-colors"
-                      >
-                        <span className="material-symbols-outlined text-[14px]" aria-hidden="true">open_in_new</span>
-                        Avaa Twitchissa
-                      </a>
-                    </div>
-                    <div className="absolute top-3 left-3 flex items-center gap-1.5 bg-black/60 border border-white/10 rounded-full px-2.5 py-1">
-                      {pulse()}
-                      <span className="text-white text-[10px] font-bold">LIVE</span>
-                    </div>
-                  </div>
-                )}
+                {/* Stream embed — always shown on slots tab */}
+                <StreamEmbed isLive={active.is_active} />
 
                 {/* Slots table */}
                 <div className="bg-[#1a0e3a] border border-white/10 rounded-2xl overflow-hidden">
