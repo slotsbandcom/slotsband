@@ -2,6 +2,7 @@
 
 import Link from "next/link"
 import { useState, useRef, useEffect } from "react"
+import { createPortal } from "react-dom"
 import type { Lang } from "@/lib/types"
 import { TRANSLATIONS } from "@/lib/data"
 import { SlotsbandLogo } from "@/components/slotsband-logo"
@@ -18,7 +19,11 @@ export function SiteHeader({ lang, currentPath }: SiteHeaderProps) {
   const t = TRANSLATIONS[lang]
   const [mobileOpen, setMobileOpen] = useState(false)
   const [langOpen, setLangOpen] = useState(false)
+  const [dropdownPos, setDropdownPos] = useState({ top: 0, right: 0 })
   const langRef = useRef<HTMLDivElement>(null)
+  const [mounted, setMounted] = useState(false)
+
+  useEffect(() => { setMounted(true) }, [])
 
   const basePath = `/${lang}`
 
@@ -88,7 +93,16 @@ export function SiteHeader({ lang, currentPath }: SiteHeaderProps) {
           {/* Language switcher */}
           <div className="relative" ref={langRef}>
             <button
-              onClick={() => setLangOpen(!langOpen)}
+              onClick={() => {
+                if (!langOpen && langRef.current) {
+                  const rect = langRef.current.getBoundingClientRect()
+                  setDropdownPos({
+                    top: rect.bottom + 6,
+                    right: window.innerWidth - rect.right,
+                  })
+                }
+                setLangOpen(!langOpen)
+              }}
               aria-haspopup="listbox"
               aria-expanded={langOpen}
               aria-label="Vaihda kieli"
@@ -98,25 +112,27 @@ export function SiteHeader({ lang, currentPath }: SiteHeaderProps) {
               <span>{LANG_LABELS[lang]}</span>
               <span className="material-symbols-outlined text-[14px] text-white/70" aria-hidden="true">expand_more</span>
             </button>
-            {langOpen && (
+            {langOpen && mounted && createPortal(
               <ul
                 role="listbox"
                 aria-label="Valitse kieli"
-                className="absolute right-0 top-full mt-1 bg-white border border-[#E5E8F0] rounded-xl shadow-xl py-1 min-w-[100px] z-50"
+                style={{ top: dropdownPos.top, right: dropdownPos.right }}
+                className="fixed bg-white border border-[#E5E8F0] rounded-xl shadow-2xl py-1 min-w-[110px] z-[9999]"
               >
                 {(["fi", "uk", "en"] as Lang[]).map((l) => (
                   <li key={l} role="option" aria-selected={l === lang}>
                     <Link
                       href={getLangPath(l)}
                       onClick={() => setLangOpen(false)}
-                      className={`flex items-center gap-2 px-3 py-2 text-xs hover:bg-[#F8F9FD] transition-colors ${l === lang ? "text-[#2D1783] font-bold" : "text-[#474554]"}`}
+                      className={`flex items-center gap-2 px-3 py-2.5 text-xs hover:bg-[#F8F9FD] transition-colors ${l === lang ? "text-[#2D1783] font-bold" : "text-[#474554]"}`}
                     >
                       <span aria-hidden="true">{LANG_FLAGS[l]}</span>
                       <span>{LANG_LABELS[l]}</span>
                     </Link>
                   </li>
                 ))}
-              </ul>
+              </ul>,
+              document.body
             )}
           </div>
 
