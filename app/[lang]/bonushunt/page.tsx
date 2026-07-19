@@ -166,23 +166,25 @@ function PredictionModal({ games, onClose, onSubmit }: {
 
 // ─── Stream Embed ─────────────────────────────────────────────────────────────
 
-type StreamPlatform = "twitch" | "youtube" | "kick"
+type StreamPlatform = "kick" | "twitch" | "youtube"
 
 const PLATFORM_CONFIG: Record<StreamPlatform, { label: string; color: string }> = {
+  kick:    { label: "Kick",     color: "#53FC18" },
   twitch:  { label: "Twitch",   color: "#9146FF" },
   youtube: { label: "YouTube",  color: "#FF0000" },
-  kick:    { label: "Kick",     color: "#53FC18" },
 }
 
 // Platform letter badges used instead of SVGs to avoid Turbopack path-parsing issues
 const PLATFORM_BADGE: Record<StreamPlatform, string> = {
+  kick: "K",
   twitch: "T",
   youtube: "YT",
-  kick: "K",
 }
 
+const PLATFORM_ORDER: StreamPlatform[] = ["kick", "twitch", "youtube"]
+
 function StreamEmbed({ isLive }: { isLive: boolean }) {
-  const [platform, setPlatform] = useState<StreamPlatform>("twitch")
+  const [platform, setPlatform] = useState<StreamPlatform>("kick")
   const [youtubeUrl, setYoutubeUrl] = useState("")
 
   function getYoutubeId(url: string): string | null {
@@ -196,7 +198,7 @@ function StreamEmbed({ isLive }: { isLive: boolean }) {
     <div className="bg-[#1a0e3a] border border-white/10 rounded-2xl overflow-hidden">
       {/* Platform tabs */}
       <div className="flex border-b border-white/10">
-        {(Object.keys(PLATFORM_CONFIG) as StreamPlatform[]).map(p => {
+        {PLATFORM_ORDER.map(p => {
           const cfg = PLATFORM_CONFIG[p]
           const active = platform === p
           return (
