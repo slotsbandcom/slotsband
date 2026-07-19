@@ -32,6 +32,7 @@ export function SiteHeader({ lang, currentPath }: SiteHeaderProps) {
     { label: t.nav.bonuses, href: `${basePath}/kasinobonukset` },
     { label: t.nav.games, href: `${basePath}/kasinopelit` },
     { label: t.nav.raffles, href: `${basePath}/rafflet` },
+    { label: t.nav.bonushunt, href: `${basePath}/bonushunt` },
   ]
 
   const getLangPath = (targetLang: Lang) => {
