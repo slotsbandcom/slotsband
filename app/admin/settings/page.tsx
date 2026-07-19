@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 
 type Lang = "fi" | "en" | "uk"
 type SettingsTab = "general" | "affiliate" | "seo" | "responsible" | "stream"
@@ -211,9 +211,194 @@ function ResponsibleTab() {
 }
 
 function StreamTab() {
-  const [interval, setInterval] = useState(60)
+  const [pollInterval, setPollInterval] = useState(60)
+
+  // ── Override state ──
+  const [overrideMode, setOverrideMode] = useState<"auto" | "manual">("auto")
+  const [manualLive, setManualLive] = useState(false)
+  const [streamTitle, setStreamTitle] = useState("")
+  const [viewers, setViewers] = useState(0)
+  const [autoResetHours, setAutoResetHours] = useState(8)
+  const [expiresAt, setExpiresAt] = useState<string | null>(null)
+  const [saving, setSaving] = useState(false)
+  const [saveMsg, setSaveMsg] = useState("")
+
+  // Load current override on mount
+  useEffect(() => {
+    fetch("/api/stream-override")
+      .then(r => r.json())
+      .then(data => {
+        setOverrideMode(data.mode ?? "auto")
+        setManualLive(data.isLive ?? false)
+        setStreamTitle(data.title ?? "")
+        setViewers(data.viewers ?? 0)
+        setAutoResetHours(data.autoResetHours ?? 8)
+        setExpiresAt(data.expiresAt ?? null)
+      })
+      .catch(() => {})
+  }, [])
+
+  async function saveOverride(patch: object) {
+    setSaving(true)
+    setSaveMsg("")
+    try {
+      const res = await fetch("/api/stream-override", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(patch),
+      })
+      const data = await res.json()
+      setOverrideMode(data.mode)
+      setManualLive(data.isLive)
+      setStreamTitle(data.title ?? "")
+      setViewers(data.viewers ?? 0)
+      setExpiresAt(data.expiresAt ?? null)
+      setSaveMsg("Saved")
+      setTimeout(() => setSaveMsg(""), 2000)
+    } catch {
+      setSaveMsg("Error saving")
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  const expiresFormatted = expiresAt
+    ? new Date(expiresAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })
+    : null
+
   return (
     <div className="space-y-5">
+
+      {/* ── Stream Status Override ── */}
+      <div className="bg-white rounded-2xl border border-[#E5E8F0] overflow-hidden">
+        <div className="px-5 py-4 border-b border-[#E5E8F0] flex items-center justify-between">
+          <div>
+            <h2 className="font-display font-bold text-[#1b1b1c]">Stream Status Override</h2>
+            <p className="text-xs text-[#787585] mt-0.5">
+              Kick.com blocks server-side API calls with 403. Use Manual mode to set live status directly.
+            </p>
+          </div>
+          {/* Mode toggle pills */}
+          <div className="flex bg-[#F8F9FD] border border-[#E5E8F0] rounded-xl p-1 gap-1">
+            {(["auto", "manual"] as const).map(m => (
+              <button
+                key={m}
+                onClick={() => saveOverride({ mode: m })}
+                className={`px-4 py-1.5 rounded-lg text-xs font-bold transition-all capitalize ${
+                  overrideMode === m
+                    ? "bg-[#2D1783] text-white shadow-sm"
+                    : "text-[#787585] hover:text-[#1b1b1c]"
+                }`}
+              >
+                {m === "auto" ? "Auto-detect" : "Manual"}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        <div className="p-5 space-y-5">
+          {overrideMode === "auto" ? (
+            <div className="flex items-center gap-3 text-sm text-[#474554] bg-[#F8F9FD] border border-[#E5E8F0] rounded-xl px-4 py-3">
+              <span className="material-symbols-outlined text-[18px] text-[#2D1783]">autorenew</span>
+              Stream status is detected automatically from Twitch and YouTube APIs every {pollInterval}s.
+              Kick status falls back to OFFLINE if their API is unreachable.
+            </div>
+          ) : (
+            <>
+              {/* LIVE / OFFLINE buttons */}
+              <div>
+                <label className="block text-xs font-bold text-[#474554] uppercase tracking-wider mb-2">
+                  Current Status
+                </label>
+                <div className="flex gap-3">
+                  <button
+                    onClick={() => saveOverride({ mode: "manual", isLive: true, title: streamTitle, viewers, autoResetHours })}
+                    className={`flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-bold transition-all border-2 ${
+                      manualLive
+                        ? "bg-red-500 border-red-500 text-white shadow-md"
+                        : "bg-white border-[#E5E8F0] text-[#474554] hover:border-red-400 hover:text-red-500"
+                    }`}
+                  >
+                    <span className={`w-2 h-2 rounded-full ${manualLive ? "bg-white animate-pulse" : "bg-[#E5E8F0]"}`} />
+                    LIVE
+                  </button>
+                  <button
+                    onClick={() => saveOverride({ mode: "manual", isLive: false, title: "", viewers: 0 })}
+                    className={`flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-bold transition-all border-2 ${
+                      !manualLive
+                        ? "bg-[#474554] border-[#474554] text-white"
+                        : "bg-white border-[#E5E8F0] text-[#474554] hover:border-[#474554]"
+                    }`}
+                  >
+                    <span className="w-2 h-2 rounded-full bg-current opacity-50" />
+                    OFFLINE
+                  </button>
+                  {manualLive && expiresFormatted && (
+                    <div className="flex items-center gap-1.5 px-3 py-2 bg-red-50 border border-red-200 rounded-xl text-xs text-red-600 font-medium">
+                      <span className="material-symbols-outlined text-[14px]">timer</span>
+                      Auto-resets at {expiresFormatted}
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* Stream details — only shown when LIVE */}
+              {manualLive && (
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-1">
+                  <Field label="Stream Title">
+                    <input
+                      type="text"
+                      value={streamTitle}
+                      onChange={e => setStreamTitle(e.target.value)}
+                      onBlur={() => saveOverride({ mode: "manual", isLive: true, title: streamTitle, viewers })}
+                      placeholder="e.g. Bonus Hunt #42 — 50 bonuksen avaus!"
+                      className="w-full bg-[#F8F9FD] border border-[#E5E8F0] rounded-xl px-4 py-2.5 text-sm focus:border-[#2D1783] focus:outline-none transition-colors"
+                    />
+                  </Field>
+                  <Field label="Viewer Count (optional)">
+                    <input
+                      type="number"
+                      min={0}
+                      value={viewers}
+                      onChange={e => setViewers(Number(e.target.value))}
+                      onBlur={() => saveOverride({ mode: "manual", isLive: true, title: streamTitle, viewers })}
+                      placeholder="0"
+                      className="w-full bg-[#F8F9FD] border border-[#E5E8F0] rounded-xl px-4 py-2.5 text-sm focus:border-[#2D1783] focus:outline-none transition-colors"
+                    />
+                  </Field>
+                </div>
+              )}
+
+              {/* Auto-reset */}
+              <Field label="Auto-reset to OFFLINE after">
+                <div className="flex items-center gap-3">
+                  <select
+                    value={autoResetHours}
+                    onChange={e => setAutoResetHours(Number(e.target.value))}
+                    className="bg-[#F8F9FD] border border-[#E5E8F0] rounded-xl px-3 py-2 text-sm focus:border-[#2D1783] focus:outline-none"
+                  >
+                    {[0, 2, 4, 6, 8, 12, 24].map(h => (
+                      <option key={h} value={h}>{h === 0 ? "Never" : `${h} hour${h !== 1 ? "s" : ""}`}</option>
+                    ))}
+                  </select>
+                  <p className="text-xs text-[#787585]">
+                    Automatically sets status back to OFFLINE after the stream ends.
+                  </p>
+                </div>
+              </Field>
+            </>
+          )}
+
+          {/* Save feedback */}
+          {saveMsg && (
+            <p className={`text-xs font-semibold ${saveMsg === "Saved" ? "text-[#27AE60]" : "text-red-500"}`}>
+              {saveMsg}
+            </p>
+          )}
+        </div>
+      </div>
+
+      {/* ── Channel Settings ── */}
       <SectionCard title="Channel Settings">
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
           <div>
@@ -240,16 +425,20 @@ function StreamTab() {
         </div>
       </SectionCard>
 
-      <SectionCard title="Polling">
+      {/* ── Polling ── */}
+      <SectionCard title="Auto-detect Polling">
         <Field label="Stream Status Check Interval (seconds)">
           <div className="flex items-center gap-4">
-            <input type="range" min={15} max={300} step={15} value={interval} onChange={e => setInterval(Number(e.target.value))}
+            <input type="range" min={15} max={300} step={15} value={pollInterval}
+              onChange={e => setPollInterval(Number(e.target.value))}
               className="flex-1 accent-[#2D1783]" />
             <div className="w-20 bg-[#F8F9FD] border border-[#E5E8F0] rounded-xl px-3 py-2 text-sm font-bold text-[#2D1783] text-center">
-              {interval}s
+              {pollInterval}s
             </div>
           </div>
-          <p className="text-xs text-[#787585] mt-1">Lower values provide more real-time status but increase API usage. Minimum 15s.</p>
+          <p className="text-xs text-[#787585] mt-1">
+            Lower values give more real-time status but increase API usage. Minimum 15s.
+          </p>
         </Field>
       </SectionCard>
     </div>

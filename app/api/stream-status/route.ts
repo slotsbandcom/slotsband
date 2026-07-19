@@ -1,11 +1,14 @@
 import { NextResponse } from "next/server"
 
-export const revalidate = 60 // cache 60 seconds at the edge
+// Never cache this route — override changes need to be reflected immediately
+export const dynamic = "force-dynamic"
 
 interface PlatformStatus {
   isLive: boolean
   viewers: number
   title: string
+  /** true when status came from a manual admin override */
+  overridden?: boolean
 }
 
 const FALLBACK: PlatformStatus = { isLive: false, viewers: 0, title: "" }
@@ -84,28 +87,79 @@ async function getYouTubeStatus(): Promise<PlatformStatus> {
 }
 
 // ─── Kick ─────────────────────────────────────────────────────────────────────
+// Kick.com blocks server-side requests with 403/CORS from cloud IPs.
+// We try both known API endpoints; on any failure we return FALLBACK
+// so the admin manual override is the reliable fallback path.
 
 async function getKickStatus(): Promise<PlatformStatus> {
-  try {
-    const res = await fetch("https://kick.com/api/v1/channels/slotsband", {
-      signal: AbortSignal.timeout(3000),
-      headers: { "Accept": "application/json" },
-    })
-    if (!res.ok) return FALLBACK
-    const data = await res.json()
-    return {
-      isLive: data.livestream !== null && data.is_banned === false,
-      viewers: data.livestream?.viewer_count ?? 0,
-      title: data.livestream?.session_title ?? "",
+  const endpoints = [
+    "https://kick.com/api/v2/channels/slotsband",
+    "https://kick.com/api/v1/channels/slotsband",
+  ]
+  for (const url of endpoints) {
+    try {
+      const res = await fetch(url, {
+        signal: AbortSignal.timeout(3000),
+        headers: {
+          "Accept": "application/json",
+          "User-Agent": "Mozilla/5.0 (compatible; SlotsBand/1.0)",
+        },
+      })
+      if (!res.ok) continue
+      const data = await res.json()
+      const live = data.livestream !== null && data.is_banned === false
+      return {
+        isLive: live,
+        viewers: data.livestream?.viewer_count ?? 0,
+        title: data.livestream?.session_title ?? "",
+      }
+    } catch {
+      continue
     }
+  }
+  // Both endpoints failed (403 / CORS / timeout) — return FALLBACK
+  // Admin can set a manual override to cover this case.
+  return FALLBACK
+}
+
+// ─── Override store ───────────────────────────────────────────────────────────
+
+async function getOverride() {
+  try {
+    const baseUrl = process.env.VERCEL_URL
+      ? `https://${process.env.VERCEL_URL}`
+      : "http://localhost:3000"
+    const res = await fetch(`${baseUrl}/api/stream-override`, {
+      signal: AbortSignal.timeout(1000),
+      cache: "no-store",
+    })
+    if (!res.ok) return null
+    return await res.json()
   } catch {
-    return FALLBACK
+    return null
   }
 }
 
 // ─── Route handler ────────────────────────────────────────────────────────────
 
 export async function GET() {
+  // 1. Check manual override first
+  const ov = await getOverride()
+
+  if (ov?.mode === "manual") {
+    const manualStatus: PlatformStatus = {
+      isLive: ov.isLive,
+      viewers: ov.viewers ?? 0,
+      title: ov.title ?? "",
+      overridden: true,
+    }
+    return NextResponse.json(
+      { kick: manualStatus, twitch: manualStatus, youtube: manualStatus, override: ov },
+      { headers: { "Cache-Control": "no-store" } }
+    )
+  }
+
+  // 2. Auto-detect all platforms in parallel
   const [twitch, youtube, kick] = await Promise.all([
     getTwitchStatus(),
     getYouTubeStatus(),
@@ -113,11 +167,7 @@ export async function GET() {
   ])
 
   return NextResponse.json(
-    { twitch, youtube, kick },
-    {
-      headers: {
-        "Cache-Control": "public, s-maxage=60, stale-while-revalidate=120",
-      },
-    }
+    { twitch, youtube, kick, override: ov },
+    { headers: { "Cache-Control": "no-store" } }
   )
 }
