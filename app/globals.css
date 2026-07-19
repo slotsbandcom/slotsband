@@ -119,6 +119,10 @@
   button, a, [role="button"] {
     touch-action: manipulation;
   }
+  /* Prevent iOS zoom on input focus — must be 16px minimum */
+  input, select, textarea {
+    font-size: 16px;
+  }
   /* Prevent horizontal overflow on mobile */
   main, section, article, header, footer, nav {
     max-width: 100%;

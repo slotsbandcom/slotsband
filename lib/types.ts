@@ -130,6 +130,15 @@ export interface Game {
   demo_url?: string
 }
 
+export interface BonusHuntSlot {
+  game: string
+  provider: string
+  balance: number
+  bet: number
+  bonus_value: number
+  multiplier: number | null
+}
+
 export interface NavItem {
   label_fi: string
   label_en: string

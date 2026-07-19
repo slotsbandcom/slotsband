@@ -1,4 +1,4 @@
-import type { Casino, Bonus } from "./types"
+import type { Casino, Bonus, Game } from "./types"
 
 export const CASINOS: Casino[] = [
   {
@@ -449,6 +449,103 @@ export const HERO_SLIDES = [
     bonusColor: "text-white",
     btnClass: "bg-[#F3C46C] text-[#0D2E24]",
     slug: "cashlounge",
+  },
+]
+
+// ─── BONUSES ────────────────────────────────────────────────────────────────
+export const BONUSES: Bonus[] = [
+  { id: "b1", casino_id: "2", casino_name: "Lussurio Casino", casino_slug: "lussurio", title: "300% Tervetulosbonus 850€ asti + 100 FS", description: "Talleta vähintään 10€ ja saat 300% bonuksen 850€ asti sekä 100 ilmaiskierrosta.", bonus_type: "welcome", amount: "300% / 850€", wagering: 35, min_deposit: 10, is_featured: true, lang: "fi" },
+  { id: "b2", casino_id: "4", casino_name: "Bob Casino", casino_slug: "bob-casino", title: "100% Bonus 200€ + 200 Ilmaiskierrosta", description: "Uusille pelaajille 100% tervetulosbonus 200€ asti ja 200 ilmaiskierrosta.", bonus_type: "welcome", amount: "100% / 200€", wagering: 40, min_deposit: 20, is_featured: true, lang: "fi" },
+  { id: "b3", casino_id: "5", casino_name: "Cbet Casino", casino_slug: "cbet-casino", title: "200% Bonus 500€ asti", description: "200% tervetulosbonus 500€ asti kaikille uusille pelaajille.", bonus_type: "welcome", amount: "200% / 500€", wagering: 30, min_deposit: 20, is_featured: false, lang: "fi" },
+  { id: "b4", casino_id: "1", casino_name: "Spinnair", casino_slug: "spinnair", title: "20 Ilmaiskierrosta Ilman Talletusta", description: "Rekisteröidy ja saa 20 ilmaiskierrosta heti ilman talletusta.", bonus_type: "no_deposit", amount: "20 FS", wagering: 0, min_deposit: 0, is_featured: true, lang: "fi" },
+  { id: "b5", casino_id: "3", casino_name: "IWild Casino", casino_slug: "iwild", title: "50 Ilmaiskierrosta No Deposit", description: "Avaa tili ja saat 50 ilmaiskierrosta ilman talletusvaatimusta.", bonus_type: "no_deposit", amount: "50 FS", wagering: 0, min_deposit: 0, is_featured: false, lang: "fi" },
+  { id: "b6", casino_id: "6", casino_name: "N1 Casino", casino_slug: "n1-casino", title: "200 Ilmaiskierrosta Book of Dead", description: "100% bonus 400€ asti + 200 ilmaiskierrosta Book of Dead -peliin.", bonus_type: "free_spins", amount: "200 FS", wagering: 40, min_deposit: 20, is_featured: true, lang: "fi" },
+  { id: "b7", casino_id: "7", casino_name: "Nomini Casino", casino_slug: "nomini-casino", title: "150 Ilmaiskierrosta + 100% Bonus", description: "Ensitalletusbonuksesi sisältää 100% bonuksen ja 150 ilmaiskierrosta.", bonus_type: "free_spins", amount: "150 FS", wagering: 35, min_deposit: 15, is_featured: false, lang: "fi" },
+  { id: "b8", casino_id: "1", casino_name: "Spinnair", casino_slug: "spinnair", title: "20% Päivittäinen Cashback", description: "Saat 20% cashbackin jokaisesta häviöstä päivittäin — ilman kierrätysvaatimusta.", bonus_type: "cashback", amount: "20% päivittäin", wagering: 0, min_deposit: 20, is_featured: true, lang: "fi" },
+  { id: "b9", casino_id: "8", casino_name: "Jackpot Village", casino_slug: "jackpot-village", title: "15% Viikoittainen Cashback", description: "Kaikki pelaajat saavat 15% cashbackin viikoittaisista häviöistään.", bonus_type: "cashback", amount: "15% viikottain", wagering: 5, min_deposit: 20, is_featured: false, lang: "fi" },
+]
+
+// ─── GAMES ──────────────────────────────────────────────────────────────────
+export const GAMES: Game[] = [
+  { id: "g1", slug: "gates-of-olympus", name: "Gates of Olympus", provider: "Pragmatic Play", rtp: 96.5, volatility: "high", type: "slot" },
+  { id: "g2", slug: "book-of-dead", name: "Book of Dead", provider: "Play'n GO", rtp: 96.21, volatility: "high", type: "slot" },
+  { id: "g3", slug: "starburst", name: "Starburst", provider: "NetEnt", rtp: 96.09, volatility: "low", type: "slot" },
+  { id: "g4", slug: "sweet-bonanza", name: "Sweet Bonanza", provider: "Pragmatic Play", rtp: 96.48, volatility: "high", type: "slot" },
+  { id: "g5", slug: "big-bass-bonanza", name: "Big Bass Bonanza", provider: "Pragmatic Play", rtp: 96.71, volatility: "high", type: "slot" },
+  { id: "g6", slug: "reactoonz", name: "Reactoonz", provider: "Play'n GO", rtp: 96.51, volatility: "high", type: "slot" },
+  { id: "g7", slug: "gonzos-quest", name: "Gonzo's Quest", provider: "NetEnt", rtp: 95.97, volatility: "medium", type: "slot" },
+  { id: "g8", slug: "mega-moolah", name: "Mega Moolah", provider: "Microgaming", rtp: 88.12, volatility: "medium", type: "jackpot" },
+  { id: "g9", slug: "lightning-roulette", name: "Lightning Roulette", provider: "Evolution", rtp: 97.30, volatility: "medium", type: "live" },
+  { id: "g10", slug: "crazy-time", name: "Crazy Time", provider: "Evolution", rtp: 96.08, volatility: "high", type: "live" },
+  { id: "g11", slug: "immersive-roulette", name: "Immersive Roulette", provider: "Evolution", rtp: 97.30, volatility: "low", type: "live" },
+  { id: "g12", slug: "blackjack-vip", name: "Blackjack VIP", provider: "Evolution", rtp: 99.29, volatility: "low", type: "table" },
+  { id: "g13", slug: "wanted-dead-or-a-wild", name: "Wanted Dead or a Wild", provider: "Hacksaw Gaming", rtp: 96.38, volatility: "high", type: "slot" },
+  { id: "g14", slug: "sugar-rush", name: "Sugar Rush 1000", provider: "Pragmatic Play", rtp: 96.53, volatility: "high", type: "slot" },
+  { id: "g15", slug: "dog-house-megaways", name: "Dog House Megaways", provider: "Pragmatic Play", rtp: 96.55, volatility: "high", type: "slot" },
+  { id: "g16", slug: "rise-of-merlin", name: "Rise of Merlin", provider: "Play'n GO", rtp: 96.51, volatility: "high", type: "slot" },
+]
+
+// ─── RAFFLES ────────────────────────────────────────────────────────────────
+export const RAFFLES = [
+  {
+    id: "r1",
+    title: "Viikkoraffle #47 — iPhone 15 Pro",
+    prize: "iPhone 15 Pro (1 299€)",
+    casino_name: "Spinnair",
+    casino_slug: "spinnair",
+    ends_at: new Date(Date.now() + 3 * 24 * 60 * 60 * 1000).toISOString(),
+    is_active: true,
+    how_to: ["Rekisteröidy Spinnairille", "Tee vähintään 20€ talletus", "Pelaa 100€ edestä kolikkopeleissä", "Olet mukana arvonnassa!"],
+    past_winners: [
+      { name: "Mikko T.", prize: "500€ käteinen", casino: "Spinnair", date: "2026-01-10" },
+      { name: "Laura K.", prize: "PS5 konsoli", casino: "Lussurio", date: "2026-01-03" },
+      { name: "Janne M.", prize: "AirPods Pro", casino: "IWild", date: "2025-12-27" },
+      { name: "Sanna V.", prize: "200€ käteinen", casino: "Bob Casino", date: "2025-12-20" },
+    ],
+    upcoming: [
+      { id: "r2", title: "Raffle #48 — 500€ Käteinen", prize: "500€", starts_at: "2026-01-25", casino: "Lussurio Casino" },
+      { id: "r3", title: "Raffle #49 — PS5 + 3 peliä", prize: "PS5 Bundle", starts_at: "2026-02-01", casino: "IWild Casino" },
+    ],
+  },
+]
+
+// ─── BONUS HUNT ─────────────────────────────────────────────────────────────
+export const BONUS_HUNTS = [
+  {
+    id: "bh1",
+    title: "Bonushunt #23 — Live Session",
+    date: "2026-01-17",
+    is_active: true,
+    total_invested: 1240,
+    total_won: 0,
+    currency: "€",
+    slots: [
+      { game: "Gates of Olympus", provider: "Pragmatic Play", balance: 200, bet: 2.0, bonus_value: 14, multiplier: null },
+      { game: "Sweet Bonanza", provider: "Pragmatic Play", balance: 180, bet: 1.5, bonus_value: 12, multiplier: null },
+      { game: "Book of Dead", provider: "Play'n GO", balance: 160, bet: 2.0, bonus_value: 10, multiplier: null },
+      { game: "Dog House Megaways", provider: "Pragmatic Play", balance: 220, bet: 3.0, bonus_value: 14, multiplier: null },
+      { game: "Wanted Dead or a Wild", provider: "Hacksaw Gaming", balance: 200, bet: 2.0, bonus_value: 12, multiplier: null },
+      { game: "Big Bass Bonanza", provider: "Pragmatic Play", balance: 140, bet: 1.0, bonus_value: 8, multiplier: null },
+      { game: "Reactoonz", provider: "Play'n GO", balance: 140, bet: 2.0, bonus_value: 8, multiplier: null },
+    ],
+  },
+  {
+    id: "bh2",
+    title: "Bonushunt #22 — Lopputulos",
+    date: "2026-01-10",
+    is_active: false,
+    total_invested: 1800,
+    total_won: 4320,
+    currency: "€",
+    slots: [
+      { game: "Gates of Olympus", provider: "Pragmatic Play", balance: 300, bet: 3.0, bonus_value: 14, multiplier: 342 },
+      { game: "Sweet Bonanza", provider: "Pragmatic Play", balance: 250, bet: 2.0, bonus_value: 12, multiplier: 87 },
+      { game: "Book of Dead", provider: "Play'n GO", balance: 200, bet: 2.0, bonus_value: 10, multiplier: 45 },
+      { game: "Wanted Dead or a Wild", provider: "Hacksaw Gaming", balance: 300, bet: 3.0, bonus_value: 12, multiplier: 210 },
+      { game: "Big Bass Bonanza", provider: "Pragmatic Play", balance: 150, bet: 1.0, bonus_value: 8, multiplier: 23 },
+      { game: "Reactoonz", provider: "Play'n GO", balance: 200, bet: 2.0, bonus_value: 8, multiplier: 67 },
+      { game: "Sugar Rush 1000", provider: "Pragmatic Play", balance: 400, bet: 4.0, bonus_value: 16, multiplier: 1240 },
+    ],
   },
 ]
 
