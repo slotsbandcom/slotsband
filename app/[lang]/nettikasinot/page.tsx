@@ -4,8 +4,6 @@ import { useState, use } from "react"
 import Link from "next/link"
 import type { Lang } from "@/lib/types"
 import { CASINOS, TRANSLATIONS, FILTER_OPTIONS } from "@/lib/data"
-import { SiteHeader } from "@/components/site-header"
-import { SiteFooter } from "@/components/site-footer"
 import { CasinoCard } from "@/components/casino-card"
 
 const VALID_LANGS: Lang[] = ["fi", "uk", "en"]
@@ -95,8 +93,6 @@ export default function NettikasinotPage({ params }: ListingPageProps) {
 
   return (
     <div className="min-h-screen bg-[#F8F9FD]">
-      <SiteHeader lang={lang} currentPath={`/${lang}/nettikasinot`} />
-
       {/* Page hero — compact on mobile */}
       <div className="bg-white border-b border-[#E5E8F0] py-6 md:py-10">
         <div className="max-w-[1280px] mx-auto px-4 md:px-12">
@@ -366,7 +362,6 @@ export default function NettikasinotPage({ params }: ListingPageProps) {
         </div>
       </div>
 
-      <SiteFooter lang={lang} />
     </div>
   )
 }

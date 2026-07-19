@@ -4,8 +4,6 @@ import Image from "next/image"
 import type { Metadata } from "next"
 import type { Lang } from "@/lib/types"
 import { CASINOS } from "@/lib/data"
-import { SiteHeader } from "@/components/site-header"
-import { SiteFooter } from "@/components/site-footer"
 import { CasinoCard } from "@/components/casino-card"
 
 const VALID_LANGS: Lang[] = ["fi", "uk", "en"]
@@ -94,8 +92,6 @@ export default async function CasinoPage({ params }: CasinoPageProps) {
 
   return (
     <div className="min-h-screen bg-[#F8F9FD]">
-      <SiteHeader lang={lang} currentPath={`/${lang}/nettikasinot/${slug}`} />
-
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }} />
 
       {/* ── Hero ── */}
@@ -560,7 +556,6 @@ export default async function CasinoPage({ params }: CasinoPageProps) {
         </a>
       </div>
 
-      <SiteFooter lang={lang} />
     </div>
   )
 }

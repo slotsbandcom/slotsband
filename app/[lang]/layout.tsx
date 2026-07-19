@@ -1,5 +1,7 @@
 import type { Metadata } from "next"
 import type { Lang } from "@/lib/types"
+import { SiteHeader } from "@/components/site-header"
+import { SiteFooter } from "@/components/site-footer"
 
 interface LangLayoutProps {
   children: React.ReactNode
@@ -33,5 +35,12 @@ export async function generateMetadata({ params }: { params: Promise<{ lang: str
 
 export default async function LangLayout({ children, params }: LangLayoutProps) {
   const { lang } = await params
-  return <div lang={lang}>{children}</div>
+  const safeLang = (["fi", "en", "uk"].includes(lang) ? lang : "fi") as Lang
+  return (
+    <div lang={safeLang}>
+      <SiteHeader lang={safeLang} currentPath="" />
+      {children}
+      <SiteFooter lang={safeLang} />
+    </div>
+  )
 }

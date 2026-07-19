@@ -1,8 +1,6 @@
 import type { Metadata } from "next"
 import type { Lang } from "@/lib/types"
 import { CASINOS, TRANSLATIONS } from "@/lib/data"
-import { SiteHeader } from "@/components/site-header"
-import { SiteFooter } from "@/components/site-footer"
 import { HeroSlider } from "@/components/hero-slider"
 import { CasinoCard } from "@/components/casino-card"
 
@@ -46,8 +44,6 @@ export default async function HomePage({ params }: HomePageProps) {
 
   return (
     <div className="min-h-screen bg-white">
-      <SiteHeader lang={safeLang} currentPath={`/${safeLang}`} />
-
       {/* Hero */}
       <header className="bg-white pt-3 pb-3 md:pt-6 md:pb-6 border-b border-[#E5E8F0]">
         <div className="max-w-[1280px] mx-auto px-4 md:px-12">
@@ -284,7 +280,6 @@ export default async function HomePage({ params }: HomePageProps) {
         </div>
       </section>
 
-      <SiteFooter lang={safeLang} />
     </div>
   )
 }
