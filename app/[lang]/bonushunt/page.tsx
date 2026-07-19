@@ -188,6 +188,15 @@ const PLATFORM_ORDER: StreamPlatform[] = ["kick", "twitch", "youtube"]
 function StreamEmbed({ isLive }: { isLive: boolean }) {
   const [platform, setPlatform] = useState<StreamPlatform>("kick")
   const [youtubeUrl, setYoutubeUrl] = useState("")
+  const [twitchSrc, setTwitchSrc] = useState<string | null>(null)
+
+  // Build Twitch URL client-side only — parent must match the exact hostname
+  useEffect(() => {
+    const parent = window.location.hostname
+    setTwitchSrc(
+      `https://player.twitch.tv/?channel=slotsband&parent=${parent}&autoplay=false`
+    )
+  }, [])
 
   function getYoutubeId(url: string): string | null {
     const match = url.match(/(?:v=|youtu\.be\/|embed\/)([a-zA-Z0-9_-]{11})/)
@@ -237,14 +246,20 @@ function StreamEmbed({ isLive }: { isLive: boolean }) {
 
       {/* Embed area — 16:9 */}
       <div className="relative w-full aspect-video bg-[#0d0820]">
-        {platform === "twitch" && (
+        {platform === "twitch" && twitchSrc && (
           <iframe
-            src="https://player.twitch.tv/?channel=slotsband&parent=slotsband.com&autoplay=false"
+            src={twitchSrc}
             title="SlotsBand Twitch stream"
             allowFullScreen
+            sandbox="allow-scripts allow-same-origin allow-popups"
             className="absolute inset-0 w-full h-full"
             allow="autoplay; fullscreen"
           />
+        )}
+        {platform === "twitch" && !twitchSrc && (
+          <div className="absolute inset-0 flex items-center justify-center">
+            <div className="w-8 h-8 border-2 border-[#9146FF]/30 border-t-[#9146FF] rounded-full animate-spin" />
+          </div>
         )}
 
         {platform === "youtube" && (
