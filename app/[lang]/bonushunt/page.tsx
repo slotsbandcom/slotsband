@@ -1,72 +1,266 @@
+"use client"
+
+import { useState, useEffect } from "react"
 import { BONUS_HUNTS } from "@/lib/data"
 import type { Lang } from "@/lib/types"
+import type { BonusHuntSlot } from "@/lib/types"
 
-function MultiplierCell({ value }: { value: number | null }) {
-  if (value === null) return <span className="text-[#787585]">—</span>
-  const color = value >= 500 ? "text-[#2D1783] font-bold" : value >= 100 ? "text-[#27AE60] font-semibold" : "text-[#474554]"
-  return <span className={color}>{value}x</span>
+// ─── Helpers ────────────────────────────────────────────────────────────────
+
+function pulse() {
+  return (
+    <span className="relative flex h-2.5 w-2.5">
+      <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75" />
+      <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-red-500" />
+    </span>
+  )
 }
 
-function StatCard({ icon, label, value, highlight }: { icon: string; label: string; value: string; highlight?: boolean }) {
+function MultiplierBadge({ value }: { value: number | null }) {
+  if (value === null) return <span className="text-white/30 text-sm">—</span>
+  if (value >= 1000) return <span className="font-bold text-[#FFD700] text-sm">{value}x <span className="text-[9px] bg-[#FFD700] text-black px-1 py-0.5 rounded ml-0.5 font-extrabold tracking-wide">MEGA</span></span>
+  if (value >= 500) return <span className="font-bold text-[#FFD700] text-sm">{value}x</span>
+  if (value >= 100) return <span className="font-semibold text-emerald-400 text-sm">{value}x</span>
+  return <span className="text-white/70 text-sm">{value}x</span>
+}
+
+function ProfitCell({ slot }: { slot: BonusHuntSlot }) {
+  if (slot.multiplier === null) return <span className="text-white/30">—</span>
+  const won = Math.round(slot.bet * slot.multiplier)
+  const profit = won - slot.balance
   return (
-    <div className={`rounded-2xl border p-4 flex items-center gap-3 ${highlight ? "bg-[#2D1783] border-[#2D1783]" : "bg-white border-[#E5E8F0]"}`}>
-      <div className={`w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 ${highlight ? "bg-white/10" : "bg-[#F8F9FD]"}`}>
-        <span className={`material-symbols-outlined text-[22px] ${highlight ? "text-[#FFD700]" : "text-[#2D1783]"}`} aria-hidden="true">{icon}</span>
-      </div>
-      <div>
-        <p className={`text-[10px] uppercase tracking-wide font-bold ${highlight ? "text-white/60" : "text-[#787585]"}`}>{label}</p>
-        <p className={`font-display font-bold text-lg leading-tight ${highlight ? "text-white" : "text-[#1b1b1c]"}`}>{value}</p>
+    <span className={`font-semibold text-sm ${profit >= 0 ? "text-emerald-400" : "text-red-400"}`}>
+      {profit >= 0 ? "+" : ""}{profit}€
+    </span>
+  )
+}
+
+// ─── Prediction modal ────────────────────────────────────────────────────────
+
+interface Prediction {
+  nickname: string
+  amount: number
+  multiplier: number
+  game: string
+  submittedAt: string
+}
+
+function scorePrediction(pred: Prediction, actual: { amount: number; multiplier: number }): number {
+  let pts = 0
+  const amtDiff = Math.abs(pred.amount - actual.amount) / actual.amount
+  if (amtDiff === 0) pts += 100
+  else if (amtDiff <= 0.1) pts += 50
+  else if (amtDiff <= 0.25) pts += 25
+  const multDiff = Math.abs(pred.multiplier - actual.multiplier) / actual.multiplier
+  if (multDiff === 0) pts += 100
+  else if (multDiff <= 0.1) pts += 50
+  else if (multDiff <= 0.25) pts += 25
+  return pts
+}
+
+function PredictionModal({ games, onClose, onSubmit }: {
+  games: string[]
+  onClose: () => void
+  onSubmit: (p: Prediction) => void
+}) {
+  const [nickname, setNickname] = useState("")
+  const [amount, setAmount] = useState("")
+  const [multiplier, setMultiplier] = useState("")
+  const [game, setGame] = useState(games[0] ?? "")
+  const [done, setDone] = useState(false)
+
+  function handleSubmit(e: React.FormEvent) {
+    e.preventDefault()
+    if (!nickname || !amount || !multiplier || !game) return
+    onSubmit({
+      nickname,
+      amount: Number(amount),
+      multiplier: Number(multiplier),
+      game,
+      submittedAt: new Date().toLocaleTimeString("fi-FI"),
+    })
+    setDone(true)
+  }
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-4 bg-black/70 backdrop-blur-sm" onClick={onClose}>
+      <div
+        className="w-full max-w-md bg-[#1a0e3a] border border-white/10 rounded-3xl p-6 shadow-2xl"
+        onClick={e => e.stopPropagation()}
+      >
+        {done ? (
+          <div className="text-center py-6">
+            <span className="material-symbols-outlined text-[48px] text-emerald-400 mb-3 block" aria-hidden="true" style={{ fontVariationSettings: "'FILL' 1" }}>check_circle</span>
+            <h3 className="font-display font-bold text-xl text-white mb-1">Ennuste lähetetty!</h3>
+            <p className="text-white/50 text-sm">Onnea arvaukseen. Tulokset ilmoitetaan session päättyessä.</p>
+            <button onClick={onClose} className="mt-5 w-full bg-[#FFD700] text-[#1a0e3a] font-bold py-3 rounded-2xl text-sm hover:bg-yellow-300 active:scale-95 transition-all">Sulje</button>
+          </div>
+        ) : (
+          <>
+            <div className="flex items-center justify-between mb-5">
+              <h3 className="font-display font-bold text-lg text-white">Tee ennuste</h3>
+              <button onClick={onClose} className="text-white/40 hover:text-white transition-colors" aria-label="Sulje">
+                <span className="material-symbols-outlined text-[22px]" aria-hidden="true">close</span>
+              </button>
+            </div>
+            <form onSubmit={handleSubmit} className="space-y-4">
+              <div>
+                <label className="block text-[11px] font-bold text-white/50 uppercase tracking-wider mb-1.5">Nimimerkki</label>
+                <input
+                  type="text"
+                  value={nickname}
+                  onChange={e => setNickname(e.target.value)}
+                  placeholder="Twitch-nimesi..."
+                  className="w-full bg-white/5 border border-white/10 focus:border-[#FFD700]/60 rounded-xl px-4 py-2.5 text-white placeholder:text-white/30 outline-none transition-colors"
+                  required
+                />
+              </div>
+              <div>
+                <label className="block text-[11px] font-bold text-white/50 uppercase tracking-wider mb-1.5">Loppusumma (€)</label>
+                <input
+                  type="number"
+                  value={amount}
+                  onChange={e => setAmount(e.target.value)}
+                  placeholder="esim. 3200"
+                  min="0"
+                  className="w-full bg-white/5 border border-white/10 focus:border-[#FFD700]/60 rounded-xl px-4 py-2.5 text-white placeholder:text-white/30 outline-none transition-colors"
+                  required
+                />
+              </div>
+              <div>
+                <label className="block text-[11px] font-bold text-white/50 uppercase tracking-wider mb-1.5">Paras kerroin</label>
+                <input
+                  type="number"
+                  value={multiplier}
+                  onChange={e => setMultiplier(e.target.value)}
+                  placeholder="esim. 450"
+                  min="0"
+                  className="w-full bg-white/5 border border-white/10 focus:border-[#FFD700]/60 rounded-xl px-4 py-2.5 text-white placeholder:text-white/30 outline-none transition-colors"
+                  required
+                />
+              </div>
+              <div>
+                <label className="block text-[11px] font-bold text-white/50 uppercase tracking-wider mb-1.5">Voittava peli</label>
+                <select
+                  value={game}
+                  onChange={e => setGame(e.target.value)}
+                  className="w-full bg-white/5 border border-white/10 focus:border-[#FFD700]/60 rounded-xl px-4 py-2.5 text-white outline-none transition-colors"
+                  required
+                >
+                  {games.map(g => <option key={g} value={g} className="bg-[#1a0e3a]">{g}</option>)}
+                </select>
+              </div>
+              <button
+                type="submit"
+                className="w-full bg-[#FFD700] text-[#1a0e3a] font-bold py-3.5 rounded-2xl text-sm hover:bg-yellow-300 active:scale-95 transition-all mt-1"
+              >
+                Lähetä ennuste
+              </button>
+            </form>
+          </>
+        )}
       </div>
     </div>
   )
 }
 
+// ─── Main page ───────────────────────────────────────────────────────────────
+
 export default function BonusHuntPage({ params }: { params: { lang: string } }) {
   const lang = (params.lang as Lang) || "fi"
-  const active = BONUS_HUNTS.find((b) => b.is_active) ?? BONUS_HUNTS[0]
-  const past = BONUS_HUNTS.filter((b) => !b.is_active)
+  const active = BONUS_HUNTS.find(b => b.is_active) ?? BONUS_HUNTS[0]
+  const past = BONUS_HUNTS.filter(b => !b.is_active)
 
-  const completedSlots = active.slots.filter((s) => s.multiplier !== null)
+  const completedSlots = active.slots.filter(s => s.multiplier !== null)
   const progress = Math.round((completedSlots.length / active.slots.length) * 100)
-  const avgMultiplier = completedSlots.length
-    ? Math.round(completedSlots.reduce((sum, s) => sum + (s.multiplier ?? 0), 0) / completedSlots.length)
-    : 0
+  const totalWon = completedSlots.reduce((sum, s) => sum + Math.round(s.bet * (s.multiplier ?? 0)), 0)
+  const bestMultiplier = completedSlots.length ? Math.max(...completedSlots.map(s => s.multiplier ?? 0)) : 0
+  const avgMultiplier = completedSlots.length ? Math.round(completedSlots.reduce((sum, s) => sum + (s.multiplier ?? 0), 0) / completedSlots.length) : 0
+  const roi = active.total_won > 0 ? Math.round(((active.total_won - active.total_invested) / active.total_invested) * 100) : 0
+
+  // All-time stats from past sessions
+  const allCompleted = past.flatMap(h => h.slots.filter(s => s.multiplier !== null))
+  const allTimeBest = allCompleted.length ? Math.max(...allCompleted.map(s => s.multiplier ?? 0)) : 1240
+  const allTimeROI = past.length ? Math.max(...past.map(h => Math.round(((h.total_won - h.total_invested) / h.total_invested) * 100))) : 140
+
+  const [tab, setTab] = useState<"slots" | "predictions" | "archive">("slots")
+  const [showModal, setShowModal] = useState(false)
+  const [predictions, setPredictions] = useState<Prediction[]>([
+    { nickname: "SlotKing99", amount: 3800, multiplier: 420, game: "Gates of Olympus", submittedAt: "14:23" },
+    { nickname: "BonusBeast", amount: 2500, multiplier: 280, game: "Sweet Bonanza", submittedAt: "14:24" },
+    { nickname: "FinlandHighRoller", amount: 4200, multiplier: 650, game: "Gates of Olympus", submittedAt: "14:25" },
+    { nickname: "LuckyLauri", amount: 1900, multiplier: 150, game: "Big Bass Bonanza", submittedAt: "14:26" },
+  ])
+
+  const gameNames = active.slots.map(s => s.game)
+
+  // Actual results for completed session scoring (use past[0] as example)
+  const actualResult = { amount: past[0]?.total_won ?? 4320, multiplier: 1240 }
 
   return (
-    <div className="min-h-screen bg-[#F8F9FD]">
-      {/* Header */}
-      <header className="bg-[#1b1b1c] text-white pt-8 pb-10 md:pt-12 md:pb-14">
+    <div className="min-h-screen bg-[#0d0820]">
+
+      {/* ── LIVE HERO ─────────────────────────────────────────────────── */}
+      <section className="bg-gradient-to-b from-[#1a0e3a] to-[#0d0820] pt-6 pb-0">
         <div className="max-w-[1280px] mx-auto px-4 md:px-12">
-          <div className="flex flex-col md:flex-row md:items-end md:justify-between gap-4">
-            <div>
-              <span className={`inline-flex items-center gap-1.5 text-[10px] font-bold uppercase px-3 py-1 rounded-full mb-3 ${active.is_active ? "bg-green-500/20 text-green-400" : "bg-white/10 text-white/60"}`}>
-                <span className="material-symbols-outlined text-[12px]" aria-hidden="true">{active.is_active ? "fiber_manual_record" : "history"}</span>
-                {active.is_active ? "Live Session" : "Päättynyt"}
-              </span>
-              <h1 className="font-display font-bold text-3xl md:text-4xl text-white text-balance">{active.title}</h1>
-              <p className="text-white/50 text-sm mt-1">{active.date}</p>
+
+          {/* Top bar */}
+          <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center gap-2">
+              {active.is_active ? (
+                <span className="flex items-center gap-2 bg-red-500/20 border border-red-500/30 text-red-400 text-[11px] font-bold uppercase px-3 py-1.5 rounded-full">
+                  {pulse()} LIVE
+                </span>
+              ) : (
+                <span className="flex items-center gap-1.5 bg-white/5 border border-white/10 text-white/50 text-[11px] font-bold uppercase px-3 py-1.5 rounded-full">
+                  <span className="material-symbols-outlined text-[12px]" aria-hidden="true">history</span> Päättynyt
+                </span>
+              )}
+              <span className="text-white/30 text-xs hidden sm:inline">{active.date}</span>
             </div>
-            {/* ROI badge */}
-            {!active.is_active && active.total_won > 0 && (
-              <div className="bg-white/5 border border-white/10 rounded-2xl px-5 py-4 text-center">
-                <p className="text-white/50 text-[10px] uppercase tracking-widest font-bold">ROI</p>
-                <p className={`font-display font-bold text-3xl mt-0.5 ${active.total_won >= active.total_invested ? "text-[#27AE60]" : "text-red-400"}`}>
-                  {Math.round(((active.total_won - active.total_invested) / active.total_invested) * 100)}%
-                </p>
-              </div>
-            )}
+            <button
+              onClick={() => setShowModal(true)}
+              className="flex items-center gap-1.5 bg-[#FFD700] text-[#0d0820] font-bold text-xs px-4 py-2 rounded-full hover:bg-yellow-300 active:scale-95 transition-all"
+            >
+              <span className="material-symbols-outlined text-[14px]" aria-hidden="true">emoji_events</span>
+              Tee ennuste
+            </button>
           </div>
 
-          {/* Progress bar (active hunt only) */}
+          {/* Title + streamer */}
+          <div className="flex flex-col md:flex-row md:items-end gap-6 pb-6">
+            <div className="flex-1">
+              <h1 className="font-display font-bold text-2xl md:text-4xl text-white text-balance leading-tight">
+                {active.title}
+              </h1>
+              <p className="text-white/40 text-sm mt-1">SlotsBand &bull; Twitch stream</p>
+            </div>
+
+            {/* Big stats */}
+            <div className="flex gap-3 flex-wrap">
+              {[
+                { label: "Investoitu", value: `${active.total_invested}€`, color: "text-white" },
+                { label: "Avattu", value: `${completedSlots.length}/${active.slots.length}`, color: "text-white" },
+                ...(totalWon > 0 ? [{ label: "Voitettu", value: `${totalWon}€`, color: totalWon >= active.total_invested ? "text-emerald-400" : "text-red-400" }] : []),
+              ].map(stat => (
+                <div key={stat.label} className="bg-white/5 border border-white/10 rounded-2xl px-4 py-3 text-center min-w-[90px]">
+                  <p className="text-white/40 text-[10px] uppercase tracking-wider font-bold">{stat.label}</p>
+                  <p className={`font-display font-bold text-xl mt-0.5 ${stat.color}`}>{stat.value}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Progress bar */}
           {active.is_active && (
-            <div className="mt-6">
+            <div className="pb-5">
               <div className="flex items-center justify-between mb-1.5">
-                <p className="text-white/60 text-xs font-semibold">Edistyminen</p>
-                <p className="text-white text-xs font-bold">{completedSlots.length}/{active.slots.length} bonusta avattu</p>
+                <span className="text-white/40 text-[11px] font-semibold uppercase tracking-wide">Edistyminen</span>
+                <span className="text-white/70 text-[11px] font-bold">{progress}%</span>
               </div>
-              <div className="w-full bg-white/10 rounded-full h-2.5 overflow-hidden">
+              <div className="w-full bg-white/10 rounded-full h-2 overflow-hidden">
                 <div
-                  className="bg-[#FFD700] h-2.5 rounded-full transition-all"
+                  className="bg-gradient-to-r from-[#FFD700] to-[#ff9a00] h-2 rounded-full transition-all duration-500"
                   style={{ width: `${progress}%` }}
                   role="progressbar"
                   aria-valuenow={progress}
@@ -76,104 +270,283 @@ export default function BonusHuntPage({ params }: { params: { lang: string } }) 
               </div>
             </div>
           )}
-        </div>
-      </header>
 
-      <div className="max-w-[1280px] mx-auto px-4 md:px-12 py-8 space-y-8">
-        {/* Stats */}
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-          <StatCard icon="payments" label="Investoitu" value={`${active.total_invested}€`} />
-          <StatCard icon="trending_up" label="Voitettu" value={active.total_won > 0 ? `${active.total_won}€` : "—"} highlight={active.total_won >= active.total_invested} />
-          <StatCard icon="bar_chart" label="Keskim. kertoimet" value={avgMultiplier > 0 ? `${avgMultiplier}x` : "—"} />
-          <StatCard icon="casino" label="Bonuksia" value={`${active.slots.length}`} />
-        </div>
-
-        {/* Slots table */}
-        <section>
-          <h2 className="font-display font-bold text-xl text-[#1b1b1c] mb-4">Bonuslista</h2>
-          <div className="bg-white rounded-2xl border border-[#E5E8F0] overflow-hidden">
-            <div className="overflow-x-auto">
-              <table className="w-full text-sm min-w-[600px]" aria-label="Bonushunt slotit">
-                <thead>
-                  <tr className="bg-[#F8F9FD] border-b border-[#E5E8F0]">
-                    {["#", "Peli", "Tarjoaja", "Saldo", "Panos", "Bonus arvo", "Kerroin"].map((h) => (
-                      <th key={h} className="text-left px-4 py-3 text-[10px] font-bold text-[#787585] uppercase tracking-wide">{h}</th>
-                    ))}
-                  </tr>
-                </thead>
-                <tbody>
-                  {active.slots.map((slot, i) => (
-                    <tr key={i} className={`border-b border-[#F8F9FD] last:border-0 hover:bg-[#F8F9FD] transition-colors ${slot.multiplier && slot.multiplier >= 500 ? "bg-[#FFF4B0]/30" : ""}`}>
-                      <td className="px-4 py-3 text-[#787585] text-xs font-semibold">{i + 1}</td>
-                      <td className="px-4 py-3">
-                        <div className="flex items-center gap-2">
-                          <div className="w-7 h-7 bg-[#2D1783]/10 rounded-lg flex items-center justify-center flex-shrink-0">
-                            <span className="material-symbols-outlined text-[#2D1783] text-[14px]" aria-hidden="true">casino</span>
-                          </div>
-                          <span className="font-semibold text-[#1b1b1c]">{slot.game}</span>
-                          {slot.multiplier !== null && slot.multiplier >= 500 && (
-                            <span className="bg-[#FFD700] text-[#1b1b1c] text-[9px] font-bold px-1.5 py-0.5 rounded">MEGA</span>
-                          )}
-                        </div>
-                      </td>
-                      <td className="px-4 py-3 text-xs text-[#787585]">{slot.provider}</td>
-                      <td className="px-4 py-3 text-xs font-semibold text-[#1b1b1c]">{slot.balance}€</td>
-                      <td className="px-4 py-3 text-xs text-[#474554]">{slot.bet}€</td>
-                      <td className="px-4 py-3 text-xs text-[#474554]">{slot.bonus_value}x</td>
-                      <td className="px-4 py-3 text-sm">
-                        <MultiplierCell value={slot.multiplier} />
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+          {/* Tabs */}
+          <div className="flex gap-1 border-b border-white/10">
+            {([
+              { id: "slots", label: "Bonuslista" },
+              { id: "predictions", label: `Ennusteet (${predictions.length})` },
+              { id: "archive", label: "Arkisto" },
+            ] as const).map(t => (
+              <button
+                key={t.id}
+                onClick={() => setTab(t.id)}
+                className={`px-4 py-2.5 text-xs font-bold uppercase tracking-wide transition-colors border-b-2 -mb-px ${
+                  tab === t.id
+                    ? "border-[#FFD700] text-[#FFD700]"
+                    : "border-transparent text-white/40 hover:text-white/70"
+                }`}
+              >
+                {t.label}
+              </button>
+            ))}
           </div>
-        </section>
+        </div>
+      </section>
 
-        {/* Past hunts archive */}
-        {past.length > 0 && (
-          <section>
-            <h2 className="font-display font-bold text-xl text-[#1b1b1c] mb-4">Aikaisemmat bonushuntit</h2>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              {past.map((hunt) => {
-                const roi = Math.round(((hunt.total_won - hunt.total_invested) / hunt.total_invested) * 100)
-                const profit = hunt.total_won >= hunt.total_invested
-                return (
-                  <div key={hunt.id} className="bg-white rounded-2xl border border-[#E5E8F0] p-5">
-                    <div className="flex items-start justify-between gap-3 mb-3">
-                      <div>
-                        <p className="font-display font-bold text-sm text-[#1b1b1c]">{hunt.title}</p>
-                        <p className="text-[10px] text-[#787585] mt-0.5">{hunt.date} &bull; {hunt.slots.length} peliä</p>
-                      </div>
-                      <span className={`text-sm font-bold ${profit ? "text-[#27AE60]" : "text-red-500"}`}>
-                        {profit ? "+" : ""}{roi}% ROI
-                      </span>
+      {/* ── CONTENT ───────────────────────────────────────────────────── */}
+      <div className="max-w-[1280px] mx-auto px-4 md:px-12 py-6">
+        <div className="flex flex-col xl:flex-row gap-6">
+
+          {/* Main column */}
+          <div className="flex-1 min-w-0">
+
+            {/* ── TAB: SLOTS ── */}
+            {tab === "slots" && (
+              <div className="space-y-4">
+                {/* Twitch embed placeholder */}
+                {active.is_active && (
+                  <div className="relative w-full aspect-video bg-[#1a0e3a] border border-white/10 rounded-2xl overflow-hidden flex items-center justify-center">
+                    <div className="text-center">
+                      <span className="material-symbols-outlined text-[48px] text-[#9146FF] mb-3 block" aria-hidden="true">live_tv</span>
+                      <p className="text-white font-bold text-sm">Twitch Stream</p>
+                      <p className="text-white/40 text-xs mt-1">SlotsBand live nyt</p>
+                      <a
+                        href="https://twitch.tv"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="inline-flex items-center gap-1.5 mt-3 bg-[#9146FF] text-white font-bold text-xs px-4 py-2 rounded-full hover:bg-[#a055ff] transition-colors"
+                      >
+                        <span className="material-symbols-outlined text-[14px]" aria-hidden="true">open_in_new</span>
+                        Avaa Twitchissa
+                      </a>
                     </div>
-                    <div className="grid grid-cols-3 gap-2">
-                      <div className="bg-[#F8F9FD] rounded-xl p-2.5 text-center">
-                        <p className="text-[10px] text-[#787585] uppercase">Investoitu</p>
-                        <p className="font-bold text-xs text-[#1b1b1c]">{hunt.total_invested}€</p>
-                      </div>
-                      <div className="bg-[#F8F9FD] rounded-xl p-2.5 text-center">
-                        <p className="text-[10px] text-[#787585] uppercase">Voitettu</p>
-                        <p className={`font-bold text-xs ${profit ? "text-[#27AE60]" : "text-red-500"}`}>{hunt.total_won}€</p>
-                      </div>
-                      <div className="bg-[#F8F9FD] rounded-xl p-2.5 text-center">
-                        <p className="text-[10px] text-[#787585] uppercase">Keskim.</p>
-                        <p className="font-bold text-xs text-[#1b1b1c]">
-                          {Math.round(hunt.slots.filter(s => s.multiplier !== null).reduce((sum, s) => sum + (s.multiplier ?? 0), 0) / hunt.slots.filter(s => s.multiplier !== null).length)}x
-                        </p>
-                      </div>
+                    <div className="absolute top-3 left-3 flex items-center gap-1.5 bg-black/60 border border-white/10 rounded-full px-2.5 py-1">
+                      {pulse()}
+                      <span className="text-white text-[10px] font-bold">LIVE</span>
                     </div>
                   </div>
-                )
-              })}
+                )}
+
+                {/* Slots table */}
+                <div className="bg-[#1a0e3a] border border-white/10 rounded-2xl overflow-hidden">
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-sm min-w-[580px]" aria-label="Bonushunt slotit">
+                      <thead>
+                        <tr className="border-b border-white/10">
+                          {["#", "Peli", "Tarjoaja", "Saldo", "Panos", "Bonus arvo", "Kerroin", "Voitto"].map(h => (
+                            <th key={h} className="text-left px-4 py-3 text-[10px] font-bold text-white/30 uppercase tracking-wider whitespace-nowrap">{h}</th>
+                          ))}
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {active.slots.map((slot, i) => (
+                          <tr
+                            key={i}
+                            className={`border-b border-white/5 last:border-0 transition-colors ${
+                              slot.multiplier !== null && slot.multiplier >= 500
+                                ? "bg-[#FFD700]/5"
+                                : "hover:bg-white/3"
+                            }`}
+                          >
+                            <td className="px-4 py-3 text-white/30 text-xs font-semibold">{i + 1}</td>
+                            <td className="px-4 py-3">
+                              <div className="flex items-center gap-2">
+                                <div className="w-8 h-8 bg-[#2D1783]/40 rounded-lg flex items-center justify-center flex-shrink-0">
+                                  <span className="material-symbols-outlined text-[#FFD700] text-[15px]" aria-hidden="true">casino</span>
+                                </div>
+                                <span className="font-semibold text-white text-sm">{slot.game}</span>
+                              </div>
+                            </td>
+                            <td className="px-4 py-3 text-white/40 text-xs whitespace-nowrap">{slot.provider}</td>
+                            <td className="px-4 py-3 text-white/70 text-xs font-semibold">{slot.balance}€</td>
+                            <td className="px-4 py-3 text-white/50 text-xs">{slot.bet}€</td>
+                            <td className="px-4 py-3 text-white/50 text-xs">{slot.bonus_value}x</td>
+                            <td className="px-4 py-3"><MultiplierBadge value={slot.multiplier} /></td>
+                            <td className="px-4 py-3"><ProfitCell slot={slot} /></td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+
+                  {/* Running totals footer */}
+                  <div className="grid grid-cols-2 sm:grid-cols-5 gap-px bg-white/5 border-t border-white/10">
+                    {[
+                      { label: "Investoitu", value: `${active.total_invested}€`, color: "text-white" },
+                      { label: "Voitettu", value: totalWon > 0 ? `${totalWon}€` : "—", color: totalWon >= active.total_invested ? "text-emerald-400" : "text-red-400" },
+                      { label: "Paras kerroin", value: bestMultiplier > 0 ? `${bestMultiplier}x` : "—", color: "text-[#FFD700]" },
+                      { label: "Keskim. kerroin", value: avgMultiplier > 0 ? `${avgMultiplier}x` : "—", color: "text-white" },
+                      { label: "ROI", value: roi !== 0 ? `${roi > 0 ? "+" : ""}${roi}%` : "—", color: roi >= 0 ? "text-emerald-400" : "text-red-400" },
+                    ].map(stat => (
+                      <div key={stat.label} className="bg-[#0d0820] px-4 py-3">
+                        <p className="text-white/30 text-[10px] uppercase tracking-wide font-bold">{stat.label}</p>
+                        <p className={`font-display font-bold text-base mt-0.5 ${stat.color}`}>{stat.value}</p>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* ── TAB: PREDICTIONS ── */}
+            {tab === "predictions" && (
+              <div className="space-y-4">
+                <div className="flex items-center justify-between">
+                  <h2 className="font-display font-bold text-lg text-white">Katsojaennusteet</h2>
+                  <button
+                    onClick={() => setShowModal(true)}
+                    className="flex items-center gap-1.5 bg-[#FFD700] text-[#0d0820] font-bold text-xs px-4 py-2 rounded-full hover:bg-yellow-300 active:scale-95 transition-all"
+                  >
+                    <span className="material-symbols-outlined text-[14px]" aria-hidden="true">add</span>
+                    Tee ennuste
+                  </button>
+                </div>
+
+                {/* Points key */}
+                <div className="bg-[#1a0e3a] border border-white/10 rounded-2xl p-4">
+                  <p className="text-white/40 text-[11px] font-bold uppercase tracking-wide mb-2">Pistejärjestelmä</p>
+                  <div className="flex flex-wrap gap-3">
+                    {[
+                      { pts: "100p", label: "Tarkka osuma" },
+                      { pts: "50p", label: "±10% heitto" },
+                      { pts: "25p", label: "±25% heitto" },
+                    ].map(r => (
+                      <div key={r.pts} className="flex items-center gap-1.5">
+                        <span className="bg-[#FFD700]/20 text-[#FFD700] font-bold text-[11px] px-2 py-0.5 rounded">{r.pts}</span>
+                        <span className="text-white/50 text-[11px]">{r.label}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Leaderboard */}
+                <div className="bg-[#1a0e3a] border border-white/10 rounded-2xl overflow-hidden">
+                  <table className="w-full text-sm min-w-[460px]" aria-label="Ennusteet">
+                    <thead>
+                      <tr className="border-b border-white/10">
+                        {["#", "Nimimerkki", "Loppusumma", "Paras kerroin", "Voittava peli", "Pisteet"].map(h => (
+                          <th key={h} className="text-left px-4 py-3 text-[10px] font-bold text-white/30 uppercase tracking-wider whitespace-nowrap">{h}</th>
+                        ))}
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {predictions.map((pred, i) => {
+                        const pts = active.is_active ? null : scorePrediction(pred, actualResult)
+                        const isWinner = pts !== null && pts === Math.max(...predictions.map(p => scorePrediction(p, actualResult)))
+                        return (
+                          <tr
+                            key={i}
+                            className={`border-b border-white/5 last:border-0 transition-colors ${isWinner ? "bg-[#FFD700]/5 border-[#FFD700]/20" : "hover:bg-white/3"}`}
+                          >
+                            <td className="px-4 py-3 text-white/30 text-xs">
+                              {isWinner ? <span className="material-symbols-outlined text-[#FFD700] text-[16px]" style={{ fontVariationSettings: "'FILL' 1" }}>emoji_events</span> : i + 1}
+                            </td>
+                            <td className="px-4 py-3 font-semibold text-white text-sm">{pred.nickname}</td>
+                            <td className="px-4 py-3 text-white/70 text-sm">{pred.amount}€</td>
+                            <td className="px-4 py-3 text-white/70 text-sm">{pred.multiplier}x</td>
+                            <td className="px-4 py-3 text-white/50 text-xs">{pred.game}</td>
+                            <td className="px-4 py-3">
+                              {pts !== null
+                                ? <span className={`font-bold text-sm ${pts >= 100 ? "text-[#FFD700]" : pts >= 50 ? "text-emerald-400" : "text-white/50"}`}>{pts}p</span>
+                                : <span className="text-white/20 text-xs">—</span>
+                              }
+                            </td>
+                          </tr>
+                        )
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            )}
+
+            {/* ── TAB: ARCHIVE ── */}
+            {tab === "archive" && (
+              <div className="space-y-4">
+                <h2 className="font-display font-bold text-lg text-white">Aikaisemmat sessiot</h2>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  {past.map(hunt => {
+                    const huntCompleted = hunt.slots.filter(s => s.multiplier !== null)
+                    const huntBest = huntCompleted.length ? Math.max(...huntCompleted.map(s => s.multiplier ?? 0)) : 0
+                    const huntBestGame = huntCompleted.find(s => s.multiplier === huntBest)?.game ?? "—"
+                    const huntROI = Math.round(((hunt.total_won - hunt.total_invested) / hunt.total_invested) * 100)
+                    const profit = hunt.total_won >= hunt.total_invested
+                    return (
+                      <div key={hunt.id} className="bg-[#1a0e3a] border border-white/10 rounded-2xl p-5 hover:border-white/20 transition-colors cursor-pointer">
+                        <div className="flex items-start justify-between gap-2 mb-4">
+                          <div>
+                            <p className="font-display font-bold text-sm text-white">{hunt.title}</p>
+                            <p className="text-white/30 text-[11px] mt-0.5">{hunt.date} &bull; {hunt.slots.length} peliä</p>
+                          </div>
+                          <span className={`text-base font-bold ${profit ? "text-emerald-400" : "text-red-400"}`}>
+                            {profit ? "+" : ""}{huntROI}%
+                          </span>
+                        </div>
+                        <div className="grid grid-cols-2 gap-2 mb-3">
+                          {[
+                            { label: "Investoitu", value: `${hunt.total_invested}€`, color: "text-white" },
+                            { label: "Voitettu", value: `${hunt.total_won}€`, color: profit ? "text-emerald-400" : "text-red-400" },
+                            { label: "Paras kerroin", value: `${huntBest}x`, color: "text-[#FFD700]" },
+                            { label: "Voittava peli", value: huntBestGame, color: "text-white/70" },
+                          ].map(s => (
+                            <div key={s.label} className="bg-white/5 rounded-xl px-3 py-2">
+                              <p className="text-white/30 text-[10px] uppercase tracking-wide font-bold">{s.label}</p>
+                              <p className={`font-bold text-xs mt-0.5 truncate ${s.color}`}>{s.value}</p>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )
+                  })}
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* ── SIDEBAR: ALL-TIME STATS ── */}
+          <aside className="xl:w-64 flex-shrink-0">
+            <div className="bg-[#1a0e3a] border border-white/10 rounded-2xl p-5 xl:sticky xl:top-20 space-y-4">
+              <h3 className="font-display font-bold text-sm text-white/80 uppercase tracking-wide">Kaikkien aikojen tilastot</h3>
+              {[
+                { icon: "emoji_events", label: "Paras kerroin", value: `${allTimeBest}x`, gold: true },
+                { icon: "trending_up", label: "Paras ROI sessio", value: `+${allTimeROI}%`, gold: false },
+                { icon: "bar_chart", label: "Sessioita yhteensä", value: `${BONUS_HUNTS.length}`, gold: false },
+                { icon: "casino", label: "Paras peli kautta", value: "Sugar Rush 1000", gold: false },
+              ].map(s => (
+                <div key={s.label} className="flex items-center gap-3">
+                  <div className={`w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0 ${s.gold ? "bg-[#FFD700]/15" : "bg-white/5"}`}>
+                    <span className={`material-symbols-outlined text-[18px] ${s.gold ? "text-[#FFD700]" : "text-white/40"}`} aria-hidden="true">{s.icon}</span>
+                  </div>
+                  <div className="min-w-0">
+                    <p className="text-white/30 text-[10px] font-bold uppercase tracking-wide leading-none">{s.label}</p>
+                    <p className={`font-bold text-sm mt-0.5 truncate ${s.gold ? "text-[#FFD700]" : "text-white"}`}>{s.value}</p>
+                  </div>
+                </div>
+              ))}
+
+              <div className="pt-2 border-t border-white/10">
+                <button
+                  onClick={() => { setTab("predictions"); setShowModal(true) }}
+                  className="w-full bg-[#FFD700] text-[#0d0820] font-bold text-xs py-3 rounded-xl hover:bg-yellow-300 active:scale-95 transition-all"
+                >
+                  Tee ennuste
+                </button>
+              </div>
             </div>
-          </section>
-        )}
+          </aside>
+
+        </div>
       </div>
-      <div className="pb-12" />
+
+      {/* Modal */}
+      {showModal && (
+        <PredictionModal
+          games={gameNames}
+          onClose={() => setShowModal(false)}
+          onSubmit={(p) => { setPredictions(prev => [p, ...prev]) }}
+        />
+      )}
     </div>
   )
 }
