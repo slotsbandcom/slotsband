@@ -317,19 +317,28 @@ export default function BonusHuntPage({
   const active = bonusHunts.find(b => b.is_active) ?? bonusHunts[0]
   const past = bonusHunts.filter(b => !b.is_active)
 
-  const completedSlots = active.slots.filter(s => s.multiplier !== null)
-  const progress = Math.round((completedSlots.length / active.slots.length) * 100)
+  const { status: streamStatus, anyLive } = useStreamStatus()
+
+  // All-time stats from past sessions (safe even when bonusHunts is empty)
+  const allCompleted = past.flatMap(h => (h.slots ?? []).filter(s => s.multiplier !== null))
+  const allTimeBest = allCompleted.length ? Math.max(...allCompleted.map(s => s.multiplier ?? 0)) : 1240
+  const allTimeROI = past.length ? Math.max(...past.map(h => Math.round(((h.total_won - h.total_invested) / h.total_invested) * 100))) : 140
+
+  if (!active) {
+    return (
+      <div className="min-h-screen bg-[#F8F9FD] flex items-center justify-center">
+        <p className="text-[#787585] text-sm font-medium">Ei aktiivista bonushuntia juuri nyt.</p>
+      </div>
+    )
+  }
+
+  const slots = active.slots ?? []
+  const completedSlots = slots.filter(s => s.multiplier !== null)
+  const progress = slots.length ? Math.round((completedSlots.length / slots.length) * 100) : 0
   const totalWon = completedSlots.reduce((sum, s) => sum + Math.round(s.bet * (s.multiplier ?? 0)), 0)
   const bestMultiplier = completedSlots.length ? Math.max(...completedSlots.map(s => s.multiplier ?? 0)) : 0
   const avgMultiplier = completedSlots.length ? Math.round(completedSlots.reduce((sum, s) => sum + (s.multiplier ?? 0), 0) / completedSlots.length) : 0
   const roi = active.total_won > 0 ? Math.round(((active.total_won - active.total_invested) / active.total_invested) * 100) : 0
-
-  // All-time stats from past sessions
-  const allCompleted = past.flatMap(h => h.slots.filter(s => s.multiplier !== null))
-  const allTimeBest = allCompleted.length ? Math.max(...allCompleted.map(s => s.multiplier ?? 0)) : 1240
-  const allTimeROI = past.length ? Math.max(...past.map(h => Math.round(((h.total_won - h.total_invested) / h.total_invested) * 100))) : 140
-
-  const { status: streamStatus, anyLive } = useStreamStatus()
 
   const [tab, setTab] = useState<"slots" | "predictions" | "archive">("slots")
   const [showModal, setShowModal] = useState(false)
@@ -340,7 +349,7 @@ export default function BonusHuntPage({
     { nickname: "LuckyLauri", amount: 1900, multiplier: 150, game: "Big Bass Bonanza", submittedAt: "14:26" },
   ])
 
-  const gameNames = active.slots.map(s => s.game)
+  const gameNames = slots.map(s => s.game)
 
   // Actual results for completed session scoring (use past[0] as example)
   const actualResult = { amount: past[0]?.total_won ?? 4320, multiplier: 1240 }
@@ -382,7 +391,7 @@ export default function BonusHuntPage({
             <div className="flex gap-3 flex-wrap">
               {[
                 { label: "Investoitu", value: `${active.total_invested}€`, color: "text-white" },
-                { label: "Avattu", value: `${completedSlots.length}/${active.slots.length}`, color: "text-white" },
+                { label: "Avattu", value: `${completedSlots.length}/${slots.length}`, color: "text-white" },
                 ...(totalWon > 0 ? [{ label: "Voitettu", value: `${totalWon}€`, color: totalWon >= active.total_invested ? "text-emerald-400" : "text-red-400" }] : []),
               ].map(stat => (
                 <div key={stat.label} className="bg-white/5 border border-white/10 rounded-2xl px-4 py-3 text-center min-w-[90px]">
@@ -461,7 +470,7 @@ export default function BonusHuntPage({
                         </tr>
                       </thead>
                       <tbody>
-                        {active.slots.map((slot, i) => (
+                        {slots.map((slot, i) => (
                           <tr
                             key={i}
                             className={`border-b border-white/5 last:border-0 transition-colors ${
