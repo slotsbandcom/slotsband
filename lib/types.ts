@@ -128,6 +128,10 @@ export interface Game {
   volatility?: "low" | "medium" | "high"
   type?: "slot" | "live" | "table" | "jackpot" | "other"
   demo_url?: string
+  is_active?: boolean
+  is_featured?: boolean
+  created_at?: string
+  updated_at?: string
 }
 
 export interface BonusHuntSlot {

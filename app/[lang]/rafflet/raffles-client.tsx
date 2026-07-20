@@ -104,7 +104,7 @@ export default function RafflesPage({
         <section>
           <h2 className="font-display font-bold text-xl text-[#1b1b1c] mb-4">Miten osallistua?</h2>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
-            {active.how_to.map((step, i) => (
+            {(active.how_to ?? []).map((step, i) => (
               <div key={i} className="bg-white rounded-2xl border border-[#E5E8F0] p-4 flex items-start gap-3">
                 <div className="w-8 h-8 bg-[#2D1783] rounded-full flex items-center justify-center flex-shrink-0 font-display font-bold text-white text-sm">
                   {i + 1}
@@ -129,7 +129,7 @@ export default function RafflesPage({
                 </tr>
               </thead>
               <tbody>
-                {active.past_winners.map((w, i) => (
+                {(active.past_winners ?? []).map((w, i) => (
                   <tr key={i} className="border-b border-[#F8F9FD] last:border-0 hover:bg-[#F8F9FD] transition-colors">
                     <td className="px-4 py-3">
                       <div className="flex items-center gap-2">
@@ -145,7 +145,7 @@ export default function RafflesPage({
                         {w.prize}
                       </span>
                     </td>
-                    <td className="px-4 py-3 hidden sm:table-cell text-xs text-[#787585]">{w.casino}</td>
+                    <td className="px-4 py-3 hidden sm:table-cell text-xs text-[#787585]">{w.casino ?? ""}</td>
                     <td className="px-4 py-3 hidden sm:table-cell text-xs text-[#787585]">{w.date}</td>
                   </tr>
                 ))}
@@ -158,12 +158,12 @@ export default function RafflesPage({
         <section>
           <h2 className="font-display font-bold text-xl text-[#1b1b1c] mb-4">Tulevat rafflet</h2>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            {active.upcoming.map((r) => (
+            {(active.upcoming ?? []).map((r) => (
               <div key={r.id} className="bg-white rounded-2xl border border-[#E5E8F0] p-5 flex items-start justify-between gap-4">
                 <div>
                   <span className="inline-block bg-[#F8F9FD] border border-[#E5E8F0] text-[10px] font-bold text-[#787585] uppercase px-2 py-0.5 rounded-full mb-2">Tulossa pian</span>
                   <h3 className="font-display font-bold text-base text-[#1b1b1c]">{r.title}</h3>
-                  <p className="text-xs text-[#787585] mt-1">{r.casino}</p>
+                  <p className="text-xs text-[#787585] mt-1">{r.casino_name}</p>
                   <p className="text-xs text-[#787585] mt-0.5">Alkaa: {r.starts_at}</p>
                 </div>
                 <div className="flex-shrink-0 text-center">

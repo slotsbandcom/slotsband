@@ -377,10 +377,10 @@ function AiPopulateTab({ casinoName, onApply }: { casinoName: string; onApply: (
       {result && (
         <SectionCard title="AI Research Results" icon="preview">
           <div className="space-y-4">
-            {(result as Record<string, unknown>).summary && (
+            {!!(result as Record<string, unknown>).summary && (
               <div className="bg-[#F8F9FD] border border-[#E5E8F0] rounded-xl p-4">
                 <p className="text-xs font-bold text-[#787585] mb-1">Summary</p>
-                <p className="text-sm text-[#1b1b1c]">{(result as Record<string, unknown>).summary as string}</p>
+                <p className="text-sm text-[#1b1b1c]">{String((result as Record<string, unknown>).summary)}</p>
               </div>
             )}
             <div className="bg-[#0d0820] rounded-xl p-4 overflow-auto max-h-64">

@@ -10,7 +10,7 @@ export default async function NewsletterPage() {
     email: r.email,
     lang: r.lang ?? "fi",
     date: r.subscribed_at?.slice(0, 10) ?? "",
-    status: r.is_active ? "active" : "unsubscribed",
+    status: (r.is_active ? "active" : "unsubscribed") as "active" | "unsubscribed",
   }))
 
   return <AdminNewsletterPage subscribers={subscribers} />
