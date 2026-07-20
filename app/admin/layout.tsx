@@ -2,8 +2,9 @@
 
 import { useState } from "react"
 import Link from "next/link"
-import { usePathname } from "next/navigation"
+import { usePathname, useRouter } from "next/navigation"
 import { SlotsbandLogo } from "@/components/slotsband-logo"
+import { createClient } from "@/lib/supabase/client"
 
 const NAV_ITEMS = [
   { icon: "dashboard", label: "Dashboard", href: "/admin" },
@@ -19,7 +20,15 @@ const NAV_ITEMS = [
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname()
+  const router = useRouter()
   const [collapsed, setCollapsed] = useState(false)
+
+  async function handleLogout() {
+    const supabase = createClient()
+    await supabase.auth.signOut()
+    router.push("/admin/login")
+    router.refresh()
+  }
 
   return (
     <div className="flex min-h-screen bg-[#F8F9FD]">
@@ -93,6 +102,13 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
                 A
               </div>
               <span className="text-sm font-semibold text-[#1b1b1c] hidden sm:block">Admin</span>
+              <button
+                onClick={handleLogout}
+                title="Sign out"
+                className="w-8 h-8 rounded-xl bg-[#F8F9FD] border border-[#E5E8F0] flex items-center justify-center hover:border-red-300 hover:text-red-500 transition-colors"
+              >
+                <span className="material-symbols-outlined text-[16px]">logout</span>
+              </button>
             </div>
           </div>
         </header>

@@ -1,81 +1,75 @@
+import { createClient } from "@/lib/supabase/server"
 import { NextResponse } from "next/server"
 
-// ─── In-memory override store ─────────────────────────────────────────────────
-// This persists for the lifetime of the serverless function instance.
-// For production persistence use a KV store (Vercel KV / Upstash).
+export const dynamic = "force-dynamic"
 
-export interface StreamOverride {
-  mode: "auto" | "manual"
-  /** Only relevant when mode === "manual" */
-  isLive: boolean
-  title: string
-  viewers: number
-  /** ISO string — when to auto-reset to OFFLINE (null = never) */
-  expiresAt: string | null
-  /** Hours until auto-reset, 0 = never */
-  autoResetHours: number
-  updatedAt: string
+async function getRow() {
+  const supabase = await createClient()
+  const { data } = await supabase
+    .from("stream_status")
+    .select("*")
+    .eq("platform", "kick")
+    .single()
+  return data
 }
 
-const DEFAULT: StreamOverride = {
-  mode: "auto",
-  isLive: false,
-  title: "",
-  viewers: 0,
-  expiresAt: null,
-  autoResetHours: 8,
-  updatedAt: new Date().toISOString(),
-}
-
-// Module-level singleton — shared across requests in the same instance
-let override: StreamOverride = { ...DEFAULT }
-
-function resolvedOverride(): StreamOverride {
-  // Auto-expire: if expiresAt is set and has passed, reset to OFFLINE
-  if (override.expiresAt && new Date() > new Date(override.expiresAt)) {
-    override = {
-      ...override,
-      isLive: false,
-      expiresAt: null,
-      updatedAt: new Date().toISOString(),
-    }
+function toResponse(row: any) {
+  // Auto-expire manual overrides
+  if (row?.override_mode === "manual" && row.expires_at && new Date() > new Date(row.expires_at)) {
+    return { mode: "auto", isLive: false, title: "", viewers: 0, expiresAt: null }
   }
-  return override
+  return {
+    mode: row?.override_mode ?? "auto",
+    isLive: row?.is_live ?? false,
+    title: row?.title ?? "",
+    viewers: row?.viewers ?? 0,
+    expiresAt: row?.expires_at ?? null,
+  }
 }
 
 export async function GET() {
-  return NextResponse.json(resolvedOverride())
+  const row = await getRow()
+  return NextResponse.json(toResponse(row), { headers: { "Cache-Control": "no-store" } })
 }
 
 export async function POST(req: Request) {
   try {
-    const body = await req.json() as Partial<StreamOverride>
+    const body = await req.json()
+    const supabase = await createClient()
 
-    // Merge patch
-    override = {
-      ...override,
-      ...body,
-      updatedAt: new Date().toISOString(),
+    const isLive = body.isLive ?? false
+    const mode = body.mode ?? "manual"
+    const autoResetHours = body.autoResetHours ?? 8
+
+    let expiresAt: string | null = null
+    if (mode === "manual" && isLive && autoResetHours > 0) {
+      const exp = new Date()
+      exp.setHours(exp.getHours() + autoResetHours)
+      expiresAt = exp.toISOString()
     }
 
-    // Compute expiresAt when switching to manual LIVE
-    if (body.mode === "manual" && body.isLive === true) {
-      const hours = body.autoResetHours ?? override.autoResetHours
-      if (hours > 0) {
-        const exp = new Date()
-        exp.setHours(exp.getHours() + hours)
-        override.expiresAt = exp.toISOString()
-      } else {
-        override.expiresAt = null
-      }
+    const row = {
+      platform: "kick",
+      override_mode: mode,
+      is_live: isLive,
+      title: body.title ?? "",
+      viewers: body.viewers ?? 0,
+      expires_at: expiresAt,
+      updated_at: new Date().toISOString(),
     }
 
-    // Clear expiry when going OFFLINE manually
-    if (body.mode === "manual" && body.isLive === false) {
-      override.expiresAt = null
+    const { data, error } = await supabase
+      .from("stream_status")
+      .upsert(row, { onConflict: "platform" })
+      .select()
+      .single()
+
+    if (error) {
+      console.error("[v0] stream-override upsert error:", error.message)
+      return NextResponse.json({ error: error.message }, { status: 500 })
     }
 
-    return NextResponse.json(resolvedOverride())
+    return NextResponse.json(toResponse(data), { headers: { "Cache-Control": "no-store" } })
   } catch {
     return NextResponse.json({ error: "Invalid body" }, { status: 400 })
   }

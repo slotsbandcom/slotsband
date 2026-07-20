@@ -3,7 +3,7 @@ import Link from "next/link"
 import Image from "next/image"
 import type { Metadata } from "next"
 import type { Lang } from "@/lib/types"
-import { CASINOS } from "@/lib/data"
+import { getCasinos, getCasinoBySlug } from "@/lib/supabase/queries"
 import { CasinoCard } from "@/components/casino-card"
 
 const VALID_LANGS: Lang[] = ["fi", "uk", "en"]
@@ -13,9 +13,10 @@ interface CasinoPageProps {
 }
 
 export async function generateStaticParams() {
+  const casinos = await getCasinos({ activeOnly: true })
   const paths: { lang: string; slug: string }[] = []
   for (const lang of VALID_LANGS) {
-    for (const casino of CASINOS) {
+    for (const casino of casinos) {
       paths.push({ lang, slug: casino.slug })
     }
   }
@@ -25,7 +26,7 @@ export async function generateStaticParams() {
 export async function generateMetadata({ params }: CasinoPageProps): Promise<Metadata> {
   const { lang: rawLang, slug } = await params
   const lang = (VALID_LANGS.includes(rawLang as Lang) ? rawLang : "fi") as Lang
-  const casino = CASINOS.find((c) => c.slug === slug)
+  const casino = await getCasinoBySlug(slug)
   if (!casino) return {}
 
   const title = lang === "fi"
@@ -64,7 +65,10 @@ function TrustScore({ score }: { score: number }) {
 export default async function CasinoPage({ params }: CasinoPageProps) {
   const { lang: rawLang, slug } = await params
   const lang = (VALID_LANGS.includes(rawLang as Lang) ? rawLang : "fi") as Lang
-  const casino = CASINOS.find((c) => c.slug === slug)
+  const [casino, allCasinos] = await Promise.all([
+    getCasinoBySlug(slug),
+    getCasinos({ activeOnly: true }),
+  ])
   if (!casino) notFound()
 
   const review = lang === "fi" ? casino.review_fi : lang === "uk" ? casino.review_uk : casino.review_en
@@ -72,8 +76,8 @@ export default async function CasinoPage({ params }: CasinoPageProps) {
   const cons = lang === "fi" ? casino.cons_fi : lang === "uk" ? casino.cons_uk : casino.cons_en
   const faqs = lang === "fi" ? casino.faq_fi : lang === "uk" ? casino.faq_uk : casino.faq_en
 
-  const similar = CASINOS
-    .filter((c) => c.slug !== slug && c.is_active)
+  const similar = allCasinos
+    .filter((c) => c.slug !== slug)
     .sort(() => Math.random() - 0.5)
     .slice(0, 3)
 
