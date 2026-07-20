@@ -1,9 +1,8 @@
 "use client"
 
-import { useState, useCallback } from "react"
+import { useState, useCallback, useEffect } from "react"
 import Link from "next/link"
 import { useParams } from "next/navigation"
-import { CASINOS } from "@/lib/data"
 import type { Casino } from "@/lib/types"
 
 // ─── Constants ───────────────────────────────────────────────────────────────
@@ -407,26 +406,59 @@ function AiPopulateTab({ casinoName, onApply }: { casinoName: string; onApply: (
 
 // ─── Main page ────────────────────────────────────────────────────────────────
 
+const EMPTY_CASINO = (slug: string): Casino => ({
+  id: "", slug, name: slug, rank: 99, rating: 7.0, trust_score: 70,
+  is_active: false, is_featured: false, is_new: false, is_pikakasino: false,
+  affiliate_url: "", mene_slug: slug, languages_supported: [], available_in: [],
+  restricted_in: [], payment_methods: [], currencies_accepted: [],
+  game_providers: [], support_languages: [],
+})
+
 export default function CasinoEditPage() {
   const params = useParams()
   const slug = params.slug as string
-  const found = CASINOS.find(c => c.slug === slug)
 
-  const [form, setForm] = useState<Casino>(found ?? {
-    id: "", slug, name: slug, rank: 99, rating: 7.0, trust_score: 70,
-    is_active: false, is_featured: false, is_new: false, is_pikakasino: false,
-    affiliate_url: "", mene_slug: slug, languages_supported: [], available_in: [],
-    restricted_in: [], payment_methods: [], currencies_accepted: [],
-    game_providers: [], support_languages: [],
-  })
+  const [form, setForm] = useState<Casino>(EMPTY_CASINO(slug))
+  const [loading, setLoading] = useState(true)
   const [activeTab, setActiveTab] = useState("general")
-  const [saved, setSaved] = useState(false)
+  const [saved, setSaved] = useState<"idle" | "saving" | "ok" | "error">("idle")
+
+  // Fetch casino from Supabase on mount
+  useEffect(() => {
+    fetch(`/api/admin/casinos/${slug}`)
+      .then(r => r.ok ? r.json() : null)
+      .then(data => {
+        if (data) setForm(data)
+      })
+      .finally(() => setLoading(false))
+  }, [slug])
 
   const patch = useCallback((p: Partial<Casino>) => {
     setForm(prev => ({ ...prev, ...p }))
   }, [])
 
-  const save = () => { setSaved(true); setTimeout(() => setSaved(false), 2500) }
+  const save = async () => {
+    setSaved("saving")
+    try {
+      const endpoint = form.id
+        ? `/api/admin/casinos/${form.id}`
+        : `/api/admin/casinos/${slug}`
+      const method = form.id ? "PATCH" : "POST"
+      const res = await fetch(endpoint, {
+        method,
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(form),
+      })
+      if (!res.ok) throw new Error("Save failed")
+      const updated = await res.json()
+      if (updated?.id) setForm(updated)
+      setSaved("ok")
+    } catch {
+      setSaved("error")
+    } finally {
+      setTimeout(() => setSaved("idle"), 2500)
+    }
+  }
 
   // UTM builder state
   const [utmCampaign, setUtmCampaign] = useState(form.slug)
@@ -448,6 +480,17 @@ export default function CasinoEditPage() {
 
   // Mock link stats
   const MOCK_STATS = { total: 12480, month: 1847, last: "2026-07-19 08:41", by_lang: { fi: 68, en: 22, uk: 10 } }
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center py-24">
+        <div className="flex flex-col items-center gap-3">
+          <div className="w-10 h-10 rounded-full border-4 border-[#2D1783] border-t-transparent animate-spin" />
+          <p className="text-sm text-[#787585] font-medium">Loading casino data...</p>
+        </div>
+      </div>
+    )
+  }
 
   return (
     <div>
@@ -477,10 +520,16 @@ export default function CasinoEditPage() {
               <span className="material-symbols-outlined text-[14px]">open_in_new</span>
               View on site
             </Link>
-            <button type="button" onClick={save}
-              className={`flex items-center gap-1.5 text-xs font-bold px-4 py-2 rounded-xl transition-all ${saved ? "bg-[#27AE60] text-white" : "bg-[#2D1783] text-white hover:bg-[#3e2db2]"}`}>
-              <span className="material-symbols-outlined text-[14px]">{saved ? "check" : "save"}</span>
-              {saved ? "Saved!" : "Save Changes"}
+            <button type="button" onClick={save} disabled={saved === "saving"}
+              className={`flex items-center gap-1.5 text-xs font-bold px-4 py-2 rounded-xl transition-all disabled:opacity-70 ${
+                saved === "ok" ? "bg-[#27AE60] text-white"
+                : saved === "error" ? "bg-red-500 text-white"
+                : "bg-[#2D1783] text-white hover:bg-[#3e2db2]"
+              }`}>
+              <span className="material-symbols-outlined text-[14px]">
+                {saved === "ok" ? "check" : saved === "error" ? "error" : saved === "saving" ? "hourglass_empty" : "save"}
+              </span>
+              {saved === "ok" ? "Saved!" : saved === "error" ? "Error!" : saved === "saving" ? "Saving..." : "Save Changes"}
             </button>
           </div>
         </div>

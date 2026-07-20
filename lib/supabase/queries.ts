@@ -3,7 +3,7 @@
  * Always call createClient() from the server client inside each function.
  */
 import { createClient } from "@/lib/supabase/server"
-import type { Casino, Bonus, Game } from "@/lib/types"
+import type { Casino, Bonus, Game, Raffle, BonusHunt } from "@/lib/types"
 
 // ─── Casinos ──────────────────────────────────────────────────────────────────
 
@@ -188,6 +188,51 @@ export async function setStreamOverride(opts: {
 
   if (error) console.error("[v0] setStreamOverride error:", error.message)
   return data
+}
+
+// ─── Raffles ─────────────────────────────────────────────────────────────────
+
+export async function getRaffles(): Promise<Raffle[]> {
+  const supabase = await createClient()
+  const { data, error } = await supabase
+    .from("raffle_sessions")
+    .select("*")
+    .order("created_at", { ascending: false })
+
+  if (error) {
+    console.error("[v0] getRaffles error:", error.message)
+    return []
+  }
+  return (data ?? []) as Raffle[]
+}
+
+// ─── Bonus Hunts ──────────────────────────────────────────────────────────────
+
+export async function getBonusHunts(): Promise<BonusHunt[]> {
+  const supabase = await createClient()
+  const { data: sessions, error } = await supabase
+    .from("bonushunt_sessions")
+    .select("*, bonushunt_slots(*)")
+    .order("date", { ascending: false })
+
+  if (error) {
+    console.error("[v0] getBonusHunts error:", error.message)
+    return []
+  }
+
+  return (sessions ?? []).map((s: any) => ({
+    ...s,
+    is_active: s.status === "active",
+    total_invested: s.total_buyin ?? 0,
+    slots: (s.bonushunt_slots ?? []).map((slot: any) => ({
+      game: slot.game,
+      provider: slot.provider,
+      balance: slot.balance,
+      bet: slot.bet,
+      bonus_value: slot.bonus_value,
+      multiplier: slot.multiplier ?? null,
+    })),
+  })) as BonusHunt[]
 }
 
 // ─── Dashboard stats ──────────────────────────────────────────────────────────

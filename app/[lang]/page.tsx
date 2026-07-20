@@ -1,6 +1,7 @@
 import type { Metadata } from "next"
 import type { Lang } from "@/lib/types"
-import { CASINOS, TRANSLATIONS } from "@/lib/data"
+import { TRANSLATIONS } from "@/lib/data"
+import { getCasinos } from "@/lib/supabase/queries"
 import { HeroSlider } from "@/components/hero-slider"
 import { StreamStatusBadge } from "@/components/stream-status-badge"
 import { CasinoCard } from "@/components/casino-card"
@@ -41,7 +42,7 @@ export default async function HomePage({ params }: HomePageProps) {
   const { lang } = await params
   const safeLang = (VALID_LANGS.includes(lang as Lang) ? lang : "fi") as Lang
   const t = TRANSLATIONS[safeLang]
-  const featuredCasinos = CASINOS.filter((c) => c.is_active).sort((a, b) => a.rank - b.rank).slice(0, 10)
+  const featuredCasinos = (await getCasinos({ activeOnly: true })).slice(0, 10)
 
   return (
     <div className="min-h-screen bg-white">

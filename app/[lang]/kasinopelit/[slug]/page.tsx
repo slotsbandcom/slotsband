@@ -1,23 +1,28 @@
 import Link from "next/link"
 import { notFound } from "next/navigation"
-import { GAMES, CASINOS } from "@/lib/data"
+import { getGames, getCasinos } from "@/lib/supabase/queries"
 import type { Lang } from "@/lib/types"
 
 const VOLATILITY_FI: Record<string, string> = { low: "Matala", medium: "Keskisuuri", high: "Korkea" }
 const TYPE_FI: Record<string, string> = { slot: "Kolikkopeli", live: "Live kasino", table: "Pöytäpeli", jackpot: "Jackpot" }
 
-export function generateStaticParams() {
+export async function generateStaticParams() {
   const langs = ["fi", "en", "uk"]
-  return langs.flatMap((lang) => GAMES.map((g) => ({ lang, slug: g.slug })))
+  const games = await getGames({ activeOnly: true })
+  return langs.flatMap((lang) => games.map((g) => ({ lang, slug: g.slug })))
 }
 
-export default function GamePage({ params }: { params: { lang: string; slug: string } }) {
+export default async function GamePage({ params }: { params: { lang: string; slug: string } }) {
   const lang = (params.lang as Lang) || "fi"
-  const game = GAMES.find((g) => g.slug === params.slug)
+  const [allGames, casinos] = await Promise.all([
+    getGames({ activeOnly: true }),
+    getCasinos({ activeOnly: true }),
+  ])
+  const game = allGames.find((g) => g.slug === params.slug)
   if (!game) notFound()
 
-  const similar = GAMES.filter((g) => g.type === game.type && g.id !== game.id).slice(0, 4)
-  const casinos = CASINOS.filter((c) => c.game_providers.some((p) => p === game.provider)).slice(0, 4)
+  const similar = allGames.filter((g) => g.type === game.type && g.id !== game.id).slice(0, 4)
+  const casinosForGame = casinos.filter((c) => c.game_providers.some((p) => p === game.provider)).slice(0, 4)
 
   const stats = [
     { label: "RTP", value: game.rtp ? `${game.rtp}%` : "N/A", icon: "percent" },
@@ -124,11 +129,11 @@ export default function GamePage({ params }: { params: { lang: string; slug: str
             <div className="bg-white rounded-2xl border border-[#E5E8F0] p-4 sticky top-[120px]">
               <h2 className="font-display font-bold text-sm text-[#1b1b1c] mb-3">Missä pelata {game.name}?</h2>
               <div className="space-y-3">
-                {casinos.length === 0
-                  ? CASINOS.slice(0, 3).map((c) => (
+                {casinosForGame.length === 0
+                  ? casinos.slice(0, 3).map((c) => (
                       <CasinoRow key={c.id} casino={c} lang={lang} />
                     ))
-                  : casinos.map((c) => (
+                  : casinosForGame.map((c) => (
                       <CasinoRow key={c.id} casino={c} lang={lang} />
                     ))
                 }
@@ -147,7 +152,7 @@ export default function GamePage({ params }: { params: { lang: string; slug: str
   )
 }
 
-function CasinoRow({ casino, lang }: { casino: (typeof CASINOS)[0]; lang: Lang }) {
+function CasinoRow({ casino, lang }: { casino: import("@/lib/types").Casino; lang: Lang }) {
   return (
     <div className="flex items-center gap-3 p-3 bg-[#F8F9FD] rounded-xl">
       <div className="w-9 h-9 bg-white rounded-lg border border-[#E5E8F0] flex items-center justify-center flex-shrink-0">

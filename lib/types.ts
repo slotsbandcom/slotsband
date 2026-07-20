@@ -139,6 +139,49 @@ export interface BonusHuntSlot {
   multiplier: number | null
 }
 
+export interface RaffleWinner {
+  name: string
+  prize: string
+  casino?: string
+  date?: string
+}
+
+export interface Raffle {
+  id: string
+  title: string
+  description?: string
+  prize?: string
+  prize_value?: number
+  status: "upcoming" | "active" | "completed" | "cancelled"
+  starts_at?: string
+  ends_at: string
+  winner_id?: string
+  stream_url?: string
+  created_at?: string
+  // Enriched fields (may come from DB JSONB columns)
+  casino_name?: string
+  casino_slug?: string
+  how_to?: string[]
+  past_winners?: RaffleWinner[]
+  upcoming?: Raffle[]
+}
+
+export interface BonusHunt {
+  id: string
+  title: string
+  date: string
+  status: "upcoming" | "active" | "completed"
+  is_active: boolean
+  start_balance: number
+  current_balance: number
+  total_buyin: number
+  total_invested: number
+  total_won: number
+  stream_url?: string
+  notes?: string
+  slots: BonusHuntSlot[]
+}
+
 export interface NavItem {
   label_fi: string
   label_en: string
