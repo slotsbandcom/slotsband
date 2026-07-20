@@ -1,6 +1,7 @@
 import Link from "next/link"
 import { notFound } from "next/navigation"
 import { getGames, getCasinos } from "@/lib/supabase/queries"
+import { getGameSlugs } from "@/lib/supabase/build-client"
 import type { Lang } from "@/lib/types"
 
 const VOLATILITY_FI: Record<string, string> = { low: "Matala", medium: "Keskisuuri", high: "Korkea" }
@@ -8,8 +9,8 @@ const TYPE_FI: Record<string, string> = { slot: "Kolikkopeli", live: "Live kasin
 
 export async function generateStaticParams() {
   const langs = ["fi", "en", "uk"]
-  const games = await getGames({ activeOnly: true })
-  return langs.flatMap((lang) => games.map((g) => ({ lang, slug: g.slug })))
+  const slugs = await getGameSlugs()
+  return langs.flatMap((lang) => slugs.map((slug) => ({ lang, slug })))
 }
 
 export default async function GamePage({ params }: { params: { lang: string; slug: string } }) {

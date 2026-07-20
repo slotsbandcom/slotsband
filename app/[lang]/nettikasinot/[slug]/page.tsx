@@ -4,6 +4,7 @@ import Image from "next/image"
 import type { Metadata } from "next"
 import type { Lang } from "@/lib/types"
 import { getCasinos, getCasinoBySlug } from "@/lib/supabase/queries"
+import { getCasinoSlugs } from "@/lib/supabase/build-client"
 import { CasinoCard } from "@/components/casino-card"
 
 const VALID_LANGS: Lang[] = ["fi", "uk", "en"]
@@ -13,11 +14,11 @@ interface CasinoPageProps {
 }
 
 export async function generateStaticParams() {
-  const casinos = await getCasinos({ activeOnly: true })
+  const slugs = await getCasinoSlugs()
   const paths: { lang: string; slug: string }[] = []
   for (const lang of VALID_LANGS) {
-    for (const casino of casinos) {
-      paths.push({ lang, slug: casino.slug })
+    for (const slug of slugs) {
+      paths.push({ lang, slug })
     }
   }
   return paths
