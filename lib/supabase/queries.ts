@@ -203,7 +203,32 @@ export async function getRaffles(): Promise<Raffle[]> {
     console.error("[v0] getRaffles error:", error.message)
     return []
   }
-  return (data ?? []) as Raffle[]
+
+  // Parse description JSON for enriched fields (casino_name, casino_slug, how_to, past_winners)
+  // until proper schema columns are added via migration.
+  const rows = (data ?? []).map((row: any) => {
+    let extra: Record<string, any> = {}
+    try {
+      if (typeof row.description === "string" && row.description.trim().startsWith("{")) {
+        extra = JSON.parse(row.description)
+      }
+    } catch {}
+    return {
+      ...row,
+      casino_name: row.casino_partner ?? extra.casino_name ?? undefined,
+      casino_slug: row.casino_slug ?? extra.casino_slug ?? undefined,
+      how_to:      row.entry_requirements ?? extra.how_to ?? [],
+      past_winners: extra.past_winners ?? [],
+      prize:       row.prize_name ?? row.prize ?? undefined,
+    } as Raffle
+  })
+
+  // Attach upcoming rows onto the active raffle so the client can render them
+  const active   = rows.find((r) => r.status === "active")
+  const upcoming = rows.filter((r) => r.status === "upcoming")
+  if (active && upcoming.length > 0) active.upcoming = upcoming
+
+  return rows
 }
 
 // ─── Bonus Hunts ──────────────────────────────────────────────────────────────
