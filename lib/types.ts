@@ -124,9 +124,13 @@ export interface Game {
   name: string
   provider: string
   thumbnail?: string
+  thumbnail_url?: string
   rtp?: number
   volatility?: "low" | "medium" | "high"
   type?: "slot" | "live" | "table" | "jackpot" | "other"
+  min_bet?: number
+  max_bet?: number
+  paylines?: number
   demo_url?: string
   is_active?: boolean
   is_featured?: boolean

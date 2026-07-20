@@ -23,6 +23,11 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   const router = useRouter()
   const [collapsed, setCollapsed] = useState(false)
 
+  // Login page is standalone — no sidebar or header
+  if (pathname === "/admin/login") {
+    return <>{children}</>
+  }
+
   async function handleLogout() {
     const supabase = createClient()
     await supabase.auth.signOut()

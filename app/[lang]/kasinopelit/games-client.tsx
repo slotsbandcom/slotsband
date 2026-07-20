@@ -1,26 +1,25 @@
 "use client"
 
-import { useState, useMemo } from "react"
+import { useState, useMemo, use } from "react"
 import Link from "next/link"
 import type { Lang, Game } from "@/lib/types"
 
 const GAME_TYPES = [
-  { id: "all",     label: "Kaikki pelit",   icon: "grid_view" },
-  { id: "slot",    label: "Kolikkopelit",   icon: "casino" },
-  { id: "live",    label: "Live kasino",    icon: "live_tv" },
-  { id: "table",   label: "Pöytäpelit",    icon: "table_restaurant" },
-  { id: "jackpot", label: "Jackpot",        icon: "emoji_events" },
+  { id: "all",     label: "Kaikki pelit",  icon: "grid_view" },
+  { id: "slot",    label: "Kolikkopelit",  icon: "casino" },
+  { id: "live",    label: "Live kasino",   icon: "live_tv" },
+  { id: "table",   label: "Pöytäpelit",   icon: "table_restaurant" },
+  { id: "jackpot", label: "Jackpot",       icon: "emoji_events" },
 ]
 
-const PROVIDERS = ["Kaikki", "Pragmatic Play", "Play'n GO", "NetEnt", "Evolution", "Microgaming", "Hacksaw Gaming"]
 const VOLATILITIES = ["Kaikki", "low", "medium", "high"]
 const VOLATILITY_FI: Record<string, string> = { low: "Matala", medium: "Keskisuuri", high: "Korkea" }
 
 function VolatilityBadge({ v }: { v?: string }) {
   const colors: Record<string, string> = {
-    low: "bg-green-50 text-green-700 border-green-200",
+    low:    "bg-green-50 text-green-700 border-green-200",
     medium: "bg-yellow-50 text-yellow-700 border-yellow-200",
-    high: "bg-red-50 text-red-700 border-red-200",
+    high:   "bg-red-50 text-red-700 border-red-200",
   }
   return (
     <span className={`text-[9px] font-bold uppercase px-1.5 py-0.5 rounded border ${colors[v ?? "medium"] ?? colors.medium}`}>
@@ -35,18 +34,28 @@ function GameTypeBadge({ type }: { type?: string }) {
 }
 
 function GameCard({ game, lang }: { game: Game; lang: Lang }) {
+  const gradients: Record<string, string> = {
+    live:    "bg-gradient-to-br from-[#0D2E24] to-[#1a5c40]",
+    jackpot: "bg-gradient-to-br from-[#2D1783] to-[#6b21a8]",
+    table:   "bg-gradient-to-br from-[#1b1b1c] to-[#374151]",
+    slot:    "bg-gradient-to-br from-[#2D1783] to-[#3e2db2]",
+  }
+  const icons: Record<string, string> = {
+    live: "live_tv", table: "table_restaurant", jackpot: "emoji_events", slot: "casino",
+  }
   return (
-    <Link href={`/${lang}/kasinopelit/${game.slug}`} className="group block bg-white rounded-2xl border border-[#E5E8F0] hover:border-[#2D1783]/40 hover:shadow-lg transition-all overflow-hidden">
-      {/* Thumbnail placeholder with gradient by type */}
-      <div className={`h-32 flex items-center justify-center relative ${
-        game.type === "live" ? "bg-gradient-to-br from-[#0D2E24] to-[#1a5c40]" :
-        game.type === "jackpot" ? "bg-gradient-to-br from-[#2D1783] to-[#6b21a8]" :
-        game.type === "table" ? "bg-gradient-to-br from-[#1b1b1c] to-[#374151]" :
-        "bg-gradient-to-br from-[#2D1783] to-[#3e2db2]"
-      }`}>
-        <span className="material-symbols-outlined text-white/30 text-5xl" aria-hidden="true">
-          {game.type === "live" ? "live_tv" : game.type === "table" ? "table_restaurant" : game.type === "jackpot" ? "emoji_events" : "casino"}
-        </span>
+    <Link
+      href={`/${lang}/kasinopelit/${game.slug}`}
+      className="group block bg-white rounded-2xl border border-[#E5E8F0] hover:border-[#2D1783]/40 hover:shadow-lg transition-all overflow-hidden"
+    >
+      <div className={`h-32 flex items-center justify-center relative ${gradients[game.type ?? "slot"] ?? gradients.slot}`}>
+        {game.thumbnail ? (
+          <img src={game.thumbnail} alt={game.name} className="w-full h-full object-cover" />
+        ) : (
+          <span className="material-symbols-outlined text-white/30 text-5xl" aria-hidden="true">
+            {icons[game.type ?? "slot"]}
+          </span>
+        )}
         <div className="absolute top-2 right-2">
           <VolatilityBadge v={game.volatility} />
         </div>
@@ -56,9 +65,10 @@ function GameCard({ game, lang }: { game: Game; lang: Lang }) {
           </div>
         )}
       </div>
-      {/* Info */}
       <div className="p-3">
-        <p className="font-display font-bold text-sm text-[#1b1b1c] leading-tight group-hover:text-[#2D1783] transition-colors">{game.name}</p>
+        <p className="font-display font-bold text-sm text-[#1b1b1c] leading-tight group-hover:text-[#2D1783] transition-colors line-clamp-1">
+          {game.name}
+        </p>
         <p className="text-[10px] text-[#787585] mt-0.5">{game.provider}</p>
         <div className="flex items-center justify-between mt-2">
           <GameTypeBadge type={game.type} />
@@ -78,15 +88,23 @@ export default function GamesPage({
   params,
   games = [],
 }: {
-  params: { lang: string }
+  params: Promise<{ lang: string }>
   games?: Game[]
 }) {
-  const lang = (params.lang as Lang) || "fi"
-  const [activeType, setActiveType] = useState("all")
-  const [provider, setProvider] = useState("Kaikki")
-  const [volatility, setVolatility] = useState("Kaikki")
-  const [minRtp, setMinRtp] = useState(85)
-  const [search, setSearch] = useState("")
+  const { lang: rawLang } = use(params)
+  const lang = (["fi", "en", "uk"].includes(rawLang) ? rawLang : "fi") as Lang
+
+  const [activeType, setActiveType]   = useState("all")
+  const [provider, setProvider]       = useState("Kaikki")
+  const [volatility, setVolatility]   = useState("Kaikki")
+  const [minRtp, setMinRtp]           = useState(85)
+  const [search, setSearch]           = useState("")
+
+  // Derive unique sorted providers from the actual data
+  const providers = useMemo(() => {
+    const unique = Array.from(new Set(games.map((g) => g.provider))).sort()
+    return ["Kaikki", ...unique]
+  }, [games])
 
   const filtered = useMemo(() => games.filter((g) => {
     if (activeType !== "all" && g.type !== activeType) return false
@@ -95,11 +113,11 @@ export default function GamesPage({
     if ((g.rtp ?? 0) < minRtp) return false
     if (search && !g.name.toLowerCase().includes(search.toLowerCase())) return false
     return true
-  }), [activeType, provider, volatility, minRtp, search])
+  }), [activeType, provider, volatility, minRtp, search, games])
 
   return (
     <div className="min-h-screen bg-[#F8F9FD]">
-      {/* Header */}
+      {/* Hero header */}
       <header className="bg-[#2D1783] text-white pt-8 pb-10 md:pt-12 md:pb-14">
         <div className="max-w-[1280px] mx-auto px-4 md:px-12">
           <p className="text-[#FFD700] text-xs font-bold uppercase tracking-widest mb-2">Kasinopelit</p>
@@ -147,12 +165,16 @@ export default function GamesPage({
         <div className="flex flex-col lg:flex-row gap-6">
           {/* Filter sidebar */}
           <aside className="lg:w-52 flex-shrink-0">
-            <div className="bg-white rounded-2xl border border-[#E5E8F0] p-4 space-y-5 sticky top-[120px]">
+            <div className="bg-white rounded-2xl border border-[#E5E8F0] p-4 space-y-5 sticky top-[88px]">
               <p className="font-display font-bold text-sm text-[#1b1b1c]">Suodattimet</p>
+
+              {/* Provider */}
               <div>
-                <label className="text-[10px] font-bold text-[#787585] uppercase tracking-wide block mb-2">Pelintarjoaja</label>
-                <div className="space-y-1">
-                  {PROVIDERS.map((p) => (
+                <label className="text-[10px] font-bold text-[#787585] uppercase tracking-wide block mb-2">
+                  Pelintarjoaja
+                </label>
+                <div className="space-y-0.5 max-h-48 overflow-y-auto">
+                  {providers.map((p) => (
                     <button
                       key={p}
                       onClick={() => setProvider(p)}
@@ -165,15 +187,21 @@ export default function GamesPage({
                   ))}
                 </div>
               </div>
+
+              {/* Volatility */}
               <div>
-                <label className="text-[10px] font-bold text-[#787585] uppercase tracking-wide block mb-2">Volatiliteetti</label>
+                <label className="text-[10px] font-bold text-[#787585] uppercase tracking-wide block mb-2">
+                  Volatiliteetti
+                </label>
                 <div className="flex gap-1.5 flex-wrap">
                   {VOLATILITIES.map((v) => (
                     <button
                       key={v}
                       onClick={() => setVolatility(v)}
                       className={`text-[10px] font-bold px-2.5 py-1 rounded-full border transition-all ${
-                        volatility === v ? "bg-[#2D1783] text-white border-[#2D1783]" : "border-[#E5E8F0] text-[#474554] hover:border-[#2D1783]"
+                        volatility === v
+                          ? "bg-[#2D1783] text-white border-[#2D1783]"
+                          : "border-[#E5E8F0] text-[#474554] hover:border-[#2D1783]"
                       }`}
                     >
                       {v === "Kaikki" ? "Kaikki" : VOLATILITY_FI[v]}
@@ -181,6 +209,8 @@ export default function GamesPage({
                   ))}
                 </div>
               </div>
+
+              {/* Min RTP slider */}
               <div>
                 <label className="text-[10px] font-bold text-[#787585] uppercase tracking-wide block mb-2">
                   Min. RTP: {minRtp}%
@@ -194,20 +224,32 @@ export default function GamesPage({
                   <span>80%</span><span>99%</span>
                 </div>
               </div>
+
+              {/* Reset */}
+              {(provider !== "Kaikki" || volatility !== "Kaikki" || activeType !== "all" || minRtp !== 85) && (
+                <button
+                  onClick={() => { setProvider("Kaikki"); setVolatility("Kaikki"); setActiveType("all"); setMinRtp(85) }}
+                  className="w-full text-[10px] font-bold text-[#787585] hover:text-[#2D1783] py-1 transition-colors"
+                >
+                  Tyhjennä suodattimet
+                </button>
+              )}
             </div>
           </aside>
 
-          {/* Grid */}
+          {/* Game grid */}
           <div className="flex-1">
             <p className="text-xs text-[#787585] font-medium mb-4">{filtered.length} peliä löydetty</p>
             {filtered.length === 0 ? (
               <div className="bg-white rounded-2xl border border-[#E5E8F0] p-12 text-center">
-                <span className="material-symbols-outlined text-[#E5E8F0] text-5xl block mb-3">search_off</span>
+                <span className="material-symbols-outlined text-[#E5E8F0] text-5xl block mb-3" aria-hidden="true">search_off</span>
                 <p className="text-[#787585] font-medium">Ei pelejä suodatusehdoilla</p>
               </div>
             ) : (
               <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
-                {filtered.map((game) => <GameCard key={game.id} game={game} lang={lang} />)}
+                {filtered.map((game) => (
+                  <GameCard key={game.id} game={game} lang={lang} />
+                ))}
               </div>
             )}
           </div>
