@@ -44,8 +44,17 @@ export default function RafflesPage({
 }) {
   const lang = (params.lang as Lang) || "fi"
   const active = raffles.find(r => r.status === "active") ?? raffles[0]
-  const countdown = useCountdown(active.ends_at)
+  // useCountdown must be called unconditionally — pass a safe fallback when there is no active raffle
+  const countdown = useCountdown(active?.ends_at ?? new Date(Date.now() + 86400000).toISOString())
   const { anyLive } = useStreamStatus()
+
+  if (!active) {
+    return (
+      <div className="min-h-screen bg-[#F8F9FD] flex items-center justify-center">
+        <p className="text-[#787585] text-sm font-medium">Ei aktiivisia arpajaisia juuri nyt.</p>
+      </div>
+    )
+  }
 
   return (
     <div className="min-h-screen bg-[#F8F9FD]">
