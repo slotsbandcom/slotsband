@@ -165,17 +165,21 @@ export default function NettikasinotPage({ params, casinos = [] }: ListingPagePr
                   { label: lang === "fi" ? "Uudet kasinot" : "New Casinos", value: filterNew, setter: setFilterNew },
                   { label: lang === "fi" ? "Suositeltu" : "Featured", value: filterFeatured, setter: setFilterFeatured },
                 ].map((item) => (
-                  <label key={item.label} className="flex items-center justify-between cursor-pointer">
+                  <div
+                    key={item.label}
+                    className="flex items-center justify-between cursor-pointer"
+                    onClick={() => item.setter(!item.value)}
+                  >
                     <span className="text-sm text-[#474554] font-medium">{item.label}</span>
                     <button
                       role="switch"
                       aria-checked={item.value}
-                      onClick={() => item.setter(!item.value)}
+                      onClick={(e) => { e.stopPropagation(); item.setter(!item.value) }}
                       className={`w-10 h-6 rounded-full relative transition-colors ${item.value ? "bg-[#2D1783]" : "bg-[#E5E8F0]"}`}
                     >
                       <span className={`absolute top-1 w-4 h-4 bg-white rounded-full shadow transition-transform ${item.value ? "translate-x-5" : "translate-x-1"}`} />
                     </button>
-                  </label>
+                  </div>
                 ))}
               </div>
 
@@ -256,19 +260,23 @@ export default function NettikasinotPage({ params, casinos = [] }: ListingPagePr
                     { label: lang === "fi" ? "Uudet kasinot" : "New Casinos", value: filterNew, setter: setFilterNew },
                     { label: lang === "fi" ? "Suositeltu" : "Featured", value: filterFeatured, setter: setFilterFeatured },
                   ].map((item) => (
-                    <label key={item.label} className="flex items-center gap-3 cursor-pointer group">
+                    <div
+                      key={item.label}
+                      className="flex items-center gap-3 cursor-pointer group"
+                      onClick={() => item.setter(!item.value)}
+                    >
                       <button
                         role="switch"
                         aria-checked={item.value}
-                        onClick={() => item.setter(!item.value)}
-                        className={`w-9 h-5 rounded-full relative transition-colors ${item.value ? "bg-[#2D1783]" : "bg-[#E5E8F0]"}`}
+                        onClick={(e) => { e.stopPropagation(); item.setter(!item.value) }}
+                        className={`w-9 h-5 rounded-full relative transition-colors flex-shrink-0 ${item.value ? "bg-[#2D1783]" : "bg-[#E5E8F0]"}`}
                       >
                         <span className={`absolute top-0.5 w-4 h-4 bg-white rounded-full shadow transition-transform ${item.value ? "translate-x-4" : "translate-x-0.5"}`} />
                       </button>
                       <span className="text-sm text-[#474554] font-medium group-hover:text-[#2D1783] transition-colors">
                         {item.label}
                       </span>
-                    </label>
+                    </div>
                   ))}
                 </div>
                 <div>
