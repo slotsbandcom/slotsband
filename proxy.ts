@@ -12,11 +12,10 @@ export async function proxy(request: NextRequest) {
     if (cookie && VALID_LANGS.includes(cookie)) {
       return NextResponse.redirect(new URL(`/${cookie}`, request.url))
     }
-    const accept = request.headers.get("accept-language") ?? ""
-    if (/\bfi\b/i.test(accept)) return NextResponse.redirect(new URL("/fi", request.url))
-    if (/\ben[-_]GB\b/i.test(accept)) return NextResponse.redirect(new URL("/uk", request.url))
-    // Default fallback — always land on Finnish homepage, never a blank page.
-    return NextResponse.redirect(new URL("/fi", request.url))
+    // No cookie preference — let the language picker page at / render.
+    // Client-side localStorage check in app/page.tsx handles auto-redirect
+    // for returning users who saved a preference.
+    return NextResponse.next()
   }
 
   return await updateSession(request)
