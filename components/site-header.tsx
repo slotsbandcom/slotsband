@@ -301,38 +301,66 @@ export function SiteHeader({ lang }: SiteHeaderProps) {
               aria-haspopup="listbox"
               aria-expanded={langOpen}
               aria-label="Vaihda kieli"
-              className="flex items-center gap-1 bg-white/10 border border-white/20 hover:bg-white/20 px-2.5 py-1.5 rounded-xl text-xs font-semibold text-white transition-colors"
+              className="flex items-center gap-1.5 bg-white/10 border border-white/30 hover:bg-white/20 px-3 py-1.5 rounded-lg text-xs font-semibold text-white transition-colors"
             >
               <span aria-hidden="true">{LANG_INFO[lang].flag}</span>
               <span>{LANG_INFO[lang].code}</span>
-              <span className="material-symbols-outlined text-[14px] text-white/70" aria-hidden="true">expand_more</span>
+              <span
+                className="material-symbols-outlined text-[14px] text-white/70 transition-transform duration-200"
+                style={{ transform: langOpen ? "rotate(180deg)" : "rotate(0deg)" }}
+                aria-hidden="true"
+              >
+                expand_more
+              </span>
             </button>
             {langOpen && mounted && createPortal(
-              <ul
-                ref={langDropdownRef}
-                role="listbox"
-                aria-label="Valitse kieli"
-                style={{ position: "fixed", top: langPos.top, right: langPos.right, zIndex: 9999 }}
-                className="bg-white border border-[#E5E8F0] rounded-xl shadow-2xl py-1 min-w-[160px]"
-              >
-                {(["fi", "uk", "en"] as Lang[]).map((l) => {
-                  const info = LANG_INFO[l]
-                  const isActive = l === lang
-                  return (
-                    <li key={l} role="option" aria-selected={isActive}>
-                      <Link
-                        href={getLangPath(l)}
-                        onClick={() => { saveLangPref(l); setLangOpen(false) }}
-                        className={`flex items-center gap-2.5 px-3 py-2.5 text-sm transition-colors ${isActive ? "bg-[#2D1783] text-white font-bold" : "text-[#474554] hover:bg-[#F3F0FA]"}`}
-                      >
-                        <span className="text-base" aria-hidden="true">{info.flag}</span>
-                        <span className="flex-1">{info.name}</span>
-                        <span className={`text-xs font-bold ${isActive ? "text-white/70" : "text-[#787585]"}`}>{info.code}</span>
-                      </Link>
-                    </li>
-                  )
-                })}
-              </ul>,
+              <>
+                <style>{`
+                  @keyframes lang-in {
+                    from { opacity: 0; transform: translateY(-6px); }
+                    to   { opacity: 1; transform: translateY(0);    }
+                  }
+                  .lang-dropdown { animation: lang-in 0.15s ease both; }
+                `}</style>
+                <ul
+                  ref={langDropdownRef}
+                  role="listbox"
+                  aria-label="Valitse kieli"
+                  className="lang-dropdown bg-white rounded-xl border border-[#E5E7EB] p-1.5 min-w-[180px]"
+                  style={{
+                    position: "fixed",
+                    top: langPos.top,
+                    right: langPos.right,
+                    zIndex: 9999,
+                    boxShadow: "0 8px 24px rgba(0,0,0,0.15)",
+                  }}
+                >
+                  {(["fi", "uk", "en"] as Lang[]).map((l) => {
+                    const info = LANG_INFO[l]
+                    const isActive = l === lang
+                    return (
+                      <li key={l} role="option" aria-selected={isActive}>
+                        <Link
+                          href={getLangPath(l)}
+                          onClick={() => { saveLangPref(l); setTimeout(() => setLangOpen(false), 200) }}
+                          className={`flex items-center gap-2.5 px-3.5 py-2.5 rounded-lg text-sm transition-colors ${
+                            isActive
+                              ? "bg-[#2D1783] text-white font-bold"
+                              : "text-[#222222] hover:bg-[#F3F0FA]"
+                          }`}
+                        >
+                          <span className="text-[20px] leading-none" aria-hidden="true">{info.flag}</span>
+                          <span className="flex-1">{info.name}</span>
+                          <span className={`text-xs ${isActive ? "text-white/70 font-bold" : "text-[#6B7280]"}`}>
+                            {info.code}
+                          </span>
+                          {isActive && <span className="text-white text-xs ml-1" aria-hidden="true">✓</span>}
+                        </Link>
+                      </li>
+                    )
+                  })}
+                </ul>
+              </>,
               document.body
             )}
           </div>
