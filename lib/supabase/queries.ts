@@ -11,9 +11,18 @@ export async function getCasinos(options?: {
   activeOnly?: boolean
   featuredOnly?: boolean
   lang?: string
+  sort?: "rank" | "rating"
 }): Promise<Casino[]> {
   const supabase = await createClient()
-  let query = supabase.from("casinos").select("*").order("rank", { ascending: true })
+
+  const sortByRating = options?.sort === "rating"
+  let query = supabase
+    .from("casinos")
+    .select("*")
+    .order(sortByRating ? "rating" : "rank", {
+      ascending: !sortByRating,
+      nullsFirst: false,
+    })
 
   if (options?.activeOnly) query = query.eq("is_active", true)
   if (options?.featuredOnly) query = query.eq("is_featured", true)

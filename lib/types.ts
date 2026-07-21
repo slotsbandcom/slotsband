@@ -25,6 +25,19 @@ export interface Casino {
   license_url?: string
   is_verified?: boolean
 
+  // WP-imported bonus content (HTML — strip before display)
+  bonus_text?: string
+  bonus_terms?: string
+  bonus_detailed_tc?: string
+  excerpt_fi?: string
+  rating_trust?: number
+  rating_games?: number
+  rating_bonus?: number
+  rating_customer?: number
+  button_title?: string
+  button_notice?: string
+  lang?: string
+
   // Bonuses
   welcome_bonus_text?: string
   welcome_bonus_percent?: number
@@ -46,11 +59,11 @@ export interface Casino {
   max_withdrawal_per_month?: number
   withdrawal_time_min_hours?: number
   withdrawal_time_max_hours?: number
-  payment_methods: string[]
-  currencies_accepted: string[]
+  payment_methods: string[] | null
+  currencies_accepted: string[] | null
 
   // Games
-  game_providers: string[]
+  game_providers: string[] | null
   total_games_count?: number
   slots_count?: number
   live_casino?: boolean

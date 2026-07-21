@@ -23,7 +23,7 @@ export default async function GamePage({ params }: { params: { lang: string; slu
   if (!game) notFound()
 
   const similar = allGames.filter((g) => g.type === game.type && g.id !== game.id).slice(0, 4)
-  const casinosForGame = casinos.filter((c) => c.game_providers.some((p) => p === game.provider)).slice(0, 4)
+  const casinosForGame = casinos.filter((c) => (c.game_providers ?? []).some((p) => p === game.provider)).slice(0, 4)
 
   const stats = [
     { label: "RTP", value: game.rtp ? `${game.rtp}%` : "N/A", icon: "percent" },

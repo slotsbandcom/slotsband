@@ -67,7 +67,7 @@ export default function NettikasinotPage({ params, casinos = [] }: ListingPagePr
 
   let filtered = casinos.filter((c) => c.is_active)
   if (filterLicense.length > 0) filtered = filtered.filter((c) => filterLicense.includes(c.license_authority ?? ""))
-  if (filterPayment.length > 0) filtered = filtered.filter((c) => filterPayment.some((p) => c.payment_methods.includes(p)))
+  if (filterPayment.length > 0) filtered = filtered.filter((c) => filterPayment.some((p) => (c.payment_methods ?? []).includes(p)))
   if (filterPika) filtered = filtered.filter((c) => c.is_pikakasino)
   if (filterNew) filtered = filtered.filter((c) => c.is_new)
   if (filterFeatured) filtered = filtered.filter((c) => c.is_featured)

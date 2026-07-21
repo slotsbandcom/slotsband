@@ -4,7 +4,7 @@ import { TRANSLATIONS } from "@/lib/data"
 import { getCasinos } from "@/lib/supabase/queries"
 import { HeroSlider } from "@/components/hero-slider"
 import { StreamStatusBadge } from "@/components/stream-status-badge"
-import { CasinoCard } from "@/components/casino-card"
+import { CasinoListExpandable } from "@/components/casino-list-expandable"
 
 const VALID_LANGS: Lang[] = ["fi", "uk", "en"]
 
@@ -42,7 +42,7 @@ export default async function HomePage({ params }: HomePageProps) {
   const { lang } = await params
   const safeLang = (VALID_LANGS.includes(lang as Lang) ? lang : "fi") as Lang
   const t = TRANSLATIONS[safeLang]
-  const featuredCasinos = (await getCasinos({ activeOnly: true })).slice(0, 10)
+  const featuredCasinos = await getCasinos({ activeOnly: true, sort: "rating" })
 
   return (
     <div className="min-h-screen bg-white">
@@ -159,28 +159,7 @@ export default async function HomePage({ params }: HomePageProps) {
             </div>
           </div>
 
-          <div className="flex flex-col gap-5">
-            {featuredCasinos.map((casino, idx) => (
-              <CasinoCard
-                key={casino.id}
-                casino={casino}
-                lang={safeLang}
-                rank={idx + 1}
-              />
-            ))}
-          </div>
-
-          <div className="mt-8 flex justify-center">
-            <a
-              href={`/${safeLang}/nettikasinot`}
-              className="flex items-center gap-2 text-[#2D1783] font-semibold hover:text-[#FFD700] transition-colors group"
-            >
-              {t.listing.showMore}
-              <span className="material-symbols-outlined group-hover:translate-y-1 transition-transform text-[20px]">
-                expand_more
-              </span>
-            </a>
-          </div>
+          <CasinoListExpandable casinos={featuredCasinos} lang={safeLang} />
         </div>
       </main>
 

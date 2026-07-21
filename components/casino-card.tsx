@@ -9,6 +9,17 @@ interface CasinoCardProps {
   rank?: number
 }
 
+/** Strip HTML tags and collapse whitespace */
+function stripHtml(html: string): string {
+  return html.replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim()
+}
+
+/** Pick the best bonus text to display */
+function getBonusText(casino: Casino): string {
+  const raw = casino.bonus_text || casino.welcome_bonus_text || ""
+  return raw ? stripHtml(raw) : ""
+}
+
 function StarRating({ rating }: { rating: number }) {
   const filled = Math.round((rating / 10) * 5)
   return (
@@ -16,7 +27,7 @@ function StarRating({ rating }: { rating: number }) {
       {Array.from({ length: 5 }).map((_, i) => (
         <span
           key={i}
-          className={`material-symbols-outlined text-[14px] ${i < filled ? "star-filled" : "star-empty"}`}
+          className={`material-symbols-outlined text-[14px] ${i < filled ? "text-[#FFD700]" : "text-[#E5E8F0]"}`}
           style={{ fontVariationSettings: "'FILL' 1" }}
           aria-hidden="true"
         >
@@ -28,13 +39,64 @@ function StarRating({ rating }: { rating: number }) {
   )
 }
 
-function WithdrawalBadge({ hours }: { hours?: number }) {
-  if (hours === undefined) return <span className="text-sm font-bold">—</span>
+function WithdrawalBadge({ hours }: { hours?: number | null }) {
+  if (hours === undefined || hours === null) return <span className="text-sm font-bold text-[#787585]">—</span>
   if (hours === 0) return <span className="text-xs font-bold text-[#27AE60]">Välitön</span>
-  if (hours <= 1) return <span className="text-xs font-bold text-[#27AE60]">1–15 min</span>
+  if (hours <= 1) return <span className="text-xs font-bold text-[#27AE60]">alle 1h</span>
   if (hours <= 6) return <span className="text-xs font-bold text-[#27AE60]">Nopea</span>
-  if (hours <= 24) return <span className="text-xs font-bold text-[#27AE60]">0–24h</span>
+  if (hours <= 24) return <span className="text-xs font-bold text-[#27AE60]">0–{hours}h</span>
   return <span className="text-xs font-bold">{hours}h</span>
+}
+
+function WageringDisplay({ wagering }: { wagering?: number | null }) {
+  if (wagering === undefined || wagering === null) return <span className="text-sm font-bold text-[#787585]">—</span>
+  if (wagering === 0) return <span className="text-sm font-bold text-[#27AE60]">Kierrätysvapaa</span>
+  return <span className="text-sm font-bold text-[#1b1b1c]">{wagering}x</span>
+}
+
+function MinDepositDisplay({ amount }: { amount?: number | null }) {
+  if (!amount) return <span className="text-sm font-bold text-[#787585]">—</span>
+  return <span className="text-sm font-bold text-[#1b1b1c]">{amount}€</span>
+}
+
+function CasinoLogo({ casino, size }: { casino: Casino; size: "sm" | "lg" }) {
+  const initial = casino.name?.charAt(0)?.toUpperCase() ?? "?"
+  const dim = size === "sm" ? "w-16 h-16" : "w-24 h-24"
+  const textSize = size === "sm" ? "text-2xl" : "text-3xl"
+  const imgSize = size === "sm" ? 64 : 96
+
+  return (
+    <div className={`${dim} bg-[#F0EDEE] rounded-xl flex items-center justify-center overflow-hidden flex-shrink-0`}>
+      {casino.logo_url ? (
+        <Image
+          src={casino.logo_url}
+          alt={`${casino.name} logo`}
+          width={imgSize}
+          height={imgSize}
+          className="w-full h-full object-contain"
+          loading="lazy"
+        />
+      ) : (
+        <div className={`w-full h-full bg-[#2D1783] rounded-xl flex items-center justify-center`}>
+          <span className={`text-white font-display font-bold ${textSize}`}>{initial}</span>
+        </div>
+      )}
+    </div>
+  )
+}
+
+function RankBadge({ rank }: { rank: number }) {
+  const colors =
+    rank === 1 ? "bg-[#FFD700] text-[#1b1b1c]" :
+    rank === 2 ? "bg-[#C0C0C0] text-[#1b1b1c]" :
+    rank === 3 ? "bg-[#CD7F32] text-white" :
+    "bg-[#2D1783] text-white"
+
+  return (
+    <div className={`absolute top-3 left-3 z-10 w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-bold shadow-sm ${colors}`}>
+      {rank}
+    </div>
+  )
 }
 
 const BADGE_STYLES: Record<string, string> = {
@@ -46,31 +108,20 @@ const BADGE_STYLES: Record<string, string> = {
 export function CasinoCard({ casino, lang, rank }: CasinoCardProps) {
   const t = TRANSLATIONS[lang].listing
   const badgeStyle = BADGE_STYLES[casino.badge_variant ?? "gray"]
+  const bonusText = getBonusText(casino)
+  const paymentMethods = casino.payment_methods ?? []
 
   return (
-    <article className="casino-card bg-white rounded-2xl border border-[#E5E8F0] overflow-hidden">
-      {/* Mobile layout */}
+    <article className="casino-card bg-white rounded-2xl border border-[#E5E8F0] overflow-hidden relative">
+      {rank !== undefined && <RankBadge rank={rank} />}
+
+      {/* ── Mobile layout ── */}
       <div className="md:hidden">
 
         {/* Row 1: logo + name / rating / badges */}
         <div className="flex items-center gap-3 px-4 pt-4 pb-3">
-          {/* Logo */}
-          <div className="w-16 h-16 bg-[#F0EDEE] rounded-xl flex items-center justify-center p-2 overflow-hidden flex-shrink-0">
-            {casino.logo_url ? (
-              <Image
-                src={casino.logo_url}
-                alt={`${casino.name} logo`}
-                width={64}
-                height={64}
-                className="w-full h-full object-contain"
-                loading="lazy"
-              />
-            ) : (
-              <span className="material-symbols-outlined text-[#2D1783] text-3xl" aria-hidden="true">casino</span>
-            )}
-          </div>
+          <CasinoLogo casino={casino} size="sm" />
 
-          {/* Name + rating + badges */}
           <div className="flex-1 min-w-0 space-y-1">
             <p className="font-display font-bold text-[#1b1b1c] text-base leading-tight">{casino.name}</p>
             <StarRating rating={casino.rating} />
@@ -94,33 +145,31 @@ export function CasinoCard({ casino, lang, rank }: CasinoCardProps) {
         </div>
 
         {/* Row 2: Bonus headline */}
-        <div className="mx-4 mb-3 px-3 py-2.5 bg-[#F0EDFF] rounded-xl border border-[#D6CEFF]">
-          <h3 className="font-display font-bold text-[#2D1783] text-sm leading-snug line-clamp-2">
-            {casino.welcome_bonus_text}
-          </h3>
-        </div>
+        {bonusText && (
+          <div className="mx-4 mb-3 px-3 py-2.5 bg-[#F0EDFF] rounded-xl border border-[#D6CEFF]">
+            <h3 className="font-display font-bold text-[#2D1783] text-sm leading-snug line-clamp-2">
+              {bonusText}
+            </h3>
+          </div>
+        )}
 
-        {/* Row 3: Stats — 2×2 grid so labels have room to breathe */}
+        {/* Row 3: Stats grid */}
         <div className="grid grid-cols-2 gap-px bg-[#E5E8F0] border-t border-b border-[#E5E8F0] mx-0">
           <div className="bg-white px-4 py-2.5">
             <p className="text-[10px] font-semibold text-[#787585] uppercase tracking-wide">{t.minDeposit}</p>
-            <p className="text-sm font-bold text-[#1b1b1c] mt-0.5">{casino.min_deposit}€</p>
+            <div className="mt-0.5"><MinDepositDisplay amount={casino.min_deposit} /></div>
           </div>
           <div className="bg-white px-4 py-2.5">
             <p className="text-[10px] font-semibold text-[#787585] uppercase tracking-wide">{t.withdrawalSpeed}</p>
-            <div className="mt-0.5">
-              <WithdrawalBadge hours={casino.withdrawal_time_max_hours} />
-            </div>
+            <div className="mt-0.5"><WithdrawalBadge hours={casino.withdrawal_time_max_hours} /></div>
           </div>
           <div className="bg-white px-4 py-2.5">
             <p className="text-[10px] font-semibold text-[#787585] uppercase tracking-wide">{t.license}</p>
-            <p className="text-sm font-bold text-[#1b1b1c] mt-0.5">{casino.license_authority}</p>
+            <p className="text-sm font-bold text-[#1b1b1c] mt-0.5">{casino.license_authority ?? "—"}</p>
           </div>
           <div className="bg-white px-4 py-2.5">
             <p className="text-[10px] font-semibold text-[#787585] uppercase tracking-wide">{t.bonusType}</p>
-            <p className="text-sm font-bold text-[#1b1b1c] mt-0.5">
-              {casino.welcome_bonus_wagering === 0 ? "Kierrätysvapaa" : `${casino.welcome_bonus_wagering}x`}
-            </p>
+            <div className="mt-0.5"><WageringDisplay wagering={casino.welcome_bonus_wagering} /></div>
           </div>
         </div>
 
@@ -148,15 +197,15 @@ export function CasinoCard({ casino, lang, rank }: CasinoCardProps) {
         </p>
       </div>
 
-      {/* Desktop layout (md+) */}
+      {/* ── Desktop layout (md+) ── */}
       <div className="hidden md:flex items-stretch">
         {/* Left accent bar */}
         <div className="w-1.5 bg-[#FFD700] flex-shrink-0 rounded-l-2xl" />
 
         <div className="flex items-center gap-6 p-6 lg:p-8 flex-1">
-          {/* Logo */}
+          {/* Logo + name */}
           <div className="w-32 flex-shrink-0 flex flex-col items-center gap-3">
-            <div className="w-24 h-24 bg-[#F0EDEE] rounded-2xl flex items-center justify-center p-3 overflow-hidden">
+            <div className="w-24 h-24 bg-[#F0EDEE] rounded-2xl flex items-center justify-center overflow-hidden">
               {casino.logo_url ? (
                 <Image
                   src={casino.logo_url}
@@ -167,7 +216,11 @@ export function CasinoCard({ casino, lang, rank }: CasinoCardProps) {
                   loading="lazy"
                 />
               ) : (
-                <span className="material-symbols-outlined text-[#2D1783] text-4xl" aria-hidden="true">casino</span>
+                <div className="w-full h-full bg-[#2D1783] rounded-2xl flex items-center justify-center">
+                  <span className="text-white font-display font-bold text-3xl">
+                    {casino.name?.charAt(0)?.toUpperCase() ?? "?"}
+                  </span>
+                </div>
               )}
             </div>
             <span className="font-display font-bold text-[#1b1b1c] text-center text-sm leading-tight">
@@ -177,6 +230,7 @@ export function CasinoCard({ casino, lang, rank }: CasinoCardProps) {
 
           {/* Main info */}
           <div className="flex-1 space-y-3">
+            {/* Badges */}
             <div className="flex flex-wrap gap-2">
               {casino.badge && (
                 <span className={`px-2.5 py-1 rounded-lg text-[10px] font-bold uppercase tracking-wide ${badgeStyle}`}>
@@ -193,41 +247,49 @@ export function CasinoCard({ casino, lang, rank }: CasinoCardProps) {
                 <span className="bg-[#eae7e8] text-[#474554] px-2.5 py-1 rounded-lg text-[10px] font-bold uppercase">Uusi</span>
               )}
             </div>
-            <h3 className="font-display font-bold text-[#2D1783] text-lg leading-tight">
-              {casino.welcome_bonus_text}
-            </h3>
+
+            {/* Bonus headline */}
+            {bonusText && (
+              <h3 className="font-display font-bold text-[#2D1783] text-lg leading-tight">
+                {bonusText}
+              </h3>
+            )}
+
+            {/* Stats row */}
             <div className="grid grid-cols-4 gap-3">
               <div>
                 <p className="text-[10px] font-bold text-[#787585] uppercase tracking-wide">{t.minDeposit}</p>
-                <p className="text-sm font-bold text-[#1b1b1c] mt-0.5">{casino.min_deposit}€</p>
+                <div className="mt-0.5"><MinDepositDisplay amount={casino.min_deposit} /></div>
               </div>
               <div>
                 <p className="text-[10px] font-bold text-[#787585] uppercase tracking-wide">{t.withdrawalSpeed}</p>
-                <WithdrawalBadge hours={casino.withdrawal_time_max_hours} />
+                <div className="mt-0.5"><WithdrawalBadge hours={casino.withdrawal_time_max_hours} /></div>
               </div>
               <div>
                 <p className="text-[10px] font-bold text-[#787585] uppercase tracking-wide">{t.license}</p>
-                <p className="text-sm font-bold text-[#1b1b1c] mt-0.5">{casino.license_authority}</p>
+                <p className="text-sm font-bold text-[#1b1b1c] mt-0.5">{casino.license_authority ?? "—"}</p>
               </div>
               <div>
                 <p className="text-[10px] font-bold text-[#787585] uppercase tracking-wide">{t.bonusType}</p>
-                <p className="text-sm font-bold text-[#1b1b1c] mt-0.5">
-                  {casino.welcome_bonus_wagering === 0 ? "Kierrätysvapaa" : `${casino.welcome_bonus_wagering}x`}
-                </p>
+                <div className="mt-0.5"><WageringDisplay wagering={casino.welcome_bonus_wagering} /></div>
               </div>
             </div>
-            <div className="flex flex-wrap gap-1.5">
-              {casino.payment_methods.slice(0, 5).map((pm) => (
-                <span key={pm} className="bg-[#F8F9FD] border border-[#E5E8F0] px-2 py-0.5 rounded text-[10px] font-semibold text-[#474554]">
-                  {pm}
-                </span>
-              ))}
-              {casino.payment_methods.length > 5 && (
-                <span className="bg-[#F8F9FD] border border-[#E5E8F0] px-2 py-0.5 rounded text-[10px] font-semibold text-[#787585]">
-                  +{casino.payment_methods.length - 5}
-                </span>
-              )}
-            </div>
+
+            {/* Payment methods */}
+            {paymentMethods.length > 0 && (
+              <div className="flex flex-wrap gap-1.5">
+                {paymentMethods.slice(0, 5).map((pm) => (
+                  <span key={pm} className="bg-[#F8F9FD] border border-[#E5E8F0] px-2 py-0.5 rounded text-[10px] font-semibold text-[#474554]">
+                    {pm}
+                  </span>
+                ))}
+                {paymentMethods.length > 5 && (
+                  <span className="bg-[#F8F9FD] border border-[#E5E8F0] px-2 py-0.5 rounded text-[10px] font-semibold text-[#787585]">
+                    +{paymentMethods.length - 5}
+                  </span>
+                )}
+              </div>
+            )}
           </div>
 
           {/* CTA */}
