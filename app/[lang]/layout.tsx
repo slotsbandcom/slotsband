@@ -38,7 +38,7 @@ export default async function LangLayout({ children, params }: LangLayoutProps) 
   const safeLang = (["fi", "en", "uk"].includes(lang) ? lang : "fi") as Lang
   return (
     <div lang={safeLang}>
-      <SiteHeader lang={safeLang} currentPath="" />
+      <SiteHeader lang={safeLang} />
       {children}
       <SiteFooter lang={safeLang} />
     </div>

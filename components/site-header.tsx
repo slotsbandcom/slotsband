@@ -4,14 +4,24 @@ import Link from "next/link"
 import Image from "next/image"
 import { useState, useRef, useEffect, useCallback } from "react"
 import { createPortal } from "react-dom"
-import { useRouter } from "next/navigation"
+import { useRouter, usePathname } from "next/navigation"
 import type { Lang } from "@/lib/types"
 import { TRANSLATIONS } from "@/lib/data"
 import { SlotsbandLogo } from "@/components/slotsband-logo"
 import { StreamDot } from "@/components/stream-status-badge"
 
-const LANG_FLAGS: Record<Lang, string> = { fi: "🇫🇮", uk: "🇬🇧", en: "🌐" }
-const LANG_LABELS: Record<Lang, string> = { fi: "FI", uk: "UK", en: "EN" }
+const LANG_INFO: Record<Lang, { flag: string; code: string; name: string }> = {
+  fi: { flag: "🇫🇮", code: "FI",  name: "Suomi" },
+  uk: { flag: "🇬🇧", code: "UK",  name: "English UK" },
+  en: { flag: "🌍",  code: "EN",  name: "International" },
+}
+
+function saveLangPref(lang: Lang) {
+  try {
+    localStorage.setItem("slotsband-lang", lang)
+    document.cookie = `slotsband-lang=${lang};path=/;max-age=31536000;samesite=lax`
+  } catch {}
+}
 
 interface Suggestion {
   name: string
@@ -22,7 +32,6 @@ interface Suggestion {
 
 interface SiteHeaderProps {
   lang: Lang
-  currentPath?: string
 }
 
 // Rendered via portal into document.body so z-index is never clipped by a parent stacking context.
@@ -79,13 +88,15 @@ function SuggestionsDropdown({ sugs, query, lang, activeIdx, onSelect, onViewAll
   )
 }
 
-export function SiteHeader({ lang, currentPath }: SiteHeaderProps) {
+export function SiteHeader({ lang }: SiteHeaderProps) {
   const t = TRANSLATIONS[lang]
   const router = useRouter()
+  const pathname = usePathname()
   const [mobileOpen, setMobileOpen] = useState(false)
   const [langOpen, setLangOpen] = useState(false)
   const [langPos, setLangPos] = useState({ top: 0, right: 0 })
   const langRef = useRef<HTMLDivElement>(null)
+  const langDropdownRef = useRef<HTMLUListElement>(null)
   const [mounted, setMounted] = useState(false)
 
   // Search state
@@ -165,18 +176,32 @@ export function SiteHeader({ lang, currentPath }: SiteHeaderProps) {
     { label: t.nav.bonushunt, href: `${basePath}/bonushunt` },
   ]
 
+  // Replace the /[lang] prefix in the current URL to switch languages.
   const getLangPath = (targetLang: Lang) => {
-    if (!currentPath) return `/${targetLang}`
-    return currentPath.replace(/^\/(fi|uk|en)/, `/${targetLang}`)
+    if (!pathname || !/^\/(fi|uk|en)/.test(pathname)) return `/${targetLang}`
+    return pathname.replace(/^\/(fi|uk|en)/, `/${targetLang}`)
   }
 
-  // Close lang dropdown on outside click
+  // Use "click" (not "mousedown") so portal items aren't unmounted before their click fires.
   useEffect(() => {
     function onOutside(e: MouseEvent) {
-      if (langRef.current && !langRef.current.contains(e.target as Node)) setLangOpen(false)
+      const target = e.target as Node
+      if (
+        langRef.current && !langRef.current.contains(target) &&
+        langDropdownRef.current && !langDropdownRef.current.contains(target)
+      ) {
+        setLangOpen(false)
+      }
     }
-    document.addEventListener("mousedown", onOutside)
-    return () => document.removeEventListener("mousedown", onOutside)
+    function onEscape(e: KeyboardEvent) {
+      if (e.key === "Escape") setLangOpen(false)
+    }
+    document.addEventListener("click", onOutside)
+    document.addEventListener("keydown", onEscape)
+    return () => {
+      document.removeEventListener("click", onOutside)
+      document.removeEventListener("keydown", onEscape)
+    }
   }, [])
 
   const onKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
@@ -278,29 +303,35 @@ export function SiteHeader({ lang, currentPath }: SiteHeaderProps) {
               aria-label="Vaihda kieli"
               className="flex items-center gap-1 bg-white/10 border border-white/20 hover:bg-white/20 px-2.5 py-1.5 rounded-xl text-xs font-semibold text-white transition-colors"
             >
-              <span aria-hidden="true">{LANG_FLAGS[lang]}</span>
-              <span>{LANG_LABELS[lang]}</span>
+              <span aria-hidden="true">{LANG_INFO[lang].flag}</span>
+              <span>{LANG_INFO[lang].code}</span>
               <span className="material-symbols-outlined text-[14px] text-white/70" aria-hidden="true">expand_more</span>
             </button>
             {langOpen && mounted && createPortal(
               <ul
+                ref={langDropdownRef}
                 role="listbox"
                 aria-label="Valitse kieli"
                 style={{ position: "fixed", top: langPos.top, right: langPos.right, zIndex: 9999 }}
-                className="bg-white border border-[#E5E8F0] rounded-xl shadow-2xl py-1 min-w-[110px]"
+                className="bg-white border border-[#E5E8F0] rounded-xl shadow-2xl py-1 min-w-[160px]"
               >
-                {(["fi", "uk", "en"] as Lang[]).map((l) => (
-                  <li key={l} role="option" aria-selected={l === lang}>
-                    <Link
-                      href={getLangPath(l)}
-                      onClick={() => setLangOpen(false)}
-                      className={`flex items-center gap-2 px-3 py-2.5 text-xs hover:bg-[#F8F9FD] transition-colors ${l === lang ? "text-[#2D1783] font-bold" : "text-[#474554]"}`}
-                    >
-                      <span aria-hidden="true">{LANG_FLAGS[l]}</span>
-                      <span>{LANG_LABELS[l]}</span>
-                    </Link>
-                  </li>
-                ))}
+                {(["fi", "uk", "en"] as Lang[]).map((l) => {
+                  const info = LANG_INFO[l]
+                  const isActive = l === lang
+                  return (
+                    <li key={l} role="option" aria-selected={isActive}>
+                      <Link
+                        href={getLangPath(l)}
+                        onClick={() => { saveLangPref(l); setLangOpen(false) }}
+                        className={`flex items-center gap-2.5 px-3 py-2.5 text-sm transition-colors ${isActive ? "bg-[#2D1783] text-white font-bold" : "text-[#474554] hover:bg-[#F3F0FA]"}`}
+                      >
+                        <span className="text-base" aria-hidden="true">{info.flag}</span>
+                        <span className="flex-1">{info.name}</span>
+                        <span className={`text-xs font-bold ${isActive ? "text-white/70" : "text-[#787585]"}`}>{info.code}</span>
+                      </Link>
+                    </li>
+                  )
+                })}
               </ul>,
               document.body
             )}

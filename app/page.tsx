@@ -36,6 +36,7 @@ export default function RootPage() {
     try {
       localStorage.setItem(LS_LAST, code)
       localStorage.setItem(LS_REMEMBER, remember ? "1" : "0")
+      document.cookie = `slotsband-lang=${code};path=/;max-age=31536000;samesite=lax`
     } catch {}
     router.push(`/${code}`)
   }

@@ -24,6 +24,8 @@ export async function generateStaticParams() {
   return paths
 }
 
+const SITE_URL = "https://slotsband.com"
+
 export async function generateMetadata({ params }: CasinoPageProps): Promise<Metadata> {
   const { lang: rawLang, slug } = await params
   const lang = (VALID_LANGS.includes(rawLang as Lang) ? rawLang : "fi") as Lang
@@ -41,6 +43,15 @@ export async function generateMetadata({ params }: CasinoPageProps): Promise<Met
     title,
     description: desc,
     openGraph: { title, description: desc },
+    alternates: {
+      canonical: `${SITE_URL}/${lang}/nettikasinot/${slug}`,
+      languages: {
+        "fi":      `${SITE_URL}/fi/nettikasinot/${slug}`,
+        "en":      `${SITE_URL}/en/nettikasinot/${slug}`,
+        "en-GB":   `${SITE_URL}/uk/nettikasinot/${slug}`,
+        "x-default": `${SITE_URL}/fi/nettikasinot/${slug}`,
+      },
+    },
   }
 }
 
