@@ -45,6 +45,7 @@ export async function generateMetadata({ params }: CasinoPageProps): Promise<Met
 }
 
 function TrustScore({ score }: { score: number }) {
+  if (!score) return null
   const color = score >= 85 ? "#27AE60" : score >= 70 ? "#FFD700" : "#E74C3C"
   return (
     <div className="flex flex-col items-center gap-0.5">
@@ -61,6 +62,59 @@ function TrustScore({ score }: { score: number }) {
       <span className="text-[9px] font-bold text-[#787585] uppercase tracking-wide">Trust</span>
     </div>
   )
+}
+
+// Returns val+suffix when val is present and non-zero, otherwise fallback.
+function d(val: string | number | null | undefined, suffix = "", fallback = "—"): string {
+  if (val === null || val === undefined || val === "" || val === 0) return fallback
+  return `${val}${suffix}`
+}
+
+function getLicenseBadge(license: string | null | undefined) {
+  if (!license) return null
+  const l = license.toLowerCase()
+  if (l.includes("mga") || l.includes("ukgc") || l.includes("gibraltar") || l.includes("spelinspektionen") || l.includes("isle of man") || l.includes("veikkaus")) {
+    return { dot: "#27AE60", label: "Eurooppalainen lisenssi" }
+  }
+  if (l.includes("curacao") || l.includes("kahnawake") || l.includes("pagcor") || l.includes("antillephone")) {
+    return { dot: "#F39C12", label: "Kansainvälinen lisenssi" }
+  }
+  return { dot: "#E74C3C", label: "Heikko lisenssi" }
+}
+
+const LANG_LABELS: Record<string, { flag: string; name: string }> = {
+  fi: { flag: "🇫🇮", name: "Suomi" },
+  en: { flag: "🌍", name: "English" },
+  sv: { flag: "🇸🇪", name: "Svenska" },
+  se: { flag: "🇸🇪", name: "Svenska" },
+  no: { flag: "🇳🇴", name: "Norsk" },
+  de: { flag: "🇩🇪", name: "Deutsch" },
+  pl: { flag: "🇵🇱", name: "Polski" },
+  es: { flag: "🇪🇸", name: "Español" },
+  pt: { flag: "🇵🇹", name: "Português" },
+  fr: { flag: "🇫🇷", name: "Français" },
+  it: { flag: "🇮🇹", name: "Italiano" },
+  nl: { flag: "🇳🇱", name: "Nederlands" },
+  uk: { flag: "🇬🇧", name: "English (UK)" },
+}
+
+const COUNTRY_LABELS_FI: Record<string, string> = {
+  FI: "🇫🇮 Suomi", SE: "🇸🇪 Ruotsi", NO: "🇳🇴 Norja", DK: "🇩🇰 Tanska",
+  DE: "🇩🇪 Saksa", IE: "🇮🇪 Irlanti", CA: "🇨🇦 Kanada", NZ: "🇳🇿 Uusi-Seelanti",
+  AT: "🇦🇹 Itävalta", CH: "🇨🇭 Sveitsi", BE: "🇧🇪 Belgia", NL: "🇳🇱 Alankomaat",
+  GB: "🇬🇧 Iso-Britannia", US: "🇺🇸 USA", AU: "🇦🇺 Australia", FR: "🇫🇷 Ranska",
+  ES: "🇪🇸 Espanja", IT: "🇮🇹 Italia", PL: "🇵🇱 Puola", PT: "🇵🇹 Portugali",
+  BR: "🇧🇷 Brasilia", JP: "🇯🇵 Japani", IN: "🇮🇳 Intia", ZA: "🇿🇦 Etelä-Afrikka",
+}
+
+function cleanWpHtml(html: string): string {
+  return html
+    .replace(/<!--\s*wp:[^>]*?-->/g, "")
+    .replace(/<!--\s*\/wp:[^>]*?-->/g, "")
+    .replace(/<figure[\s\S]*?<\/figure>/gi, "")
+    .replace(/\[joli-faq-seo[^\]]*\]/g, "")
+    .replace(/<p>\s*<\/p>/g, "")
+    .trim()
 }
 
 export default async function CasinoPage({ params }: CasinoPageProps) {
@@ -142,6 +196,16 @@ export default async function CasinoPage({ params }: CasinoPageProps) {
                       {lang === "fi" ? "Pikakasino" : "Quick"}
                     </span>
                   )}
+                  {(casino.available_in ?? []).includes("FI") && (
+                    <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-[#27AE60]/10 text-[#27AE60]">
+                      ✅ Suomi
+                    </span>
+                  )}
+                  {(casino.restricted_in ?? []).includes("FI") && (
+                    <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-[#E74C3C]/10 text-[#E74C3C]">
+                      ❌ Ei Suomi
+                    </span>
+                  )}
                 </div>
               </div>
             </div>
@@ -161,9 +225,9 @@ export default async function CasinoPage({ params }: CasinoPageProps) {
             <div className="grid grid-cols-2 gap-2">
               {[
                 { icon: "security", label: lang === "fi" ? "Lisenssi" : "License", value: casino.license_authority ?? "—" },
-                { icon: "payments", label: lang === "fi" ? "Min. talletus" : "Min deposit", value: `${casino.min_deposit ?? "—"}€` },
-                { icon: "speed", label: lang === "fi" ? "Kotiutus" : "Withdrawal", value: isInstant ? (lang === "fi" ? "Välitön" : "Instant") : `Max ${casino.withdrawal_time_max_hours}h` },
-                { icon: "casino", label: lang === "fi" ? "Peliä" : "Games", value: `${casino.total_games_count?.toLocaleString() ?? "—"}` },
+                { icon: "payments", label: lang === "fi" ? "Min. talletus" : "Min deposit", value: casino.min_deposit ? `${casino.min_deposit}€` : "—" },
+                { icon: "speed", label: lang === "fi" ? "Kotiutus" : "Withdrawal", value: isInstant ? (lang === "fi" ? "Välitön" : "Instant") : casino.withdrawal_time_max_hours ? `Max ${casino.withdrawal_time_max_hours}h` : "—" },
+                { icon: "casino", label: lang === "fi" ? "Peliä" : "Games", value: casino.total_games_count?.toLocaleString() ?? "—" },
               ].map((fact) => (
                 <div key={fact.icon} className="flex items-center gap-2 bg-[#F8F9FD] border border-[#E5E8F0] px-3 py-2 rounded-xl">
                   <span className="material-symbols-outlined text-[#2D1783] text-[16px]" aria-hidden="true">{fact.icon}</span>
@@ -225,6 +289,16 @@ export default async function CasinoPage({ params }: CasinoPageProps) {
                     {lang === "fi" ? "Pikakasino" : "Quick Casino"}
                   </span>
                 )}
+                {(casino.available_in ?? []).includes("FI") && (
+                  <span className="text-xs font-bold px-2.5 py-1 rounded-full bg-[#27AE60]/10 text-[#27AE60]">
+                    ✅ {lang === "fi" ? "Saatavilla Suomessa" : "Available in Finland"}
+                  </span>
+                )}
+                {(casino.restricted_in ?? []).includes("FI") && (
+                  <span className="text-xs font-bold px-2.5 py-1 rounded-full bg-[#E74C3C]/10 text-[#E74C3C]">
+                    ❌ {lang === "fi" ? "Ei saatavilla Suomessa" : "Not available in Finland"}
+                  </span>
+                )}
               </div>
               <div className="flex flex-wrap gap-5 items-center">
                 <div className="flex items-center gap-2">
@@ -240,8 +314,8 @@ export default async function CasinoPage({ params }: CasinoPageProps) {
               <div className="flex flex-wrap gap-3">
                 {[
                   { icon: "security", label: casino.license_authority ?? "—" },
-                  { icon: "payments", label: `Min. ${casino.min_deposit ?? "—"}€` },
-                  { icon: "speed", label: isInstant ? (lang === "fi" ? "Välitön kotiutus" : "Instant withdrawal") : `${casino.withdrawal_time_max_hours}h` },
+                  { icon: "payments", label: casino.min_deposit ? `Min. ${casino.min_deposit}€` : "—" },
+                  { icon: "speed", label: isInstant ? (lang === "fi" ? "Välitön kotiutus" : "Instant withdrawal") : casino.withdrawal_time_max_hours ? `${casino.withdrawal_time_max_hours}h` : "—" },
                   { icon: "casino", label: `${casino.total_games_count?.toLocaleString() ?? "—"} ${lang === "fi" ? "peliä" : "games"}` },
                 ].map((fact) => (
                   <div key={fact.icon} className="flex items-center gap-2 bg-[#F8F9FD] border border-[#E5E8F0] px-3 py-2 rounded-xl text-sm">
@@ -333,9 +407,9 @@ export default async function CasinoPage({ params }: CasinoPageProps) {
                 <p className="font-display font-bold text-[#2D1783] text-base mb-3">{casino.welcome_bonus_text}</p>
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4">
                   {[
-                    { label: lang === "fi" ? "Minimitalletus" : "Min Deposit", value: casino.welcome_bonus_min_deposit ? `${casino.welcome_bonus_min_deposit}€` : "—" },
-                    { label: lang === "fi" ? "Kierrätys" : "Wagering", value: casino.welcome_bonus_wagering === 0 ? (lang === "fi" ? "Vapaa" : "None") : `${casino.welcome_bonus_wagering}x` },
-                    { label: lang === "fi" ? "Max. Bonus" : "Max Bonus", value: casino.welcome_bonus_max_amount ? `${casino.welcome_bonus_max_amount}€` : "—" },
+                    { label: lang === "fi" ? "Minimitalletus" : "Min Deposit", value: d(casino.welcome_bonus_min_deposit, "€") },
+                    { label: lang === "fi" ? "Kierrätys" : "Wagering", value: casino.welcome_bonus_wagering == null ? "—" : casino.welcome_bonus_wagering === 0 ? (lang === "fi" ? "Vapaa" : "None") : `${casino.welcome_bonus_wagering}x` },
+                    { label: lang === "fi" ? "Max. Bonus" : "Max Bonus", value: d(casino.welcome_bonus_max_amount, "€") },
                     { label: lang === "fi" ? "Valuutta" : "Currency", value: casino.welcome_bonus_currency ?? "EUR" },
                   ].map((item) => (
                     <div key={item.label}>
@@ -373,18 +447,37 @@ export default async function CasinoPage({ params }: CasinoPageProps) {
                 {lang === "fi" ? "Kasinon Tiedot" : "Casino Info"}
               </h2>
               <div className="divide-y divide-[#E5E8F0]">
+                {/* License row with quality badge */}
+                {casino.license_authority && (() => {
+                  const badge = getLicenseBadge(casino.license_authority)
+                  return (
+                    <div className="flex justify-between items-center py-2.5 text-sm gap-4">
+                      <span className="text-[#787585] font-medium flex-shrink-0">{lang === "fi" ? "Lisenssi" : "License"}</span>
+                      <div className="flex items-center gap-2 flex-wrap justify-end">
+                        <span className="font-semibold text-[#1b1b1c]">{casino.license_authority}</span>
+                        {badge && (
+                          <span className="flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full" style={{ background: `${badge.dot}18`, color: badge.dot }}>
+                            <span className="w-1.5 h-1.5 rounded-full flex-shrink-0" style={{ background: badge.dot }} />
+                            {badge.label}
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  )
+                })()}
                 {[
-                  { label: lang === "fi" ? "Lisenssi" : "License", value: casino.license_authority },
-                  { label: lang === "fi" ? "Lisenssijärjestö" : "License number", value: casino.license_number },
+                  { label: lang === "fi" ? "Lisenssijärjestö" : "License number", value: casino.license_number || undefined },
                   { label: lang === "fi" ? "Perustettu" : "Established", value: casino.established_year?.toString() },
                   { label: lang === "fi" ? "Min. talletus" : "Min deposit", value: casino.min_deposit ? `${casino.min_deposit}€` : undefined },
                   { label: lang === "fi" ? "Max. nosto/pv" : "Max withdrawal/day", value: casino.max_withdrawal_per_day ? `${casino.max_withdrawal_per_day}€` : undefined },
-                  { label: lang === "fi" ? "Kotiutusaika" : "Withdrawal time", value: isInstant ? (lang === "fi" ? "Välitön" : "Instant") : `${casino.withdrawal_time_min_hours}–${casino.withdrawal_time_max_hours}h` },
-                  { label: lang === "fi" ? "Pelejä yhteensä" : "Total games", value: casino.total_games_count?.toLocaleString() },
-                  { label: lang === "fi" ? "Live kasino" : "Live casino", value: casino.live_casino ? (lang === "fi" ? "Kyllä" : "Yes") : (lang === "fi" ? "Ei" : "No") },
-                  { label: lang === "fi" ? "Mobiili" : "Mobile", value: casino.mobile_optimized ? (lang === "fi" ? "Optimoitu" : "Optimized") : "—" },
-                  { label: lang === "fi" ? "Live chat" : "Live chat", value: casino.live_chat_support ? (lang === "fi" ? "Kyllä" : "Yes") : (lang === "fi" ? "Ei" : "No") },
-                ].filter((r) => r.value).map((row) => (
+                  { label: lang === "fi" ? "Kotiutusaika" : "Withdrawal time", value: isInstant ? (lang === "fi" ? "Välitön" : "Instant") : (casino.withdrawal_time_max_hours != null ? `${casino.withdrawal_time_min_hours ?? 0}–${casino.withdrawal_time_max_hours}h` : undefined) },
+                  { label: lang === "fi" ? "Pelejä yhteensä" : "Total games", value: casino.total_games_count ? casino.total_games_count.toLocaleString() : undefined },
+                  { label: lang === "fi" ? "Live kasino" : "Live casino", value: casino.live_casino ? (lang === "fi" ? "Kyllä" : "Yes") : undefined },
+                  { label: lang === "fi" ? "Mobiili" : "Mobile", value: casino.mobile_optimized ? (lang === "fi" ? "Optimoitu" : "Optimized") : undefined },
+                  { label: lang === "fi" ? "Live chat" : "Live chat", value: casino.live_chat_support ? (lang === "fi" ? "Kyllä" : "Yes") : undefined },
+                  (casino.available_in ?? []).length > 0 ? { label: lang === "fi" ? "Saatavilla" : "Available in", value: `${casino.available_in!.length} ${lang === "fi" ? "maassa" : "countries"}` } : null,
+                  (casino.languages_supported ?? []).length > 0 ? { label: lang === "fi" ? "Tuetut kielet" : "Supported languages", value: `${casino.languages_supported!.length} ${lang === "fi" ? "kieltä" : "languages"}` } : null,
+                ].filter((r): r is { label: string; value: string } => !!r && !!r.value).map((row) => (
                   <div key={row.label} className="flex justify-between items-center py-2.5 text-sm gap-4">
                     <span className="text-[#787585] font-medium flex-shrink-0">{row.label}</span>
                     <span className="font-semibold text-[#1b1b1c] text-right">{row.value}</span>
@@ -393,13 +486,97 @@ export default async function CasinoPage({ params }: CasinoPageProps) {
               </div>
             </section>
 
+            {/* Languages & Countries */}
+            {((casino.available_in ?? []).length > 0 || (casino.languages_supported ?? []).length > 0 || (casino.restricted_in ?? []).length > 0) && (
+              <section className="bg-white rounded-2xl border border-[#E5E8F0] p-5 md:p-6 space-y-5">
+                <h2 className="font-display font-bold text-lg md:text-xl text-[#1b1b1c]">
+                  {lang === "fi" ? "Saatavuus & Kielet" : "Availability & Languages"}
+                </h2>
+
+                {/* Finnish availability — prominent badge */}
+                {((casino.available_in ?? []).includes("FI") || (casino.restricted_in ?? []).includes("FI")) && (
+                  <div>
+                    {(casino.available_in ?? []).includes("FI") ? (
+                      <div className="flex items-center gap-3 bg-[#27AE60]/8 border border-[#27AE60]/25 rounded-xl px-4 py-3">
+                        <span className="text-xl">✅</span>
+                        <div>
+                          <p className="font-bold text-[#27AE60] text-sm">{lang === "fi" ? "Saatavilla Suomessa" : "Available in Finland"}</p>
+                          <p className="text-xs text-[#787585] mt-0.5">{lang === "fi" ? "Tämä kasino hyväksyy suomalaisia pelaajia" : "This casino accepts Finnish players"}</p>
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="flex items-center gap-3 bg-[#E74C3C]/8 border border-[#E74C3C]/25 rounded-xl px-4 py-3">
+                        <span className="text-xl">❌</span>
+                        <div>
+                          <p className="font-bold text-[#E74C3C] text-sm">{lang === "fi" ? "Ei saatavilla Suomessa" : "Not available in Finland"}</p>
+                          <p className="text-xs text-[#787585] mt-0.5">{lang === "fi" ? "Tämä kasino ei hyväksy suomalaisia pelaajia" : "This casino does not accept Finnish players"}</p>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {/* Supported languages */}
+                {(casino.languages_supported ?? []).length > 0 && (
+                  <div>
+                    <p className="text-sm font-bold text-[#474554] mb-2">{lang === "fi" ? "Tuetut kielet" : "Supported Languages"}</p>
+                    <div className="flex flex-wrap gap-1.5">
+                      {(casino.languages_supported ?? []).map(code => {
+                        const info = LANG_LABELS[code.toLowerCase()]
+                        return info ? (
+                          <span key={code} className="flex items-center gap-1 bg-[#F8F9FD] border border-[#E5E8F0] px-2.5 py-1 rounded-lg text-xs font-semibold text-[#474554]">
+                            <span>{info.flag}</span>
+                            <span>{info.name}</span>
+                          </span>
+                        ) : (
+                          <span key={code} className="bg-[#F8F9FD] border border-[#E5E8F0] px-2.5 py-1 rounded-lg text-xs font-semibold text-[#474554]">{code.toUpperCase()}</span>
+                        )
+                      })}
+                    </div>
+                  </div>
+                )}
+
+                {/* Available in countries */}
+                {(casino.available_in ?? []).length > 0 && (
+                  <div>
+                    <p className="text-sm font-bold text-[#474554] mb-2">
+                      {lang === "fi" ? `Hyväksytyt maat (${casino.available_in!.length})` : `Accepted countries (${casino.available_in!.length})`}
+                    </p>
+                    <div className="flex flex-wrap gap-1.5">
+                      {(casino.available_in ?? []).map(code => (
+                        <span key={code} className="bg-[#27AE60]/8 border border-[#27AE60]/20 text-[#1a6b3a] px-2.5 py-1 rounded-lg text-xs font-semibold">
+                          {COUNTRY_LABELS_FI[code] ?? code}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Restricted countries */}
+                {(casino.restricted_in ?? []).length > 0 && (
+                  <div>
+                    <p className="text-sm font-bold text-[#474554] mb-2">
+                      {lang === "fi" ? `Rajoitetut maat (${casino.restricted_in!.length})` : `Restricted countries (${casino.restricted_in!.length})`}
+                    </p>
+                    <div className="flex flex-wrap gap-1.5">
+                      {(casino.restricted_in ?? []).map(code => (
+                        <span key={code} className="bg-[#E74C3C]/8 border border-[#E74C3C]/20 text-[#8b2f2f] px-2.5 py-1 rounded-lg text-xs font-semibold">
+                          {COUNTRY_LABELS_FI[code] ?? code}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </section>
+            )}
+
             {/* Payment methods */}
             <section className="bg-white rounded-2xl border border-[#E5E8F0] p-5 md:p-6">
               <h2 className="font-display font-bold text-lg md:text-xl text-[#1b1b1c] mb-4">
                 {lang === "fi" ? "Maksutavat" : "Payment Methods"}
               </h2>
               <div className="flex flex-wrap gap-2">
-                {casino.payment_methods.map((pm) => (
+                {(casino.payment_methods ?? []).map((pm) => (
                   <span key={pm} className="bg-[#F8F9FD] border border-[#E5E8F0] px-3 py-1.5 rounded-xl text-sm font-semibold text-[#474554] flex items-center gap-1.5">
                     <span className="material-symbols-outlined text-[#2D1783] text-[13px]" aria-hidden="true">payments</span>
                     {pm}
@@ -414,7 +591,7 @@ export default async function CasinoPage({ params }: CasinoPageProps) {
                 {lang === "fi" ? "Peliohjelmistot" : "Game Providers"}
               </h2>
               <div className="flex flex-wrap gap-2">
-                {casino.game_providers.map((gp) => (
+                {(casino.game_providers ?? []).map((gp) => (
                   <span key={gp} className="bg-[#F8F9FD] border border-[#E5E8F0] px-3 py-1.5 rounded-xl text-sm font-semibold text-[#474554]">
                     {gp}
                   </span>
@@ -428,9 +605,10 @@ export default async function CasinoPage({ params }: CasinoPageProps) {
                 <h2 className="font-display font-bold text-lg md:text-xl text-[#1b1b1c] mb-4">
                   {lang === "fi" ? `${casino.name} Arvostelu` : `${casino.name} Review`}
                 </h2>
-                <div className="prose prose-sm max-w-none text-[#474554] leading-relaxed">
-                  {review}
-                </div>
+                <div
+                  className="prose prose-sm max-w-none text-[#474554] leading-relaxed [&_h2]:font-display [&_h2]:font-bold [&_h2]:text-[#1b1b1c] [&_h3]:font-bold [&_h3]:text-[#1b1b1c] [&_a]:text-[#2D1783] [&_a]:underline"
+                  dangerouslySetInnerHTML={{ __html: cleanWpHtml(review) }}
+                />
               </section>
             )}
 
@@ -491,9 +669,9 @@ export default async function CasinoPage({ params }: CasinoPageProps) {
               <div className="mt-4 space-y-2.5 text-xs text-white/70">
                 {[
                   { icon: "security", text: casino.license_authority },
-                  { icon: "speed", text: isInstant ? (lang === "fi" ? "Välitön kotiutus" : "Instant withdrawal") : `Max ${casino.withdrawal_time_max_hours}h` },
-                  { icon: "payments", text: `Min. ${casino.min_deposit}€` },
-                ].map((item) => (
+                  { icon: "speed", text: isInstant ? (lang === "fi" ? "Välitön kotiutus" : "Instant withdrawal") : casino.withdrawal_time_max_hours ? `Max ${casino.withdrawal_time_max_hours}h` : null },
+                  { icon: "payments", text: casino.min_deposit ? `Min. ${casino.min_deposit}€` : null },
+                ].filter(item => item.text).map((item) => (
                   <div key={item.icon} className="flex items-center gap-2">
                     <span className="material-symbols-outlined text-[#FFD700] text-[14px]" aria-hidden="true">{item.icon}</span>
                     <span>{item.text}</span>

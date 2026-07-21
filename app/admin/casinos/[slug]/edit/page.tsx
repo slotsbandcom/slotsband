@@ -24,7 +24,19 @@ const TABS = [
 
 const LANGUAGES = ["fi", "en", "uk", "se", "no", "de", "pl", "es", "pt"]
 const COUNTRIES = ["FI","SE","NO","DK","DE","NL","BE","AT","CH","CA","AU","NZ","IE","GB","US"]
-const LICENSE_AUTHORITIES = ["MGA","UKGC","Curacao eGaming","Kahnawake","Gibraltar","Isle of Man","Spelinspektionen","Veikkaus","Other"]
+const LICENSE_AUTHORITIES = [
+  "MGA","UKGC","Gibraltar","Isle of Man","Spelinspektionen",
+  "Kahnawake","Curacao eGaming","Curaçao Gaming Control Board","Antillephone N.V.",
+  "PAGCOR","Anjouan Gaming Board","Government of Belize","Comoros Island Gaming Authority",
+  "Veikkaus","Other",
+]
+
+const LICENSE_TRUST_SCORES: Record<string, number> = {
+  "MGA": 85, "UKGC": 85, "Gibraltar": 80, "Spelinspektionen": 78, "Isle of Man": 75,
+  "Veikkaus": 78, "Kahnawake": 65, "Curacao eGaming": 60, "Curaçao Gaming Control Board": 60,
+  "Antillephone N.V.": 55, "PAGCOR": 55, "Anjouan Gaming Board": 50,
+  "Government of Belize": 50, "Comoros Island Gaming Authority": 50,
+}
 const PAYMENT_METHODS = ["Visa","Mastercard","Trustly","Brite","Zimpler","PayPal","Skrill","Neteller","MuchBetter","Paysafecard","Bank Transfer","Bitcoin","Ethereum","Litecoin","Tether","Apple Pay","Google Pay","Revolut","Klarna","Swish","MobilePay","Vipps","Interac"]
 const CURRENCIES = ["EUR","GBP","USD","SEK","NOK","DKK","CAD","BTC","ETH"]
 const GAME_PROVIDERS = ["NetEnt","Microgaming","Play'n GO","Pragmatic Play","Evolution Gaming","Yggdrasil","Big Time Gaming","Red Tiger","Relax Gaming","Hacksaw Gaming","Push Gaming","Nolimit City","Elk Studios","Blueprint Gaming","Quickspin","Thunderkick","Betsoft","Playtech","IGT","WMS","Novomatic"]
@@ -260,26 +272,91 @@ function ContentTab({ lang, form, onChange }: {
 
 // ─── AI Populate tab ─────────────────────────────────────────────────────────
 
-function AiPopulateTab({ casinoName, onApply }: { casinoName: string; onApply: (data: Partial<Casino>) => void }) {
-  const [selectedFields, setSelectedFields] = useState<string[]>(AI_FIELDS)
-  const [loading, setLoading] = useState(false)
-  const [result, setResult] = useState<Record<string, unknown> | null>(null)
-  const [error, setError] = useState<string | null>(null)
-  const [applied, setApplied] = useState(false)
+type ConfidenceLevel = "high" | "medium" | "low"
 
-  const toggleField = (f: string) => setSelectedFields(prev => prev.includes(f) ? prev.filter(x => x !== f) : [...prev, f])
+interface AiApiResponse {
+  success: boolean
+  data: Record<string, unknown>
+  sourcesUsed: string[]
+  sourcesAttempted: string[]
+  sourcesSummary?: Array<{ type: string; url: string }>
+  dataConfidence: ConfidenceLevel
+  summary?: string | null
+}
+
+const AI_META_KEYS = new Set(["data_sources", "data_confidence", "summary", "_sources"])
+
+function isEmptyValue(v: unknown): boolean {
+  if (v === null || v === undefined) return true
+  if (typeof v === "string") return v === ""
+  if (Array.isArray(v)) return v.length === 0
+  return false
+}
+
+function formatAiValue(v: unknown): string {
+  if (v === null || v === undefined) return "—"
+  if (typeof v === "boolean") return v ? "Yes" : "No"
+  if (Array.isArray(v)) return v.length > 0 ? `[${v.length} items: ${v.slice(0, 3).join(", ")}${v.length > 3 ? "…" : ""}]` : "[]"
+  if (typeof v === "object") return JSON.stringify(v).slice(0, 60)
+  return String(v).slice(0, 80)
+}
+
+function getDomain(url: string): string {
+  try { return new URL(url).hostname.replace("www.", "") } catch { return url }
+}
+
+function ConfidenceBadge({ level }: { level: ConfidenceLevel }) {
+  const config = {
+    high:   { dot: "bg-[#27AE60]", text: "text-[#27AE60]", label: "HIGH — data scraped from review sites" },
+    medium: { dot: "bg-[#F39C12]", text: "text-[#F39C12]", label: "MEDIUM — partial data from sources" },
+    low:    { dot: "bg-[#E74C3C]", text: "text-[#E74C3C]", label: "LOW — AI knowledge only, no sources found" },
+  }[level]
+  return (
+    <div className="flex items-center gap-2">
+      <span className={`w-2.5 h-2.5 rounded-full flex-shrink-0 ${config.dot}`} />
+      <span className={`text-xs font-bold ${config.text}`}>{config.label}</span>
+    </div>
+  )
+}
+
+function AiPopulateTab({ casinoName, casinoSlug, casinoId, currentForm, onApply }: {
+  casinoName: string
+  casinoSlug: string
+  casinoId: string
+  currentForm: Casino
+  onApply: (data: Partial<Casino>) => void
+}) {
+  const [customUrl, setCustomUrl] = useState("")
+  const [regenerateReview, setRegenerateReview] = useState(false)
+  const [loading, setLoading] = useState(false)
+  const [saving, setSaving] = useState(false)
+  const [apiResponse, setApiResponse] = useState<AiApiResponse | null>(null)
+  const [error, setError] = useState<string | null>(null)
+  const [selectedKeys, setSelectedKeys] = useState<Set<string>>(new Set())
+  const [applyMsg, setApplyMsg] = useState<string | null>(null)
+  const [applyError, setApplyError] = useState<string | null>(null)
 
   const generate = async () => {
-    setLoading(true); setError(null); setResult(null); setApplied(false)
+    setLoading(true); setError(null); setApiResponse(null); setApplyMsg(null); setApplyError(null)
     try {
       const res = await fetch("/api/admin/ai-populate", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ casinoName, fields: selectedFields }),
+        body: JSON.stringify({ casinoName, casinoSlug, sourceUrl: customUrl || undefined, regenerateReview }),
       })
       const json = await res.json()
       if (!res.ok) throw new Error(json.error || "Failed")
-      setResult(json.data)
+      setApiResponse(json as AiApiResponse)
+      // Auto-select fields from real sources; leave AI-estimated fields unchecked
+      const sources = (json as AiApiResponse).data._sources as Record<string, string> | undefined
+      const auto = new Set<string>()
+      for (const [key, val] of Object.entries((json as AiApiResponse).data)) {
+        if (!AI_META_KEYS.has(key) && !isEmptyValue(val)) {
+          const src = sources?.[key]
+          if (!src || src !== "ai_knowledge") auto.add(key)
+        }
+      }
+      setSelectedKeys(auto)
     } catch (e) {
       setError(e instanceof Error ? e.message : "Unknown error")
     } finally {
@@ -287,35 +364,79 @@ function AiPopulateTab({ casinoName, onApply }: { casinoName: string; onApply: (
     }
   }
 
-  const applyData = () => {
-    if (!result) return
-    const patch: Partial<Casino> = {}
-    const d = result as Record<string, Record<string, unknown>>
-    if (d.general) Object.assign(patch, d.general)
-    if (d.licensing) Object.assign(patch, d.licensing)
-    if (d.bonuses) Object.assign(patch, d.bonuses)
-    if (d.payments) Object.assign(patch, d.payments)
-    if (d.games) Object.assign(patch, d.games)
-    if (d.ux) Object.assign(patch, d.ux)
-    if (d.content_fi) {
-      if (d.content_fi.meta_title) patch.meta_title_fi = d.content_fi.meta_title as string
-      if (d.content_fi.meta_description) patch.meta_description_fi = d.content_fi.meta_description as string
-      if (d.content_fi.review) patch.review_fi = d.content_fi.review as string
-      if (d.content_fi.pros) patch.pros_fi = d.content_fi.pros as string[]
-      if (d.content_fi.cons) patch.cons_fi = d.content_fi.cons as string[]
-      if (d.content_fi.faq) patch.faq_fi = d.content_fi.faq as { q: string; a: string }[]
+  const saveToDb = async (patch: Record<string, unknown>): Promise<boolean> => {
+    if (!casinoId) {
+      setApplyError("Casino ID missing — save the casino record first, then retry.")
+      return false
     }
-    if (d.content_en) {
-      if (d.content_en.meta_title) patch.meta_title_en = d.content_en.meta_title as string
-      if (d.content_en.meta_description) patch.meta_description_en = d.content_en.meta_description as string
-      if (d.content_en.review) patch.review_en = d.content_en.review as string
-      if (d.content_en.pros) patch.pros_en = d.content_en.pros as string[]
-      if (d.content_en.cons) patch.cons_en = d.content_en.cons as string[]
-      if (d.content_en.faq) patch.faq_en = d.content_en.faq as { q: string; a: string }[]
+    setSaving(true)
+    setApplyError(null)
+    try {
+      console.log("[AI Populate] Saving to Supabase — casino:", casinoId)
+      console.log("[AI Populate] Patch data:", JSON.stringify(patch, null, 2))
+      const res = await fetch(`/api/admin/casinos/${casinoId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(patch),
+      })
+      const json = await res.json()
+      if (!res.ok) {
+        console.error("[AI Populate] PATCH failed:", json)
+        throw new Error((json as { error?: string }).error || `HTTP ${res.status}`)
+      }
+      console.log("[AI Populate] PATCH success — updated row:", JSON.stringify(json, null, 2))
+      return true
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : "Save failed"
+      console.error("[AI Populate] Save error:", msg)
+      setApplyError(msg)
+      return false
+    } finally {
+      setSaving(false)
     }
-    onApply(patch)
-    setApplied(true)
   }
+
+  const doApply = async (patch: Record<string, unknown>, count: number) => {
+    onApply(patch as Partial<Casino>)
+    const ok = await saveToDb(patch)
+    if (ok) {
+      setApplyMsg(`Applied & saved ${count} field${count !== 1 ? "s" : ""} to Supabase`)
+      setTimeout(() => setApplyMsg(null), 5000)
+    }
+  }
+
+  const applySelected = async () => {
+    if (!apiResponse || selectedKeys.size === 0) return
+    const patch: Record<string, unknown> = {}
+    for (const key of selectedKeys) {
+      if (!AI_META_KEYS.has(key) && key in apiResponse.data) patch[key] = apiResponse.data[key]
+    }
+    await doApply(patch, Object.keys(patch).length)
+  }
+
+  const applyAll = async () => {
+    if (!apiResponse) return
+    const patch: Record<string, unknown> = {}
+    for (const [key, val] of Object.entries(apiResponse.data)) {
+      if (!AI_META_KEYS.has(key) && !isEmptyValue(val)) patch[key] = val
+    }
+    await doApply(patch, Object.keys(patch).length)
+  }
+
+  // Build diff list from API result vs current form
+  const diffItems = apiResponse ? Object.entries(apiResponse.data)
+    .filter(([key, val]) => !AI_META_KEYS.has(key) && !isEmptyValue(val))
+    .map(([key, newVal]) => {
+      const currentVal = (currentForm as unknown as Record<string, unknown>)[key]
+      const status: "new" | "update" | "same" =
+        isEmptyValue(currentVal) ? "new"
+        : JSON.stringify(currentVal) !== JSON.stringify(newVal) ? "update"
+        : "same"
+      return { key, newVal, status }
+    }) : []
+
+  const newCount = diffItems.filter(i => i.status === "new").length
+  const updateCount = diffItems.filter(i => i.status === "update").length
 
   return (
     <div className="space-y-4">
@@ -323,41 +444,66 @@ function AiPopulateTab({ casinoName, onApply }: { casinoName: string; onApply: (
         <div className="space-y-5">
           <div className="bg-gradient-to-r from-[#2D1783]/8 to-[#FFD700]/8 border border-[#2D1783]/20 rounded-2xl p-5">
             <div className="flex items-start gap-3">
-              <span className="material-symbols-outlined text-[#2D1783] text-[28px] flex-shrink-0" style={{ fontVariationSettings: "'FILL' 1" }}>auto_awesome</span>
+              <span className="material-symbols-outlined text-[#2D1783] text-[28px] flex-shrink-0" style={{ fontVariationSettings: "'FILL' 1" }}>manage_search</span>
               <div>
-                <p className="font-bold text-[#1b1b1c] text-sm">AI Populate</p>
+                <p className="font-bold text-[#1b1b1c] text-sm">Hybrid AI Research</p>
                 <p className="text-xs text-[#787585] mt-0.5 leading-relaxed">
-                  AI will research {casinoName} and populate selected fields with accurate casino data. Review before applying.
+                  Scrapes real data from AskGamblers, CasinoGuru and Bojoko, then uses Claude AI to extract and structure the information.
                 </p>
               </div>
             </div>
           </div>
 
           <div>
-            <Label>Casino Name</Label>
+            <Label>Casino</Label>
             <div className="flex items-center gap-2 bg-[#F8F9FD] border border-[#E5E8F0] rounded-xl px-3 py-2.5">
               <span className="material-symbols-outlined text-[#787585] text-[16px]">casino</span>
               <span className="text-sm font-semibold text-[#1b1b1c]">{casinoName}</span>
+              <span className="text-xs text-[#787585] ml-1">({casinoSlug})</span>
             </div>
           </div>
 
           <div>
-            <Label>Fields to populate</Label>
-            <div className="flex flex-wrap gap-2 mt-1">
-              {AI_FIELDS.map(f => (
-                <button key={f} type="button" onClick={() => toggleField(f)}
-                  className={`text-xs px-3 py-1.5 rounded-xl border font-medium transition-colors ${selectedFields.includes(f) ? "bg-[#2D1783] text-white border-[#2D1783]" : "bg-white text-[#474554] border-[#E5E8F0] hover:border-[#2D1783]"}`}>
-                  {f}
-                </button>
-              ))}
-            </div>
+            <Label>Add specific review URL (optional)</Label>
+            <input
+              value={customUrl}
+              onChange={e => setCustomUrl(e.target.value)}
+              placeholder="https://www.askgamblers.com/online-casinos/reviews/casino-name"
+              className="w-full bg-[#F8F9FD] border border-[#E5E8F0] focus:border-[#2D1783] focus:outline-none rounded-xl px-3 py-2 text-sm placeholder:text-[#b0adb8] transition-colors"
+            />
+            <p className="text-[10px] text-[#787585] mt-1">
+              Paste a casino review page URL for more accurate data. If empty, auto-searches AskGamblers, CasinoGuru &amp; Bojoko.
+            </p>
           </div>
 
-          <button type="button" onClick={generate} disabled={loading || selectedFields.length === 0}
+          <label className="flex items-start gap-2.5 cursor-pointer select-none group">
+            <div className="relative mt-0.5">
+              <input
+                type="checkbox"
+                checked={regenerateReview}
+                onChange={e => setRegenerateReview(e.target.checked)}
+                className="sr-only"
+              />
+              <div className={`w-4 h-4 rounded border-2 flex items-center justify-center transition-colors ${regenerateReview ? "bg-[#F39C12] border-[#F39C12]" : "bg-white border-[#E5E8F0] group-hover:border-[#F39C12]"}`}>
+                {regenerateReview && <span className="material-symbols-outlined text-white text-[11px]" style={{ fontVariationSettings: "'FILL' 1" }}>check</span>}
+              </div>
+            </div>
+            <div>
+              <p className="text-xs font-semibold text-[#1b1b1c]">
+                Regenerate review text
+                <span className="ml-1.5 text-[9px] font-bold bg-[#F39C12]/15 text-[#F39C12] px-1.5 py-0.5 rounded uppercase tracking-wide">Overwrites existing</span>
+              </p>
+              <p className="text-[10px] text-[#787585] mt-0.5 leading-relaxed">
+                Generates unique review_fi + review_en using extracted data. Leave unchecked to keep your edited review text.
+              </p>
+            </div>
+          </label>
+
+          <button type="button" onClick={generate} disabled={loading}
             className="w-full flex items-center justify-center gap-2 bg-[#2D1783] text-white font-bold py-3 rounded-xl hover:bg-[#3e2db2] disabled:opacity-50 disabled:cursor-not-allowed transition-colors">
             {loading
-              ? <><span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />Researching {casinoName}...</>
-              : <><span className="material-symbols-outlined text-[18px]" style={{ fontVariationSettings: "'FILL' 1" }}>auto_awesome</span>Generate with AI</>
+              ? <><span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />Scraping &amp; researching {casinoName}...</>
+              : <><span className="material-symbols-outlined text-[18px]" style={{ fontVariationSettings: "'FILL' 1" }}>auto_awesome</span>Scrape &amp; Populate with AI</>
             }
           </button>
         </div>
@@ -367,38 +513,168 @@ function AiPopulateTab({ casinoName, onApply }: { casinoName: string; onApply: (
         <div className="bg-red-50 border border-red-200 rounded-2xl p-4 flex items-start gap-3">
           <span className="material-symbols-outlined text-red-500 text-[18px] flex-shrink-0">error</span>
           <div>
-            <p className="text-sm font-bold text-red-700">Generation failed</p>
+            <p className="text-sm font-bold text-red-700">Research failed</p>
             <p className="text-xs text-red-600 mt-0.5">{error}</p>
-            <p className="text-xs text-red-500 mt-1">Make sure AI_GATEWAY_API_KEY is set in environment variables.</p>
           </div>
         </div>
       )}
 
-      {result && (
-        <SectionCard title="AI Research Results" icon="preview">
-          <div className="space-y-4">
-            {!!(result as Record<string, unknown>).summary && (
-              <div className="bg-[#F8F9FD] border border-[#E5E8F0] rounded-xl p-4">
-                <p className="text-xs font-bold text-[#787585] mb-1">Summary</p>
-                <p className="text-sm text-[#1b1b1c]">{String((result as Record<string, unknown>).summary)}</p>
+      {apiResponse && (
+        <>
+          {/* Data sources & confidence */}
+          <SectionCard title="Data Sources" icon="travel_explore">
+            <div className="space-y-3">
+              <ConfidenceBadge level={apiResponse.dataConfidence} />
+              {/* Per-source type summary (new multi-source scraping) */}
+              {apiResponse.sourcesSummary && apiResponse.sourcesSummary.length > 0 ? (
+                <div className="space-y-1.5">
+                  {apiResponse.sourcesSummary.map(s => (
+                    <div key={s.url} className="flex items-center gap-2 text-xs px-3 py-2 rounded-lg border bg-[#27AE60]/6 border-[#27AE60]/20">
+                      <span className="material-symbols-outlined text-[14px] text-[#27AE60]">check_circle</span>
+                      <span className="font-bold text-[#1b1b1c] uppercase text-[9px] w-16 flex-shrink-0">{s.type}</span>
+                      <span className="text-[#787585] truncate">{getDomain(s.url)}</span>
+                    </div>
+                  ))}
+                  {/* Show attempted but failed */}
+                  {apiResponse.sourcesAttempted
+                    .filter(url => !apiResponse.sourcesUsed.includes(url))
+                    .map(url => (
+                      <div key={url} className="flex items-center gap-2 text-xs px-3 py-2 rounded-lg border bg-[#F8F9FD] border-[#E5E8F0]">
+                        <span className="material-symbols-outlined text-[14px] text-[#b0adb8]">cancel</span>
+                        <span className="text-[#787585] truncate">{getDomain(url)}</span>
+                        <span className="text-[#b0adb8] flex-shrink-0">— no data</span>
+                      </div>
+                    ))}
+                </div>
+              ) : (
+                <div className="space-y-1.5">
+                  {apiResponse.sourcesAttempted.map(url => {
+                    const used = apiResponse.sourcesUsed.includes(url)
+                    return (
+                      <div key={url} className={`flex items-center gap-2 text-xs px-3 py-2 rounded-lg border ${used ? "bg-[#27AE60]/6 border-[#27AE60]/20" : "bg-[#F8F9FD] border-[#E5E8F0]"}`}>
+                        <span className={`material-symbols-outlined text-[14px] ${used ? "text-[#27AE60]" : "text-[#b0adb8]"}`}>
+                          {used ? "check_circle" : "cancel"}
+                        </span>
+                        <span className={`font-medium ${used ? "text-[#1b1b1c]" : "text-[#787585]"}`}>{getDomain(url)}</span>
+                        {!used && <span className="text-[#b0adb8]">— no data returned</span>}
+                      </div>
+                    )
+                  })}
+                </div>
+              )}
+              {/* AI-estimated field warning */}
+              {(() => {
+                const sources = apiResponse.data._sources as Record<string, string> | undefined
+                const aiCount = sources ? Object.values(sources).filter(v => v === "ai_knowledge").length : 0
+                return aiCount > 0 ? (
+                  <div className="flex items-center gap-2 text-xs text-[#E74C3C] bg-[#E74C3C]/5 border border-[#E74C3C]/20 rounded-lg px-3 py-2">
+                    <span className="material-symbols-outlined text-[14px]">warning</span>
+                    <span><strong>{aiCount} fields</strong> are AI estimates (not found in HTML) — unchecked by default, review before applying</span>
+                  </div>
+                ) : null
+              })()}
+              {apiResponse.summary && (
+                <p className="text-xs text-[#787585] italic border-t border-[#E5E8F0] pt-3">{apiResponse.summary}</p>
+              )}
+            </div>
+          </SectionCard>
+
+          {/* Diff preview */}
+          <SectionCard title={`Diff Preview — ${newCount} new, ${updateCount} updates`} icon="difference">
+            {diffItems.length === 0 ? (
+              <p className="text-sm text-[#787585] text-center py-4">No data could be extracted from the sources.</p>
+            ) : (
+              <div className="space-y-1">
+                {/* Toolbar */}
+                <div className="flex items-center gap-3 pb-2 mb-1 border-b border-[#E5E8F0] sticky top-0 bg-white z-10">
+                  <button type="button"
+                    onClick={() => setSelectedKeys(new Set(diffItems.filter(i => i.status !== "same").map(i => i.key)))}
+                    className="text-xs font-bold text-[#2D1783] hover:underline">Select changed</button>
+                  <button type="button"
+                    onClick={() => setSelectedKeys(new Set(diffItems.map(i => i.key)))}
+                    className="text-xs font-bold text-[#2D1783] hover:underline">Select all</button>
+                  <button type="button"
+                    onClick={() => setSelectedKeys(new Set())}
+                    className="text-xs font-bold text-[#787585] hover:underline">Clear</button>
+                  <span className="text-xs text-[#787585] ml-auto">{selectedKeys.size} selected</span>
+                </div>
+                {/* Field rows */}
+                <div className="max-h-80 overflow-y-auto space-y-0.5 pr-1">
+                  {diffItems.map(({ key, newVal, status }) => {
+                    const fieldSources = apiResponse.data._sources as Record<string, string> | undefined
+                    const fieldSource = fieldSources?.[key]
+                    const isAiOnly = fieldSource === "ai_knowledge"
+                    const s = {
+                      new:    { bg: "bg-[#27AE60]/6 border-[#27AE60]/20",  badge: "bg-[#27AE60]/15 text-[#27AE60]",  label: "NEW" },
+                      update: { bg: "bg-[#F39C12]/6 border-[#F39C12]/20",  badge: "bg-[#F39C12]/15 text-[#F39C12]",  label: "UPDATE" },
+                      same:   { bg: "bg-[#F8F9FD] border-[#E5E8F0]",       badge: "bg-[#E5E8F0] text-[#787585]",     label: "SAME" },
+                    }[status]
+                    const rowBg = isAiOnly ? "bg-[#E74C3C]/5 border-[#E74C3C]/20" : s.bg
+                    return (
+                      <label key={key} className={`flex items-center gap-2.5 px-3 py-2 rounded-lg border cursor-pointer hover:opacity-90 transition-opacity ${rowBg}`}>
+                        <input type="checkbox" checked={selectedKeys.has(key)}
+                          onChange={e => {
+                            const next = new Set(selectedKeys)
+                            e.target.checked ? next.add(key) : next.delete(key)
+                            setSelectedKeys(next)
+                          }}
+                          className="w-3.5 h-3.5 accent-[#2D1783] flex-shrink-0"
+                        />
+                        <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded flex-shrink-0 ${s.badge}`}>{s.label}</span>
+                        <span className="text-[11px] font-mono text-[#474554] flex-shrink-0 w-36 truncate">{key}</span>
+                        <span className="text-[11px] text-[#787585] flex-1 truncate">{formatAiValue(newVal)}</span>
+                        {fieldSource && (
+                          <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded flex-shrink-0 ${
+                            isAiOnly
+                              ? "bg-[#E74C3C]/15 text-[#E74C3C]"
+                              : "bg-[#27AE60]/15 text-[#27AE60]"
+                          }`} title={isAiOnly ? "AI estimate — not found in HTML sources" : `Scraped from ${fieldSource}`}>
+                            {isAiOnly ? "AI" : fieldSource.slice(0, 2).toUpperCase()}
+                          </span>
+                        )}
+                      </label>
+                    )
+                  })}
+                </div>
               </div>
             )}
-            <div className="bg-[#0d0820] rounded-xl p-4 overflow-auto max-h-64">
-              <pre className="text-[11px] text-green-400 font-mono leading-relaxed whitespace-pre-wrap">
-                {JSON.stringify(result, null, 2)}
-              </pre>
-            </div>
+          </SectionCard>
+
+          {/* Apply buttons */}
+          <div className="space-y-3">
             <div className="flex gap-3">
-              <button type="button" onClick={applyData} disabled={applied}
-                className="flex-1 flex items-center justify-center gap-2 bg-[#27AE60] text-white font-bold py-2.5 rounded-xl hover:bg-[#219a52] disabled:opacity-60 transition-colors text-sm">
-                {applied
-                  ? <><span className="material-symbols-outlined text-[16px]">check_circle</span>Applied to form</>
-                  : <><span className="material-symbols-outlined text-[16px]">check</span>Apply all to form</>
-                }
+              <button type="button" onClick={applySelected} disabled={selectedKeys.size === 0 || saving}
+                className="flex-1 flex items-center justify-center gap-2 bg-[#2D1783] text-white font-bold py-2.5 rounded-xl hover:bg-[#3e2db2] disabled:opacity-40 disabled:cursor-not-allowed transition-colors text-sm">
+                {saving
+                  ? <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                  : <span className="material-symbols-outlined text-[16px]">checklist</span>}
+                Apply Selected ({selectedKeys.size})
+              </button>
+              <button type="button" onClick={applyAll} disabled={saving}
+                className="flex-1 flex items-center justify-center gap-2 bg-[#27AE60] text-white font-bold py-2.5 rounded-xl hover:bg-[#219a52] disabled:opacity-50 disabled:cursor-not-allowed transition-colors text-sm">
+                {saving
+                  ? <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                  : <span className="material-symbols-outlined text-[16px]">done_all</span>}
+                {saving ? "Saving..." : "Apply All & Save"}
               </button>
             </div>
+            {applyMsg && (
+              <div className="flex items-center gap-2 text-sm text-[#27AE60] font-medium">
+                <span className="material-symbols-outlined text-[16px]">check_circle</span>
+                {applyMsg}
+              </div>
+            )}
+            {applyError && (
+              <div className="flex items-center gap-2 text-sm text-red-600 font-medium">
+                <span className="material-symbols-outlined text-[16px]">error</span>
+                <span className="flex-1">{applyError}</span>
+                <button type="button" onClick={() => setApplyError(null)} className="text-red-400 hover:text-red-600 flex-shrink-0">
+                  <span className="material-symbols-outlined text-[14px]">close</span>
+                </button>
+              </div>
+            )}
           </div>
-        </SectionCard>
+        </>
       )}
     </div>
   )
@@ -422,6 +698,7 @@ export default function CasinoEditPage() {
   const [loading, setLoading] = useState(true)
   const [activeTab, setActiveTab] = useState("general")
   const [saved, setSaved] = useState<"idle" | "saving" | "ok" | "error">("idle")
+  const [saveError, setSaveError] = useState<string | null>(null)
 
   // Fetch casino from Supabase on mount
   useEffect(() => {
@@ -439,6 +716,7 @@ export default function CasinoEditPage() {
 
   const save = async () => {
     setSaved("saving")
+    setSaveError(null)
     try {
       const endpoint = form.id
         ? `/api/admin/casinos/${form.id}`
@@ -449,14 +727,18 @@ export default function CasinoEditPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(form),
       })
-      if (!res.ok) throw new Error("Save failed")
+      if (!res.ok) {
+        const errData = await res.json().catch(() => ({}))
+        throw new Error((errData as { error?: string }).error || `HTTP ${res.status}`)
+      }
       const updated = await res.json()
       if (updated?.id) setForm(updated)
       setSaved("ok")
-    } catch {
+    } catch (err) {
       setSaved("error")
+      setSaveError(err instanceof Error ? err.message : "Save failed")
     } finally {
-      setTimeout(() => setSaved("idle"), 2500)
+      setTimeout(() => { setSaved("idle") }, 4000)
     }
   }
 
@@ -534,6 +816,16 @@ export default function CasinoEditPage() {
           </div>
         </div>
       </div>
+
+      {saveError && (
+        <div className="mb-4 flex items-start gap-2 bg-red-50 border border-red-200 text-red-700 text-xs rounded-xl px-4 py-3">
+          <span className="material-symbols-outlined text-[15px] flex-shrink-0 mt-0.5">error</span>
+          <span><strong>Save failed:</strong> {saveError}</span>
+          <button type="button" onClick={() => setSaveError(null)} className="ml-auto text-red-400 hover:text-red-600">
+            <span className="material-symbols-outlined text-[14px]">close</span>
+          </button>
+        </div>
+      )}
 
       <div className="flex gap-6">
         {/* Vertical tab sidebar */}
@@ -671,29 +963,63 @@ export default function CasinoEditPage() {
           {activeTab === "licensing" && (
             <>
               <SectionCard title="License Details" icon="verified_user">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div>
-                    <Label>License Authority</Label>
-                    <select value={form.license_authority ?? ""} onChange={e => patch({ license_authority: e.target.value })}
-                      className="w-full bg-[#F8F9FD] border border-[#E5E8F0] focus:border-[#2D1783] focus:outline-none rounded-xl px-3 py-2 text-sm">
-                      <option value="">Select authority...</option>
-                      {LICENSE_AUTHORITIES.map(a => <option key={a} value={a}>{a}</option>)}
-                    </select>
-                  </div>
-                  <div>
-                    <Label>Verification Status</Label>
-                    <select value={form.is_verified === true ? "verified" : form.is_verified === false ? "unverified" : ""}
-                      onChange={e => patch({ is_verified: e.target.value === "verified" })}
-                      className="w-full bg-[#F8F9FD] border border-[#E5E8F0] focus:border-[#2D1783] focus:outline-none rounded-xl px-3 py-2 text-sm">
-                      <option value="">Select...</option>
-                      <option value="verified">Verified</option>
-                      <option value="unverified">Unverified</option>
-                    </select>
-                  </div>
-                  <Input label="License Number" value={form.license_number ?? ""} onChange={e => patch({ license_number: e.target.value })} />
-                  <Input label="License URL" type="url" value={form.license_url ?? ""} onChange={e => patch({ license_url: e.target.value })} placeholder="https://..." />
-                  <Input label="License Expiry Date" type="date" />
-                </div>
+                {(() => {
+                  const isCustom = !!form.license_authority && !LICENSE_AUTHORITIES.includes(form.license_authority)
+                  const dropdownVal = isCustom ? "Other" : (form.license_authority ?? "")
+                  const suggestedScore = LICENSE_TRUST_SCORES[form.license_authority ?? ""] ?? 0
+                  return (
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div className="md:col-span-2">
+                        <Label>License Authority</Label>
+                        <select value={dropdownVal}
+                          onChange={e => {
+                            const val = e.target.value
+                            patch({ license_authority: val === "Other" ? "" : val })
+                            const score = LICENSE_TRUST_SCORES[val] ?? 0
+                            if (score > 0 && (!form.trust_score || form.trust_score === 70)) {
+                              patch({ trust_score: score })
+                            }
+                          }}
+                          className="w-full bg-[#F8F9FD] border border-[#E5E8F0] focus:border-[#2D1783] focus:outline-none rounded-xl px-3 py-2 text-sm">
+                          <option value="">Select authority...</option>
+                          {LICENSE_AUTHORITIES.map(a => <option key={a} value={a}>{a}</option>)}
+                        </select>
+                        {(dropdownVal === "Other" || isCustom) && (
+                          <input
+                            type="text"
+                            placeholder="Enter license authority name..."
+                            value={isCustom ? (form.license_authority ?? "") : ""}
+                            onChange={e => patch({ license_authority: e.target.value })}
+                            className="mt-2 w-full bg-[#F8F9FD] border border-[#F39C12] focus:border-[#2D1783] focus:outline-none rounded-xl px-3 py-2 text-sm text-[#1b1b1c] placeholder:text-[#b0adb8]"
+                          />
+                        )}
+                        {suggestedScore > 0 && (
+                          <div className="mt-1.5 flex items-center gap-2">
+                            <span className="text-[11px] text-[#787585]">Suggested trust score for this license:</span>
+                            <button type="button"
+                              onClick={() => patch({ trust_score: suggestedScore })}
+                              className="text-[11px] font-bold text-[#2D1783] hover:underline">
+                              {suggestedScore} (apply)
+                            </button>
+                          </div>
+                        )}
+                      </div>
+                      <div>
+                        <Label>Verification Status</Label>
+                        <select value={form.is_verified === true ? "verified" : form.is_verified === false ? "unverified" : ""}
+                          onChange={e => patch({ is_verified: e.target.value === "verified" })}
+                          className="w-full bg-[#F8F9FD] border border-[#E5E8F0] focus:border-[#2D1783] focus:outline-none rounded-xl px-3 py-2 text-sm">
+                          <option value="">Select...</option>
+                          <option value="verified">Verified</option>
+                          <option value="unverified">Unverified</option>
+                        </select>
+                      </div>
+                      <div>{/* spacer */}</div>
+                      <Input label="License Number" value={form.license_number ?? ""} onChange={e => patch({ license_number: e.target.value })} />
+                      <Input label="License URL" type="url" value={form.license_url ?? ""} onChange={e => patch({ license_url: e.target.value })} placeholder="https://..." />
+                    </div>
+                  )
+                })()}
               </SectionCard>
             </>
           )}
@@ -769,10 +1095,10 @@ export default function CasinoEditPage() {
                 </div>
               </SectionCard>
               <SectionCard title="Payment Methods" icon="credit_card">
-                <CheckboxGrid label="" items={PAYMENT_METHODS} selected={form.payment_methods} onChange={v => patch({ payment_methods: v })} />
+                <CheckboxGrid label="" items={PAYMENT_METHODS} selected={form.payment_methods ?? []} onChange={v => patch({ payment_methods: v })} />
               </SectionCard>
               <SectionCard title="Currencies" icon="currency_exchange">
-                <CheckboxGrid label="" items={CURRENCIES} selected={form.currencies_accepted} onChange={v => patch({ currencies_accepted: v })} />
+                <CheckboxGrid label="" items={CURRENCIES} selected={form.currencies_accepted ?? []} onChange={v => patch({ currencies_accepted: v })} />
               </SectionCard>
             </>
           )}
@@ -798,7 +1124,7 @@ export default function CasinoEditPage() {
                 </div>
               </SectionCard>
               <SectionCard title="Game Providers" icon="business">
-                <CheckboxGrid label="" items={GAME_PROVIDERS} selected={form.game_providers} onChange={v => patch({ game_providers: v })} />
+                <CheckboxGrid label="" items={GAME_PROVIDERS} selected={form.game_providers ?? []} onChange={v => patch({ game_providers: v })} />
               </SectionCard>
             </>
           )}
@@ -918,7 +1244,7 @@ export default function CasinoEditPage() {
           )}
 
           {/* TAB 12 — AI Populate */}
-          {activeTab === "ai" && <AiPopulateTab casinoName={form.name} onApply={patch} />}
+          {activeTab === "ai" && <AiPopulateTab casinoName={form.name} casinoSlug={form.slug} casinoId={form.id} currentForm={form} onApply={patch} />}
         </div>
       </div>
     </div>
