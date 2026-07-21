@@ -15,8 +15,8 @@ export async function proxy(request: NextRequest) {
     const accept = request.headers.get("accept-language") ?? ""
     if (/\bfi\b/i.test(accept)) return NextResponse.redirect(new URL("/fi", request.url))
     if (/\ben[-_]GB\b/i.test(accept)) return NextResponse.redirect(new URL("/uk", request.url))
-    // No preference → let the language picker page render.
-    return NextResponse.next()
+    // Default fallback — always land on Finnish homepage, never a blank page.
+    return NextResponse.redirect(new URL("/fi", request.url))
   }
 
   return await updateSession(request)
