@@ -466,43 +466,18 @@ function AiPopulateTab({ casinoName, casinoSlug, casinoId, currentForm, onApply 
   const [selectedKeys, setSelectedKeys] = useState<Set<string>>(new Set())
   const [applyMsg, setApplyMsg] = useState<string | null>(null)
   const [applyError, setApplyError] = useState<string | null>(null)
-  const [progress, setProgress] = useState<{ stage: string; message: string; elapsed: number } | null>(null)
 
   const generate = async () => {
-    setLoading(true)
-    setError(null)
-    setApiResponse(null)
-    setApplyMsg(null)
-    setApplyError(null)
-
-    const t0 = Date.now()
-
-    // Show approximate progress steps while the single long fetch is in-flight.
-    // Scraping takes ~3–8 s, Claude stage 1 takes ~10–20 s, stage 2 ~10–15 s.
-    setProgress({ stage: "scraping", message: "Scraping sources in parallel…", elapsed: 0 })
-    const timer1 = setTimeout(() => {
-      setProgress({ stage: "analyzing", message: "Extracting data with Claude AI…", elapsed: Date.now() - t0 })
-    }, 6000)
-    const timer2 = regenerateReview
-      ? setTimeout(() => {
-          setProgress({ stage: "writing", message: "Writing Finnish & English reviews…", elapsed: Date.now() - t0 })
-        }, 20000)
-      : undefined
-
-    const clearTimers = () => { clearTimeout(timer1); if (timer2) clearTimeout(timer2) }
-
+    setLoading(true); setError(null); setApiResponse(null); setApplyMsg(null); setApplyError(null)
     try {
       const res = await fetch("/api/admin/ai-populate", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ casinoName, casinoSlug, sourceUrl: customUrl || undefined, regenerateReview }),
       })
-      clearTimers()
       const json = await res.json()
-      if (!res.ok) throw new Error((json as { error?: string }).error || `HTTP ${res.status}`)
-
+      if (!res.ok) throw new Error(json.error || "Failed")
       setApiResponse(json as AiApiResponse)
-
       // Auto-select fields from real sources; leave AI-estimated fields unchecked
       const sources = (json as AiApiResponse).data._sources as Record<string, string> | undefined
       const auto = new Set<string>()
@@ -514,11 +489,9 @@ function AiPopulateTab({ casinoName, casinoSlug, casinoId, currentForm, onApply 
       }
       setSelectedKeys(auto)
     } catch (e) {
-      clearTimers()
       setError(e instanceof Error ? e.message : "Unknown error")
     } finally {
       setLoading(false)
-      setProgress(null)
     }
   }
 
@@ -590,7 +563,7 @@ function AiPopulateTab({ casinoName, casinoSlug, casinoId, currentForm, onApply 
         isEmptyValue(currentVal) ? "new"
         : JSON.stringify(currentVal) !== JSON.stringify(newVal) ? "update"
         : "same"
-      return { key, newVal, currentVal, status }
+      return { key, newVal, status }
     }) : []
 
   const newCount = diffItems.filter(i => i.status === "new").length
@@ -660,55 +633,10 @@ function AiPopulateTab({ casinoName, casinoSlug, casinoId, currentForm, onApply 
           <button type="button" onClick={generate} disabled={loading}
             className="w-full flex items-center justify-center gap-2 bg-[#2D1783] text-white font-bold py-3 rounded-xl hover:bg-[#3e2db2] disabled:opacity-50 disabled:cursor-not-allowed transition-colors">
             {loading
-              ? <><span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />Researching {casinoName}...</>
+              ? <><span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />Scraping &amp; researching {casinoName}...</>
               : <><span className="material-symbols-outlined text-[18px]" style={{ fontVariationSettings: "'FILL' 1" }}>auto_awesome</span>Scrape &amp; Populate with AI</>
             }
           </button>
-
-          {/* Live progress stages */}
-          {loading && (() => {
-            const stages = [
-              { id: "scraping",  label: "Scraping sources",      icon: "travel_explore" },
-              { id: "analyzing", label: "Analyzing with Claude",  icon: "psychology" },
-              ...(regenerateReview ? [{ id: "writing", label: "Writing reviews", icon: "edit_note" }] : []),
-            ]
-            const currentIdx = stages.findIndex(s => s.id === progress?.stage)
-            return (
-              <div className="bg-[#F8F9FD] border border-[#E5E8F0] rounded-xl p-3 space-y-2">
-                {stages.map((stage, idx) => {
-                  const done    = currentIdx > idx
-                  const active  = currentIdx === idx
-                  const pending = currentIdx < idx
-                  return (
-                    <div key={stage.id} className={`flex items-center gap-2.5 text-xs transition-opacity ${pending ? "opacity-35" : ""}`}>
-                      <span className={`w-5 h-5 rounded-full flex items-center justify-center flex-shrink-0 ${
-                        done   ? "bg-[#27AE60] text-white" :
-                        active ? "bg-[#2D1783] text-white" :
-                                 "bg-[#E5E8F0] text-[#787585]"
-                      }`}>
-                        {done
-                          ? <span className="material-symbols-outlined text-[11px]" style={{ fontVariationSettings: "'FILL' 1" }}>check</span>
-                          : active
-                          ? <span className="w-2.5 h-2.5 border-[1.5px] border-white/30 border-t-white rounded-full animate-spin block" />
-                          : <span className="material-symbols-outlined text-[11px]">{stage.icon}</span>
-                        }
-                      </span>
-                      <span className={`font-semibold ${done ? "text-[#27AE60]" : active ? "text-[#2D1783]" : "text-[#787585]"}`}>
-                        {stage.label}
-                      </span>
-                      {active && progress?.elapsed != null && (
-                        <span className="ml-auto text-[10px] text-[#787585]">{(progress.elapsed / 1000).toFixed(1)}s</span>
-                      )}
-                      {done && <span className="ml-auto text-[10px] text-[#27AE60]">Done</span>}
-                    </div>
-                  )
-                })}
-                {progress?.message && (
-                  <p className="text-[10px] text-[#787585] border-t border-[#E5E8F0] pt-2 mt-1">{progress.message}</p>
-                )}
-              </div>
-            )
-          })()}
         </div>
       </SectionCard>
 
@@ -801,19 +729,9 @@ function AiPopulateTab({ casinoName, casinoSlug, casinoId, currentForm, onApply 
                     className="text-xs font-bold text-[#787585] hover:underline">Clear</button>
                   <span className="text-xs text-[#787585] ml-auto">{selectedKeys.size} selected</span>
                 </div>
-                {/* Column headers */}
-                <div className="grid grid-cols-[20px_40px_120px_1fr_16px_1fr_28px] items-center gap-x-2 px-3 pb-1 text-[9px] font-bold text-[#b0adb8] uppercase tracking-wider">
-                  <span />
-                  <span>Status</span>
-                  <span>Field</span>
-                  <span>Current value</span>
-                  <span />
-                  <span>New AI value</span>
-                  <span>Src</span>
-                </div>
                 {/* Field rows */}
-                <div className="max-h-96 overflow-y-auto space-y-0.5 pr-1">
-                  {diffItems.map(({ key, newVal, currentVal, status }) => {
+                <div className="max-h-80 overflow-y-auto space-y-0.5 pr-1">
+                  {diffItems.map(({ key, newVal, status }) => {
                     const fieldSources = apiResponse.data._sources as Record<string, string> | undefined
                     const fieldSource = fieldSources?.[key]
                     const isAiOnly = fieldSource === "ai_knowledge"
@@ -824,25 +742,27 @@ function AiPopulateTab({ casinoName, casinoSlug, casinoId, currentForm, onApply 
                     }[status]
                     const rowBg = isAiOnly ? "bg-[#E74C3C]/5 border-[#E74C3C]/20" : s.bg
                     return (
-                      <label key={key} className={`grid grid-cols-[20px_40px_120px_1fr_16px_1fr_28px] items-center gap-x-2 px-3 py-2 rounded-lg border cursor-pointer hover:opacity-90 transition-opacity ${rowBg}`}>
+                      <label key={key} className={`flex items-center gap-2.5 px-3 py-2 rounded-lg border cursor-pointer hover:opacity-90 transition-opacity ${rowBg}`}>
                         <input type="checkbox" checked={selectedKeys.has(key)}
                           onChange={e => {
                             const next = new Set(selectedKeys)
                             e.target.checked ? next.add(key) : next.delete(key)
                             setSelectedKeys(next)
                           }}
-                          className="w-3.5 h-3.5 accent-[#2D1783]"
+                          className="w-3.5 h-3.5 accent-[#2D1783] flex-shrink-0"
                         />
-                        <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded text-center ${s.badge}`}>{s.label}</span>
-                        <span className="text-[11px] font-mono text-[#474554] truncate">{key}</span>
-                        <span className="text-[11px] text-[#b0adb8] truncate">{isEmptyValue(currentVal) ? <em className="not-italic text-[#d0cedb]">empty</em> : formatAiValue(currentVal)}</span>
-                        <span className="material-symbols-outlined text-[12px] text-[#b0adb8] text-center">arrow_forward</span>
-                        <span className={`text-[11px] font-semibold truncate ${isAiOnly ? "text-[#E74C3C]" : "text-[#1b1b1c]"}`}>{formatAiValue(newVal)}</span>
-                        <span className={`text-[9px] font-bold px-1 py-0.5 rounded text-center ${
-                          isAiOnly ? "bg-[#E74C3C]/15 text-[#E74C3C]" : fieldSource ? "bg-[#27AE60]/15 text-[#27AE60]" : ""
-                        }`} title={isAiOnly ? "AI estimate — not found in HTML" : fieldSource ? `Scraped from ${fieldSource}` : ""}>
-                          {fieldSource ? (isAiOnly ? "AI" : fieldSource.slice(0, 2).toUpperCase()) : ""}
-                        </span>
+                        <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded flex-shrink-0 ${s.badge}`}>{s.label}</span>
+                        <span className="text-[11px] font-mono text-[#474554] flex-shrink-0 w-36 truncate">{key}</span>
+                        <span className="text-[11px] text-[#787585] flex-1 truncate">{formatAiValue(newVal)}</span>
+                        {fieldSource && (
+                          <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded flex-shrink-0 ${
+                            isAiOnly
+                              ? "bg-[#E74C3C]/15 text-[#E74C3C]"
+                              : "bg-[#27AE60]/15 text-[#27AE60]"
+                          }`} title={isAiOnly ? "AI estimate — not found in HTML sources" : `Scraped from ${fieldSource}`}>
+                            {isAiOnly ? "AI" : fieldSource.slice(0, 2).toUpperCase()}
+                          </span>
+                        )}
                       </label>
                     )
                   })}
