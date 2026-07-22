@@ -469,81 +469,52 @@ function AiPopulateTab({ casinoName, casinoSlug, casinoId, currentForm, onApply 
   const [progress, setProgress] = useState<{ stage: string; message: string; elapsed: number } | null>(null)
 
   const generate = async () => {
-    setLoading(true); setError(null); setApiResponse(null); setApplyMsg(null); setApplyError(null); setProgress(null)
+    setLoading(true)
+    setError(null)
+    setApiResponse(null)
+    setApplyMsg(null)
+    setApplyError(null)
+
+    const t0 = Date.now()
+
+    // Show approximate progress steps while the single long fetch is in-flight.
+    // Scraping takes ~3–8 s, Claude stage 1 takes ~10–20 s, stage 2 ~10–15 s.
+    setProgress({ stage: "scraping", message: "Scraping sources in parallel…", elapsed: 0 })
+    const timer1 = setTimeout(() => {
+      setProgress({ stage: "analyzing", message: "Extracting data with Claude AI…", elapsed: Date.now() - t0 })
+    }, 6000)
+    const timer2 = regenerateReview
+      ? setTimeout(() => {
+          setProgress({ stage: "writing", message: "Writing Finnish & English reviews…", elapsed: Date.now() - t0 })
+        }, 20000)
+      : undefined
+
+    const clearTimers = () => { clearTimeout(timer1); if (timer2) clearTimeout(timer2) }
+
     try {
       const res = await fetch("/api/admin/ai-populate", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ casinoName, casinoSlug, sourceUrl: customUrl || undefined, regenerateReview }),
       })
-      if (!res.ok || !res.body) {
-        const json = await res.json().catch(() => ({}))
-        throw new Error((json as { error?: string }).error || `HTTP ${res.status}`)
-      }
+      clearTimers()
+      const json = await res.json()
+      if (!res.ok) throw new Error((json as { error?: string }).error || `HTTP ${res.status}`)
 
-      // Read NDJSON stream — each line is a JSON event
-      const reader = res.body.getReader()
-      const decoder = new TextDecoder()
-      let buffer = ""
+      setApiResponse(json as AiApiResponse)
 
-      while (true) {
-        const { value, done } = await reader.read()
-        if (done) break
-        buffer += decoder.decode(value, { stream: true })
-        const lines = buffer.split("\n")
-        buffer = lines.pop() ?? ""        // keep incomplete last line
-        for (const line of lines) {
-          const trimmed = line.trim()
-          if (!trimmed) continue
-          try {
-            const evt = JSON.parse(trimmed) as {
-              type: "progress" | "result" | "error"
-              stage?: string
-              message?: string
-              elapsed?: number
-              success?: boolean
-              data?: AiApiResponse["data"]
-              sourcesUsed?: string[]
-              sourcesAttempted?: string[]
-              sourcesSummary?: AiApiResponse["sourcesSummary"]
-              dataConfidence?: AiApiResponse["dataConfidence"]
-              summary?: string | null
-            }
-
-            if (evt.type === "progress") {
-              setProgress({ stage: evt.stage ?? "", message: evt.message ?? "", elapsed: evt.elapsed ?? 0 })
-            } else if (evt.type === "result" && evt.success && evt.data) {
-              const resp: AiApiResponse = {
-                success: true,
-                data: evt.data,
-                sourcesUsed: evt.sourcesUsed ?? [],
-                sourcesAttempted: evt.sourcesAttempted ?? [],
-                sourcesSummary: evt.sourcesSummary,
-                dataConfidence: evt.dataConfidence ?? "low",
-                summary: evt.summary ?? null,
-              }
-              setApiResponse(resp)
-              // Auto-select fields from real sources; leave AI-estimated unchecked
-              const sources = evt.data._sources as Record<string, string> | undefined
-              const auto = new Set<string>()
-              for (const [key, val] of Object.entries(evt.data)) {
-                if (!AI_META_KEYS.has(key) && !isEmptyValue(val)) {
-                  const src = sources?.[key]
-                  if (!src || src !== "ai_knowledge") auto.add(key)
-                }
-              }
-              setSelectedKeys(auto)
-            } else if (evt.type === "error") {
-              throw new Error(evt.message || "AI generation failed")
-            }
-          } catch (parseErr) {
-            // SyntaxError = malformed/incomplete JSON line from the stream — skip silently.
-            // Any other error (e.g. deliberately thrown from evt.type === "error") propagates.
-            if (!(parseErr instanceof SyntaxError)) throw parseErr
-          }
+      // Auto-select fields from real sources; leave AI-estimated fields unchecked
+      const sources = (json as AiApiResponse).data._sources as Record<string, string> | undefined
+      const auto = new Set<string>()
+      for (const [key, val] of Object.entries((json as AiApiResponse).data)) {
+        if (!AI_META_KEYS.has(key) && !isEmptyValue(val)) {
+          const src = sources?.[key]
+          if (!src || src !== "ai_knowledge") auto.add(key)
         }
       }
+      setSelectedKeys(auto)
     } catch (e) {
+      clearTimers()
       setError(e instanceof Error ? e.message : "Unknown error")
     } finally {
       setLoading(false)
