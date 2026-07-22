@@ -1,7 +1,7 @@
 import Link from "next/link"
-import Image from "next/image"
 import type { Casino, Lang } from "@/lib/types"
 import { TRANSLATIONS } from "@/lib/data"
+import { CasinoLogo } from "@/components/casino-logo"
 
 interface CasinoCardProps {
   casino: Casino
@@ -59,31 +59,6 @@ function MinDepositDisplay({ amount }: { amount?: number | null }) {
   return <span className="text-sm font-bold text-[#1b1b1c]">{amount}€</span>
 }
 
-function CasinoLogo({ casino, size }: { casino: Casino; size: "sm" | "lg" }) {
-  const initial = casino.name?.charAt(0)?.toUpperCase() ?? "?"
-  const dim = size === "sm" ? "w-16 h-16" : "w-24 h-24"
-  const textSize = size === "sm" ? "text-2xl" : "text-3xl"
-  const imgSize = size === "sm" ? 64 : 96
-
-  return (
-    <div className={`${dim} bg-[#F0EDEE] rounded-xl flex items-center justify-center overflow-hidden flex-shrink-0`}>
-      {casino.logo_url ? (
-        <Image
-          src={casino.logo_url}
-          alt={`${casino.name} logo`}
-          width={imgSize}
-          height={imgSize}
-          className="w-full h-full object-contain"
-          loading="lazy"
-        />
-      ) : (
-        <div className={`w-full h-full bg-[#2D1783] rounded-xl flex items-center justify-center`}>
-          <span className={`text-white font-display font-bold ${textSize}`}>{initial}</span>
-        </div>
-      )}
-    </div>
-  )
-}
 
 function RankBadge({ rank }: { rank: number }) {
   const colors =
@@ -120,7 +95,12 @@ export function CasinoCard({ casino, lang, rank }: CasinoCardProps) {
 
         {/* Row 1: logo + name / rating / badges */}
         <div className="flex items-center gap-3 px-4 pt-4 pb-3">
-          <CasinoLogo casino={casino} size="sm" />
+          <CasinoLogo
+              src={casino.logo_url}
+              name={casino.name ?? ""}
+              size={64}
+              className="w-16 h-16 bg-white border border-[#E5E7EB] rounded-xl p-1.5 shadow-[0_2px_8px_rgba(0,0,0,0.08)]"
+            />
 
           <div className="flex-1 min-w-0 space-y-1">
             <p className="font-display font-bold text-[#1b1b1c] text-base leading-tight">{casino.name}</p>
@@ -204,25 +184,13 @@ export function CasinoCard({ casino, lang, rank }: CasinoCardProps) {
 
         <div className="flex items-center gap-6 p-6 lg:p-8 flex-1">
           {/* Logo + name */}
-          <div className="w-32 flex-shrink-0 flex flex-col items-center gap-3">
-            <div className="w-24 h-24 bg-[#F0EDEE] rounded-2xl flex items-center justify-center overflow-hidden">
-              {casino.logo_url ? (
-                <Image
-                  src={casino.logo_url}
-                  alt={`${casino.name} logo`}
-                  width={96}
-                  height={96}
-                  className="w-full h-full object-contain"
-                  loading="lazy"
-                />
-              ) : (
-                <div className="w-full h-full bg-[#2D1783] rounded-2xl flex items-center justify-center">
-                  <span className="text-white font-display font-bold text-3xl">
-                    {casino.name?.charAt(0)?.toUpperCase() ?? "?"}
-                  </span>
-                </div>
-              )}
-            </div>
+          <div className="w-[88px] flex-shrink-0 flex flex-col items-center gap-3">
+            <CasinoLogo
+              src={casino.logo_url}
+              name={casino.name ?? ""}
+              size={80}
+              className="w-20 h-20 bg-white border border-[#E5E7EB] rounded-xl p-2 shadow-[0_2px_8px_rgba(0,0,0,0.08)]"
+            />
             <span className="font-display font-bold text-[#1b1b1c] text-center text-sm leading-tight">
               {casino.name}
             </span>
