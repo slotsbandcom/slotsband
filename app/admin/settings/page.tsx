@@ -403,6 +403,13 @@ function StreamTab() {
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
           <div>
             <label className="flex items-center gap-1.5 text-xs font-bold text-[#474554] uppercase tracking-wider mb-1.5">
+              <span className="w-5 h-5 rounded bg-[#53FC18] flex items-center justify-center text-black text-[10px] font-black">K</span>
+              Kick Channel
+            </label>
+            <TextInput placeholder="slotsband" defaultValue="slotsband" />
+          </div>
+          <div>
+            <label className="flex items-center gap-1.5 text-xs font-bold text-[#474554] uppercase tracking-wider mb-1.5">
               <span className="w-5 h-5 rounded bg-[#9146FF] flex items-center justify-center text-white text-[10px] font-black">T</span>
               Twitch Channel
             </label>
@@ -414,13 +421,6 @@ function StreamTab() {
               YouTube Channel ID
             </label>
             <TextInput placeholder="UCxxxxxxxxxxxxxxxx" />
-          </div>
-          <div>
-            <label className="flex items-center gap-1.5 text-xs font-bold text-[#474554] uppercase tracking-wider mb-1.5">
-              <span className="w-5 h-5 rounded bg-[#53FC18] flex items-center justify-center text-black text-[10px] font-black">K</span>
-              Kick Channel
-            </label>
-            <TextInput placeholder="slotsband" defaultValue="slotsband" />
           </div>
         </div>
       </SectionCard>

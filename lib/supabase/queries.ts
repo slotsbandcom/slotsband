@@ -35,6 +35,20 @@ export async function getCasinos(options?: {
   return (data ?? []) as Casino[]
 }
 
+export async function getAdminCasinos(): Promise<Casino[]> {
+  const supabase = await createClient()
+  const { data, error } = await supabase
+    .from("casinos")
+    .select("*")
+    .order("is_active", { ascending: false })
+    .order("rating",    { ascending: false })
+  if (error) {
+    console.error("[admin] getAdminCasinos error:", error.message)
+    return []
+  }
+  return (data ?? []) as Casino[]
+}
+
 export async function getCasinoBySlug(slug: string): Promise<Casino | null> {
   const supabase = await createClient()
   const { data, error } = await supabase

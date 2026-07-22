@@ -169,15 +169,15 @@ function PredictionModal({ games, onClose, onSubmit }: {
 type StreamPlatform = "kick" | "twitch" | "youtube"
 
 const PLATFORM_CONFIG: Record<StreamPlatform, { label: string; color: string }> = {
-  kick:    { label: "Kick",     color: "#53FC18" },
-  twitch:  { label: "Twitch",   color: "#9146FF" },
-  youtube: { label: "YouTube",  color: "#FF0000" },
+  kick:    { label: "Kick",    color: "#53FC18" },
+  twitch:  { label: "Twitch",  color: "#9146FF" },
+  youtube: { label: "YouTube", color: "#FF0000" },
 }
 
 // Platform letter badges used instead of SVGs to avoid Turbopack path-parsing issues
 const PLATFORM_BADGE: Record<StreamPlatform, string> = {
-  kick: "K",
-  twitch: "T",
+  kick:    "K",
+  twitch:  "T",
   youtube: "YT",
 }
 
@@ -299,6 +299,7 @@ function StreamEmbed({ isLive }: { isLive: boolean }) {
             allow="autoplay; fullscreen"
           />
         )}
+
       </div>
     </div>
   )

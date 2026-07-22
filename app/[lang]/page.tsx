@@ -288,13 +288,19 @@ export default async function HomePage({ params }: HomePageProps) {
             </div>
             {/* Platform pills */}
             <div className="flex gap-3">
-              {(["kick", "twitch", "youtube"] as const).map(p => (
-                <div key={p} className="flex flex-col items-center gap-1.5">
-                  <div className="w-12 h-12 rounded-2xl flex items-center justify-center font-black text-sm"
-                    style={{ backgroundColor: p === "kick" ? "#53FC18" : p === "twitch" ? "#9146FF" : "#FF0000", color: p === "kick" ? "#000" : "#fff" }}>
-                    {p === "kick" ? "K" : p === "twitch" ? "T" : "YT"}
+              {([
+                { id: "kick",    badge: "K",  bg: "#53FC18", text: "#000" },
+                { id: "twitch",  badge: "T",  bg: "#9146FF", text: "#fff" },
+                { id: "youtube", badge: "YT", bg: "#FF0000", text: "#fff" },
+              ] as const).map(p => (
+                <div key={p.id} className="flex flex-col items-center gap-1.5">
+                  <div
+                    className="w-12 h-12 rounded-2xl flex items-center justify-center font-black text-sm"
+                    style={{ backgroundColor: p.bg, color: p.text }}
+                  >
+                    {p.badge}
                   </div>
-                  <StreamStatusBadge platform={p} size="sm" className="justify-center" />
+                  <StreamStatusBadge platform={p.id} size="sm" className="justify-center" />
                 </div>
               ))}
             </div>

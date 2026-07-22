@@ -65,9 +65,28 @@ export default function GoLivePanel() {
             <p className="font-display font-bold text-[#1b1b1c] text-sm leading-tight">
               {isManualLive ? "Stream is LIVE" : mode === "auto" ? "Stream: Auto-detect" : "Stream is OFFLINE"}
             </p>
-            <p className="text-xs text-[#787585]">
-              {isManualLive && expTime ? `Auto-resets at ${expTime}` : isManualLive ? "Manual override active" : "Click to go live manually"}
-            </p>
+            {isManualLive ? (
+              <div className="flex items-center gap-1 mt-0.5">
+                {[
+                  { label: "K",  bg: "#53FC18", text: "#000" },
+                  { label: "T",  bg: "#9146FF", text: "#fff" },
+                  { label: "YT", bg: "#FF0000", text: "#fff" },
+                ].map(p => (
+                  <span
+                    key={p.label}
+                    className="inline-flex items-center justify-center rounded text-[8px] font-black w-5 h-4"
+                    style={{ backgroundColor: p.bg, color: p.text }}
+                  >
+                    {p.label}
+                  </span>
+                ))}
+                <span className="text-[10px] text-[#787585] ml-1">
+                  {expTime ? `Auto-resets at ${expTime}` : "Manual override active"}
+                </span>
+              </div>
+            ) : (
+              <p className="text-xs text-[#787585]">Click to go live manually</p>
+            )}
           </div>
         </div>
 

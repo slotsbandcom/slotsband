@@ -25,9 +25,9 @@ export function StreamStatusBadge({
   let ps: PlatformStatus
   if (platform === "any") {
     // Use the first live platform, or kick as fallback for display
-    if (status.kick.isLive)    ps = status.kick
-    else if (status.twitch.isLive)  ps = status.twitch
-    else if (status.youtube.isLive) ps = status.youtube
+    if (status.kick.isLive)          ps = status.kick
+    else if (status.twitch.isLive)   ps = status.twitch
+    else if (status.youtube.isLive)  ps = status.youtube
     else ps = status.kick
   } else {
     ps = status[platform]

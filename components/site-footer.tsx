@@ -46,7 +46,7 @@ export function SiteFooter({ lang }: SiteFooterProps) {
               {t.description}
             </p>
             {/* Social */}
-            <div className="flex gap-3 mt-4">
+            <div className="flex flex-wrap gap-2 mt-4">
               <a
                 href="https://twitter.com"
                 target="_blank"
@@ -58,6 +58,23 @@ export function SiteFooter({ lang }: SiteFooterProps) {
                   <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-4.714-6.231-5.401 6.231H2.744l7.73-8.835L1.254 2.25H8.08l4.253 5.622zm-1.161 17.52h1.833L7.084 4.126H5.117z" />
                 </svg>
               </a>
+              {[
+                { label: "Kick",    badge: "K",  bg: "#53FC18", text: "#000", href: "https://kick.com/slotsband" },
+                { label: "Twitch",  badge: "T",  bg: "#9146FF", text: "#fff", href: "https://twitch.tv/slotsband" },
+                { label: "YouTube", badge: "YT", bg: "#FF0000", text: "#fff", href: "https://youtube.com/@slotsband" },
+              ].map(p => (
+                <a
+                  key={p.label}
+                  href={p.href}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  aria-label={p.label}
+                  className="w-8 h-8 rounded-lg flex items-center justify-center text-[10px] font-black hover:opacity-80 transition-opacity"
+                  style={{ backgroundColor: p.bg, color: p.text }}
+                >
+                  {p.badge}
+                </a>
+              ))}
             </div>
           </div>
 

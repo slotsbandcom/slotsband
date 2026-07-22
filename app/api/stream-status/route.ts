@@ -167,7 +167,7 @@ export async function GET() {
   ])
 
   return NextResponse.json(
-    { twitch, youtube, kick, override: ov },
+    { kick, twitch, youtube, override: ov },
     { headers: { "Cache-Control": "no-store" } }
   )
 }

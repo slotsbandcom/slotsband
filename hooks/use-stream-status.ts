@@ -7,21 +7,20 @@ export interface PlatformStatus {
 }
 
 export interface StreamStatus {
-  twitch: PlatformStatus
+  kick:    PlatformStatus
+  twitch:  PlatformStatus
   youtube: PlatformStatus
-  kick: PlatformStatus
 }
 
 const FALLBACK: StreamStatus = {
+  kick:    { isLive: false, viewers: 0, title: "" },
   twitch:  { isLive: false, viewers: 0, title: "" },
   youtube: { isLive: false, viewers: 0, title: "" },
-  kick:    { isLive: false, viewers: 0, title: "" },
 }
 
 /**
  * Polls /api/stream-status every 60 seconds.
  * Falls back to all-OFFLINE on error — never shows fake LIVE.
- * Fetcher and deduping are provided by the global SWRConfig in swr-provider.tsx.
  */
 export function useStreamStatus() {
   const { data, isLoading } = useSWR<StreamStatus>(
@@ -32,11 +31,8 @@ export function useStreamStatus() {
     }
   )
 
-  const anyLive = !!(data?.twitch.isLive || data?.youtube.isLive || data?.kick.isLive)
+  const s = data ?? FALLBACK
+  const anyLive = !!(s.kick.isLive || s.twitch.isLive || s.youtube.isLive)
 
-  return {
-    status: data ?? FALLBACK,
-    isLoading,
-    anyLive,
-  }
+  return { status: s, isLoading, anyLive }
 }
