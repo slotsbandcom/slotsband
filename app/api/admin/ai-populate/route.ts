@@ -445,7 +445,12 @@ STRICT RULES FOR BOTH REVIEWS:
 6. ${hasSports ? "Mention the sportsbook as a real differentiator" : "Do not mention sports betting"}
 7. ${year ? `Say it has operated since ${year} to establish credibility` : "Do not speculate about founding year"}
 8. Length: 250–350 words each
-9. Structure: 3–4 paragraphs, NO headings, NO bullet points inside the review
+9. FORMAT — return HTML, not plain text:
+   - Wrap EVERY paragraph in <p>...</p> tags
+   - Write 3–4 separate <p> blocks, never one long block
+   - CORRECT: "<p>First paragraph.</p><p>Second paragraph.</p><p>Third paragraph.</p>"
+   - WRONG:   "First paragraph. Second paragraph. Third paragraph." (no tags)
+   - Do NOT add headings or <br> tags — only <p> blocks
 10. Tone: knowledgeable friend recommending — honest, personal, not a brochure
 
 FORBIDDEN (never use these phrases):
@@ -458,10 +463,10 @@ FORBIDDEN (never use these phrases):
 
 END each review with: who specifically benefits most from this casino (e.g. "suomalaiset, jotka etsivät X")
 
-Return ONLY valid JSON:
+Return ONLY valid JSON — both values must be HTML strings with <p> tags:
 {
-  "review_fi": "...",
-  "review_en": "..."
+  "review_fi": "<p>Ensimmäinen kappale...</p><p>Toinen kappale...</p><p>Kolmas kappale...</p>",
+  "review_en": "<p>First paragraph...</p><p>Second paragraph...</p><p>Third paragraph...</p>"
 }`
 }
 

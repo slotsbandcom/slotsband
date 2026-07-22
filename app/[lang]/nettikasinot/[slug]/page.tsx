@@ -7,6 +7,7 @@ import { getCasinos, getCasinoBySlug } from "@/lib/supabase/queries"
 import { getCasinoSlugs } from "@/lib/supabase/build-client"
 import { CasinoCard } from "@/components/casino-card"
 import { CT, MARKET_COUNTRY } from "@/lib/i18n"
+import { formatReviewText } from "@/lib/utils"
 
 const VALID_LANGS: Lang[] = ["fi", "uk", "en"]
 
@@ -177,7 +178,7 @@ export default async function CasinoPage({ params }: CasinoPageProps) {
     : lang === "uk"
     ? (casino.review_uk ?? casino.review_en ?? casino.review_fi)
     : (casino.review_en ?? casino.review_fi)
-  const reviewHtml = reviewRaw ? cleanWpHtml(reviewRaw) : null
+  const reviewHtml = reviewRaw ? formatReviewText(cleanWpHtml(reviewRaw)) : null
 
   const pros = lang === "fi" ? casino.pros_fi : lang === "uk" ? (casino.pros_uk ?? casino.pros_en) : casino.pros_en
   const cons = lang === "fi" ? casino.cons_fi : lang === "uk" ? (casino.cons_uk ?? casino.cons_en) : casino.cons_en
