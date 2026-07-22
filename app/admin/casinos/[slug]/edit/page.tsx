@@ -537,8 +537,9 @@ function AiPopulateTab({ casinoName, casinoSlug, casinoId, currentForm, onApply 
               throw new Error(evt.message || "AI generation failed")
             }
           } catch (parseErr) {
-            // If we already set an error from an "error" event, re-throw it
-            if (parseErr instanceof Error && parseErr.message !== "JSON parse error") throw parseErr
+            // SyntaxError = malformed/incomplete JSON line from the stream — skip silently.
+            // Any other error (e.g. deliberately thrown from evt.type === "error") propagates.
+            if (!(parseErr instanceof SyntaxError)) throw parseErr
           }
         }
       }
@@ -618,7 +619,7 @@ function AiPopulateTab({ casinoName, casinoSlug, casinoId, currentForm, onApply 
         isEmptyValue(currentVal) ? "new"
         : JSON.stringify(currentVal) !== JSON.stringify(newVal) ? "update"
         : "same"
-      return { key, newVal, status }
+      return { key, newVal, currentVal, status }
     }) : []
 
   const newCount = diffItems.filter(i => i.status === "new").length
@@ -829,9 +830,19 @@ function AiPopulateTab({ casinoName, casinoSlug, casinoId, currentForm, onApply 
                     className="text-xs font-bold text-[#787585] hover:underline">Clear</button>
                   <span className="text-xs text-[#787585] ml-auto">{selectedKeys.size} selected</span>
                 </div>
+                {/* Column headers */}
+                <div className="grid grid-cols-[20px_40px_120px_1fr_16px_1fr_28px] items-center gap-x-2 px-3 pb-1 text-[9px] font-bold text-[#b0adb8] uppercase tracking-wider">
+                  <span />
+                  <span>Status</span>
+                  <span>Field</span>
+                  <span>Current value</span>
+                  <span />
+                  <span>New AI value</span>
+                  <span>Src</span>
+                </div>
                 {/* Field rows */}
-                <div className="max-h-80 overflow-y-auto space-y-0.5 pr-1">
-                  {diffItems.map(({ key, newVal, status }) => {
+                <div className="max-h-96 overflow-y-auto space-y-0.5 pr-1">
+                  {diffItems.map(({ key, newVal, currentVal, status }) => {
                     const fieldSources = apiResponse.data._sources as Record<string, string> | undefined
                     const fieldSource = fieldSources?.[key]
                     const isAiOnly = fieldSource === "ai_knowledge"
@@ -842,27 +853,25 @@ function AiPopulateTab({ casinoName, casinoSlug, casinoId, currentForm, onApply 
                     }[status]
                     const rowBg = isAiOnly ? "bg-[#E74C3C]/5 border-[#E74C3C]/20" : s.bg
                     return (
-                      <label key={key} className={`flex items-center gap-2.5 px-3 py-2 rounded-lg border cursor-pointer hover:opacity-90 transition-opacity ${rowBg}`}>
+                      <label key={key} className={`grid grid-cols-[20px_40px_120px_1fr_16px_1fr_28px] items-center gap-x-2 px-3 py-2 rounded-lg border cursor-pointer hover:opacity-90 transition-opacity ${rowBg}`}>
                         <input type="checkbox" checked={selectedKeys.has(key)}
                           onChange={e => {
                             const next = new Set(selectedKeys)
                             e.target.checked ? next.add(key) : next.delete(key)
                             setSelectedKeys(next)
                           }}
-                          className="w-3.5 h-3.5 accent-[#2D1783] flex-shrink-0"
+                          className="w-3.5 h-3.5 accent-[#2D1783]"
                         />
-                        <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded flex-shrink-0 ${s.badge}`}>{s.label}</span>
-                        <span className="text-[11px] font-mono text-[#474554] flex-shrink-0 w-36 truncate">{key}</span>
-                        <span className="text-[11px] text-[#787585] flex-1 truncate">{formatAiValue(newVal)}</span>
-                        {fieldSource && (
-                          <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded flex-shrink-0 ${
-                            isAiOnly
-                              ? "bg-[#E74C3C]/15 text-[#E74C3C]"
-                              : "bg-[#27AE60]/15 text-[#27AE60]"
-                          }`} title={isAiOnly ? "AI estimate — not found in HTML sources" : `Scraped from ${fieldSource}`}>
-                            {isAiOnly ? "AI" : fieldSource.slice(0, 2).toUpperCase()}
-                          </span>
-                        )}
+                        <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded text-center ${s.badge}`}>{s.label}</span>
+                        <span className="text-[11px] font-mono text-[#474554] truncate">{key}</span>
+                        <span className="text-[11px] text-[#b0adb8] truncate">{isEmptyValue(currentVal) ? <em className="not-italic text-[#d0cedb]">empty</em> : formatAiValue(currentVal)}</span>
+                        <span className="material-symbols-outlined text-[12px] text-[#b0adb8] text-center">arrow_forward</span>
+                        <span className={`text-[11px] font-semibold truncate ${isAiOnly ? "text-[#E74C3C]" : "text-[#1b1b1c]"}`}>{formatAiValue(newVal)}</span>
+                        <span className={`text-[9px] font-bold px-1 py-0.5 rounded text-center ${
+                          isAiOnly ? "bg-[#E74C3C]/15 text-[#E74C3C]" : fieldSource ? "bg-[#27AE60]/15 text-[#27AE60]" : ""
+                        }`} title={isAiOnly ? "AI estimate — not found in HTML" : fieldSource ? `Scraped from ${fieldSource}` : ""}>
+                          {fieldSource ? (isAiOnly ? "AI" : fieldSource.slice(0, 2).toUpperCase()) : ""}
+                        </span>
                       </label>
                     )
                   })}
