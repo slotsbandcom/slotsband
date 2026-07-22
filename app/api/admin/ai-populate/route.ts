@@ -7,11 +7,15 @@ export const maxDuration = 60
 
 const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })
 
+// Robust JSON extractor — handles markdown fences AND narrative text around the JSON
+// (web_search responses often include a sentence before/after the JSON object)
 function extractJsonText(text: string): string {
-  return text
-    .replace(/^```(?:json)?\s*/i, "")
-    .replace(/\s*```\s*$/, "")
-    .trim()
+  // Strip markdown code fences first
+  const stripped = text.replace(/```(?:json)?\s*/gi, "").replace(/```/g, "").trim()
+  if (stripped.startsWith("{")) return stripped
+  // Find the outermost JSON object in the text (greedy — from first { to last })
+  const match = stripped.match(/\{[\s\S]*\}/)
+  return match ? match[0] : stripped
 }
 
 // ── Type normalization ──────────────────────────────────────────────────────────
@@ -175,13 +179,23 @@ type FactualData = z.infer<typeof FactualSchema>
 // ── Prompt builders ──────────────────────────────────────────────────────────────
 
 function buildFactualPrompt(casinoName: string): string {
-  return `You are a casino data expert. Use your knowledge about "${casinoName}" to fill in the following fields.
+  return `Search the web for accurate, current information about "${casinoName}" casino.
+
+Search for:
+- "${casinoName} casino license authority regulator"
+- "${casinoName} casino review 2025 bonus payment methods"
+- "${casinoName} casino games providers"
+- "${casinoName} casino Finland pikakasino"
+
+Use the search results to fill in the fields below. Only use data you find — do not guess.
 
 RULES:
-- Only fill values you are CONFIDENT about — if unsure, return null
-- Do not invent specific numbers you don't know (deposit amounts, wagering requirements)
-- For boolean fields: only true if certain, otherwise omit
-- Prioritize accuracy over completeness
+- Search FIRST, then fill in values from what you found
+- Return null for any field not found in search results
+- Do NOT invent numbers (deposit amounts, wagering requirements, game counts)
+- For boolean fields: only true if explicitly confirmed, otherwise omit
+- license_authority must be verified from the casino's own site or a reputable review site
+- Prioritize accuracy — partial data with nulls is better than invented data
 
 PROS/CONS RULES — must be SPECIFIC, not generic:
 - Each item MAX 6 words, punchy and specific to ${casinoName}
@@ -334,23 +348,30 @@ export async function POST(req: NextRequest) {
   }
 
   try {
-    // ── Stage 1: Claude — factual extraction ────────────────────────────────────
+    // ── Stage 1: Claude + web search — factual extraction ───────────────────────
     const tS1 = Date.now()
     const stage1 = await client.messages.create({
       model: "claude-sonnet-4-6",
-      max_tokens: 6144,
+      max_tokens: 8000,
+      // web_search_20250305 is a server-side tool — Anthropic handles the search
+      // loop internally; response always ends with stop_reason "end_turn"
+      tools: [{ type: "web_search_20250305" as const, name: "web_search" }],
       messages: [{ role: "user", content: buildFactualPrompt(casinoName) }],
     })
-    console.log(`[ai-populate] stage1 claude: ${Date.now() - tS1}ms, input_tokens=${stage1.usage.input_tokens}, output_tokens=${stage1.usage.output_tokens}`)
+    console.log(`[ai-populate] stage1 claude+search: ${Date.now() - tS1}ms, input_tokens=${stage1.usage.input_tokens}, output_tokens=${stage1.usage.output_tokens}`)
 
-    const s1Block = stage1.content.find(b => b.type === "text")
-    if (!s1Block || s1Block.type !== "text") throw new Error("No response from AI (stage 1)")
+    // Web search produces multiple content blocks (tool_use + text); join all text blocks
+    const s1Text = stage1.content
+      .filter((b): b is Anthropic.Messages.TextBlock => b.type === "text")
+      .map(b => b.text)
+      .join("\n")
+    if (!s1Text.trim()) throw new Error("No text response from AI (stage 1)")
 
     let s1Parsed: unknown
     try {
-      s1Parsed = JSON.parse(extractJsonText(s1Block.text))
+      s1Parsed = JSON.parse(extractJsonText(s1Text))
     } catch {
-      console.error("[ai-populate] Stage 1 JSON parse error:", s1Block.text.slice(0, 300))
+      console.error("[ai-populate] Stage 1 JSON parse error. Raw text:", s1Text.slice(0, 400))
       throw new Error("AI returned invalid JSON — try again")
     }
 
