@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useCallback, useEffect, useMemo } from "react"
+import { useState, useCallback, useEffect, useMemo, useRef } from "react"
 import Link from "next/link"
 import { useParams } from "next/navigation"
 import type { Casino } from "@/lib/types"
@@ -82,6 +82,78 @@ function Textarea({ label, maxLength, value, onChange, placeholder, rows = 4 }: 
     </div>
   )
 }
+function MediaUpload({
+  value, onChange, bucket, field, slug, hint, aspect = "square",
+}: {
+  value?: string | null | undefined; onChange: (url: string) => void
+  bucket: string; field: string; slug: string; hint?: string; aspect?: "square" | "wide"
+}) {
+  const [uploading, setUploading] = useState(false)
+  const [dragOver,  setDragOver]  = useState(false)
+  const fileRef = useRef<HTMLInputElement>(null)
+
+  async function uploadFile(file: File) {
+    if (!file.type.startsWith("image/")) return
+    setUploading(true)
+    try {
+      const fd = new FormData()
+      fd.append("file", file); fd.append("slug", slug)
+      fd.append("bucket", bucket); fd.append("field", field)
+      const res  = await fetch("/api/admin/upload", { method: "POST", body: fd })
+      const json = await res.json() as { url?: string; error?: string }
+      if (json.url) onChange(json.url)
+      else alert(json.error ?? "Upload failed")
+    } catch { alert("Upload failed") }
+    finally { setUploading(false) }
+  }
+
+  function onDrop(e: React.DragEvent) {
+    e.preventDefault(); setDragOver(false)
+    const file = e.dataTransfer.files[0]
+    if (file) uploadFile(file)
+  }
+
+  const imgClass = aspect === "wide"
+    ? "w-full h-28 object-cover rounded-xl border border-[#E5E8F0] mb-2"
+    : "w-full h-full object-contain rounded-xl"
+
+  return (
+    <div className="space-y-2">
+      {value ? (
+        <div className={aspect === "wide" ? "" : "w-20 h-20 rounded-xl bg-[#F8F9FD] border border-[#E5E8F0] relative"}>
+          <img src={value} alt="" className={imgClass} />
+          <button type="button" onClick={() => onChange("")}
+            className="absolute top-1 right-1 w-5 h-5 bg-red-500 rounded-full flex items-center justify-center"
+            title="Remove">
+            <span className="material-symbols-outlined text-white text-[12px]">close</span>
+          </button>
+        </div>
+      ) : null}
+      <input ref={fileRef} type="file" accept="image/png,image/jpeg,image/webp,image/svg+xml,image/gif" hidden
+        onChange={e => { const f = e.target.files?.[0]; if (f) uploadFile(f) }} />
+      <div
+        onClick={() => !uploading && fileRef.current?.click()}
+        onDrop={onDrop}
+        onDragOver={e => { e.preventDefault(); setDragOver(true) }}
+        onDragLeave={() => setDragOver(false)}
+        className={[
+          "border-2 border-dashed rounded-2xl p-4 text-center transition-colors",
+          uploading ? "opacity-60 cursor-wait" : "cursor-pointer",
+          dragOver ? "border-[#2D1783] bg-[#F5F3FF]" : "border-[#E5E8F0] hover:border-[#2D1783]",
+        ].join(" ")}
+      >
+        <span className={`material-symbols-outlined text-[24px] block mb-1 ${uploading ? "animate-spin" : "text-[#787585]"}`}>
+          {uploading ? "refresh" : "upload"}
+        </span>
+        <p className="text-xs font-semibold text-[#474554]">
+          {uploading ? "Uploading…" : "Drop image or click to browse"}
+        </p>
+        {hint && !uploading && <p className="text-[10px] text-[#787585] mt-0.5">{hint}</p>}
+      </div>
+    </div>
+  )
+}
+
 function Toggle({ label, checked, onChange, description }: { label: string; checked: boolean; onChange: (v: boolean) => void; description?: string }) {
   return (
     <div className="flex items-center justify-between gap-4 py-2.5 border-b border-[#F0EDEE] last:border-0">
@@ -1248,33 +1320,28 @@ export default function CasinoEditPage() {
             <>
               <SectionCard title="Logo" icon="image">
                 <div className="flex items-start gap-5">
-                  <div className="w-20 h-20 rounded-2xl bg-[#F8F9FD] border-2 border-dashed border-[#E5E8F0] flex items-center justify-center flex-shrink-0">
-                    {form.logo_url
-                      ? <img src={form.logo_url} alt="Logo" className="w-full h-full object-contain rounded-2xl" />
-                      : <span className="material-symbols-outlined text-[#b0adb8] text-[28px]">image</span>
-                    }
-                  </div>
+                  <MediaUpload
+                    value={form.logo_url} slug={slug}
+                    bucket="casino-logos" field="logo"
+                    hint="PNG, SVG, WebP · max 2 MB"
+                    onChange={url => patch({ logo_url: url || undefined })}
+                  />
                   <div className="flex-1">
-                    <div className="border-2 border-dashed border-[#E5E8F0] hover:border-[#2D1783] rounded-2xl p-6 text-center cursor-pointer transition-colors">
-                      <span className="material-symbols-outlined text-[#787585] text-[28px] block mb-2">upload</span>
-                      <p className="text-sm font-semibold text-[#474554]">Drop logo here or click to upload</p>
-                      <p className="text-xs text-[#787585] mt-1">PNG, SVG, WebP up to 2MB</p>
-                    </div>
-                    <Input label="Or enter logo URL" value={form.logo_url ?? ""} onChange={e => patch({ logo_url: e.target.value })} placeholder="https://..." />
+                    <Input label="Or enter logo URL directly" value={form.logo_url ?? ""}
+                      onChange={e => patch({ logo_url: e.target.value || undefined })} placeholder="https://..." />
                   </div>
                 </div>
               </SectionCard>
               <SectionCard title="Banner / Hero Image" icon="panorama">
-                <div className="space-y-3">
-                  {form.banner_url && (
-                    <img src={form.banner_url} alt="Banner" className="w-full h-32 object-cover rounded-xl border border-[#E5E8F0]" />
-                  )}
-                  <div className="border-2 border-dashed border-[#E5E8F0] hover:border-[#2D1783] rounded-2xl p-6 text-center cursor-pointer transition-colors">
-                    <span className="material-symbols-outlined text-[#787585] text-[28px] block mb-2">upload</span>
-                    <p className="text-sm font-semibold text-[#474554]">Drop banner here or click to upload</p>
-                    <p className="text-xs text-[#787585] mt-1">Recommended: 1200×400px</p>
-                  </div>
-                  <Input label="Or enter banner URL" value={form.banner_url ?? ""} onChange={e => patch({ banner_url: e.target.value })} placeholder="https://..." />
+                <MediaUpload
+                  value={form.banner_url} slug={slug}
+                  bucket="casino-banners" field="banner"
+                  aspect="wide" hint="Recommended: 1200 × 400 px · max 2 MB"
+                  onChange={url => patch({ banner_url: url || undefined })}
+                />
+                <div className="mt-2">
+                  <Input label="Or enter banner URL directly" value={form.banner_url ?? ""}
+                    onChange={e => patch({ banner_url: e.target.value || undefined })} placeholder="https://..." />
                 </div>
               </SectionCard>
               <SectionCard title="Screenshot Gallery" icon="photo_library">
@@ -1282,7 +1349,7 @@ export default function CasinoEditPage() {
                   {(form.screenshots ?? []).map((src, i) => (
                     <div key={i} className="relative group">
                       <img src={src} alt={`Screenshot ${i + 1}`} className="w-full aspect-video object-cover rounded-xl border border-[#E5E8F0]" />
-                      <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity rounded-xl flex items-center justify-center gap-2">
+                      <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity rounded-xl flex items-center justify-center">
                         <button type="button" onClick={() => patch({ screenshots: form.screenshots?.filter((_, j) => j !== i) })}
                           className="w-7 h-7 bg-red-500 rounded-full flex items-center justify-center">
                           <span className="material-symbols-outlined text-white text-[14px]">delete</span>
@@ -1290,10 +1357,12 @@ export default function CasinoEditPage() {
                       </div>
                     </div>
                   ))}
-                  <div className="border-2 border-dashed border-[#E5E8F0] hover:border-[#2D1783] rounded-xl aspect-video flex flex-col items-center justify-center cursor-pointer transition-colors">
-                    <span className="material-symbols-outlined text-[#787585] text-[24px]">add_photo_alternate</span>
-                    <p className="text-xs text-[#787585] mt-1">Add screenshot</p>
-                  </div>
+                  <MediaUpload
+                    value={null} slug={slug}
+                    bucket="casino-screenshots" field={`screenshot-${(form.screenshots?.length ?? 0) + 1}`}
+                    aspect="wide" hint="Add screenshot"
+                    onChange={url => { if (url) patch({ screenshots: [...(form.screenshots ?? []), url] }) }}
+                  />
                 </div>
               </SectionCard>
               <SectionCard title="Video Review" icon="play_circle">
