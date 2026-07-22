@@ -80,8 +80,10 @@ export interface Casino {
   support_email?: boolean
   support_phone?: boolean
   support_languages: string[]
-  kyc_required?: boolean
-  registration_steps?: number
+  kyc_required?: boolean | null
+  kyc_documents?: string[] | null
+  registration_steps?: number | null
+  account_verification_time?: number | null
   is_pikakasino?: boolean
 
   // Content (per language)

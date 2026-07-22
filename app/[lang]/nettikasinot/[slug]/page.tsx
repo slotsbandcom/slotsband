@@ -56,22 +56,26 @@ export async function generateMetadata({ params }: CasinoPageProps): Promise<Met
   }
 }
 
-function TrustScore({ score }: { score: number }) {
+function TrustScore({ score, lang }: { score: number; lang: Lang }) {
   if (!score) return null
-  const color = score >= 85 ? "#27AE60" : score >= 70 ? "#FFD700" : "#E74C3C"
+  const cfg =
+    score >= 86 ? { color: "#059669", label: lang === "fi" ? "Erinomainen" : "Excellent" }
+    : score >= 71 ? { color: "#10B981", label: lang === "fi" ? "Hyvä" : "Good" }
+    : score >= 41 ? { color: "#F59E0B", label: lang === "fi" ? "Kohtalainen" : "Fair" }
+    :               { color: "#EF4444", label: lang === "fi" ? "Matala" : "Low" }
   return (
     <div className="flex flex-col items-center gap-0.5">
       <div className="relative w-14 h-14">
         <svg viewBox="0 0 36 36" className="w-14 h-14 -rotate-90" aria-hidden="true">
           <circle cx="18" cy="18" r="15.9" fill="none" stroke="#E5E8F0" strokeWidth="3" />
-          <circle cx="18" cy="18" r="15.9" fill="none" stroke={color} strokeWidth="3"
+          <circle cx="18" cy="18" r="15.9" fill="none" stroke={cfg.color} strokeWidth="3"
             strokeDasharray={`${score} ${100 - score}`} strokeLinecap="round" />
         </svg>
         <span className="absolute inset-0 flex items-center justify-center text-xs font-bold text-[#1b1b1c]">
           {score}
         </span>
       </div>
-      <span className="text-[9px] font-bold text-[#787585] uppercase tracking-wide">Trust</span>
+      <span className="text-[9px] font-bold uppercase tracking-wide" style={{ color: cfg.color }}>{cfg.label}</span>
     </div>
   )
 }
@@ -167,10 +171,21 @@ export default async function CasinoPage({ params }: CasinoPageProps) {
   ])
   if (!casino) notFound()
 
-  const review = lang === "fi" ? casino.review_fi : lang === "uk" ? casino.review_uk : casino.review_en
-  const pros = lang === "fi" ? casino.pros_fi : lang === "uk" ? casino.pros_uk : casino.pros_en
-  const cons = lang === "fi" ? casino.cons_fi : lang === "uk" ? casino.cons_uk : casino.cons_en
-  const faqs = lang === "fi" ? casino.faq_fi : lang === "uk" ? casino.faq_uk : casino.faq_en
+  // For non-fi pages, fall back to en then fi so content shows even when translation is missing
+  const reviewRaw = lang === "fi"
+    ? casino.review_fi
+    : lang === "uk"
+    ? (casino.review_uk ?? casino.review_en ?? casino.review_fi)
+    : (casino.review_en ?? casino.review_fi)
+  const reviewHtml = reviewRaw ? cleanWpHtml(reviewRaw) : null
+
+  const pros = lang === "fi" ? casino.pros_fi : lang === "uk" ? (casino.pros_uk ?? casino.pros_en) : casino.pros_en
+  const cons = lang === "fi" ? casino.cons_fi : lang === "uk" ? (casino.cons_uk ?? casino.cons_en) : casino.cons_en
+  const faqs = lang === "fi"
+    ? casino.faq_fi
+    : lang === "uk"
+    ? (casino.faq_uk ?? casino.faq_en)
+    : casino.faq_en
 
   const c = CT[lang]
   const marketCountry = MARKET_COUNTRY[lang] // "FI", "GB", or "" (en = worldwide)
@@ -271,7 +286,7 @@ export default async function CasinoPage({ params }: CasinoPageProps) {
                 ))}
               </div>
               <span className="font-bold text-[#2D1783] text-base">{casino.rating.toFixed(1)}/10</span>
-              <TrustScore score={casino.trust_score} />
+              <TrustScore score={casino.trust_score} lang={lang} />
             </div>
 
             {/* Row 3: quick facts as 2×2 grid */}
@@ -369,7 +384,7 @@ export default async function CasinoPage({ params }: CasinoPageProps) {
                   </div>
                   <span className="font-bold text-[#2D1783] text-lg">{casino.rating.toFixed(1)}/10</span>
                 </div>
-                <TrustScore score={casino.trust_score} />
+                <TrustScore score={casino.trust_score} lang={lang} />
               </div>
               <div className="flex flex-wrap gap-3">
                 {[
@@ -535,6 +550,9 @@ export default async function CasinoPage({ params }: CasinoPageProps) {
                   { label: c.liveCasino, value: casino.live_casino ? c.yes : undefined },
                   { label: c.mobile, value: casino.mobile_optimized ? c.mobileOptimized : undefined },
                   { label: c.liveChat, value: casino.live_chat_support ? c.yes : undefined },
+                  casino.kyc_required !== null && casino.kyc_required !== undefined ? { label: c.kycRequired, value: casino.kyc_required ? c.yes : c.no } : null,
+                  casino.kyc_required && casino.registration_steps ? { label: c.registrationSteps, value: `${casino.registration_steps}/5 ${c.stepsUnit}` } : null,
+                  casino.account_verification_time ? { label: c.verificationTime, value: `~${casino.account_verification_time}h` } : null,
                   (casino.available_in ?? []).length > 0 ? { label: c.availableCountries, value: `${casino.available_in!.length} ${c.countriesUnit}` } : null,
                   (casino.languages_supported ?? []).length > 0 ? { label: c.supportedLanguages, value: `${casino.languages_supported!.length} ${c.languagesUnit}` } : null,
                 ].filter((r): r is { label: string; value: string } => !!r && !!r.value).map((row) => (
@@ -545,6 +563,21 @@ export default async function CasinoPage({ params }: CasinoPageProps) {
                 ))}
               </div>
             </section>
+
+            {/* KYC Documents (shown only when kyc_required and documents list exists) */}
+            {casino.kyc_required && (casino.kyc_documents ?? []).length > 0 && (
+              <section className="bg-white rounded-2xl border border-[#E5E8F0] p-5 md:p-6">
+                <h2 className="font-display font-bold text-lg md:text-xl text-[#1b1b1c] mb-3">{c.kycDocuments}</h2>
+                <div className="flex flex-wrap gap-2">
+                  {(casino.kyc_documents ?? []).map(doc => (
+                    <span key={doc} className="flex items-center gap-1.5 bg-[#F8F9FD] border border-[#E5E8F0] px-3 py-1.5 rounded-xl text-sm font-semibold text-[#474554]">
+                      <span className="material-symbols-outlined text-[#787585] text-[13px]" aria-hidden="true">description</span>
+                      {doc}
+                    </span>
+                  ))}
+                </div>
+              </section>
+            )}
 
             {/* Languages & Countries */}
             {((casino.available_in ?? []).length > 0 || (casino.languages_supported ?? []).length > 0 || (casino.restricted_in ?? []).length > 0) && (
@@ -666,14 +699,14 @@ export default async function CasinoPage({ params }: CasinoPageProps) {
             </section>
 
             {/* Review text */}
-            {review && (
+            {reviewHtml && (
               <section className="bg-white rounded-2xl border border-[#E5E8F0] p-5 md:p-6">
                 <h2 className="font-display font-bold text-lg md:text-xl text-[#1b1b1c] mb-4">
                   {c.reviewTitle(casino.name ?? "")}
                 </h2>
                 <div
                   className="prose prose-sm max-w-none text-[#474554] leading-relaxed [&_h2]:font-display [&_h2]:font-bold [&_h2]:text-[#1b1b1c] [&_h3]:font-bold [&_h3]:text-[#1b1b1c] [&_a]:text-[#2D1783] [&_a]:underline"
-                  dangerouslySetInnerHTML={{ __html: cleanWpHtml(review) }}
+                  dangerouslySetInnerHTML={{ __html: reviewHtml }}
                 />
               </section>
             )}
@@ -753,7 +786,7 @@ export default async function CasinoPage({ params }: CasinoPageProps) {
                 {c.features}
               </h3>
               <div className="space-y-2.5">
-                {[
+                {([
                   { label: c.liveCasinoFeat, val: casino.live_casino },
                   { label: c.mobileFeat, val: casino.mobile_optimized },
                   { label: c.iosFeat, val: casino.mobile_app_ios },
@@ -762,7 +795,12 @@ export default async function CasinoPage({ params }: CasinoPageProps) {
                   { label: c.sportsBetting, val: casino.sports_betting },
                   { label: c.quickCasinoFeat, val: casino.is_pikakasino },
                   { label: c.vipFeat, val: casino.vip_program },
-                ].map((feat) => (
+                  casino.kyc_required !== null && casino.kyc_required !== undefined
+                    ? { label: c.noKycFeat, val: !casino.kyc_required }
+                    : null,
+                ] as ({ label: string; val: boolean | undefined } | null)[])
+                  .filter((f): f is { label: string; val: boolean | undefined } => f !== null)
+                  .map((feat) => (
                   <div key={feat.label} className="flex items-center justify-between text-sm">
                     <span className="text-[#787585]">{feat.label}</span>
                     <span className={`material-symbols-outlined text-[18px] ${feat.val ? "text-[#27AE60]" : "text-[#E5E8F0]"}`} style={{ fontVariationSettings: "'FILL' 1" }} aria-hidden="true">

@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useCallback, useEffect } from "react"
+import { useState, useCallback, useEffect, useMemo } from "react"
 import Link from "next/link"
 import { useParams } from "next/navigation"
 import type { Casino } from "@/lib/types"
@@ -32,10 +32,11 @@ const LICENSE_AUTHORITIES = [
 ]
 
 const LICENSE_TRUST_SCORES: Record<string, number> = {
-  "MGA": 85, "UKGC": 85, "Gibraltar": 80, "Spelinspektionen": 78, "Isle of Man": 75,
-  "Veikkaus": 78, "Kahnawake": 65, "Curacao eGaming": 60, "Curaçao Gaming Control Board": 60,
-  "Antillephone N.V.": 55, "PAGCOR": 55, "Anjouan Gaming Board": 50,
-  "Government of Belize": 50, "Comoros Island Gaming Authority": 50,
+  "UKGC": 90, "MGA": 85, "Spelinspektionen": 85, "Gibraltar": 80,
+  "Isle of Man": 80, "Veikkaus": 80,
+  "Kahnawake": 65, "Curacao eGaming": 55, "Curaçao Gaming Control Board": 55,
+  "Antillephone N.V.": 50, "PAGCOR": 50, "Anjouan Gaming Board": 35,
+  "Government of Belize": 35, "Comoros Island Gaming Authority": 30,
 }
 const PAYMENT_METHODS = ["Visa","Mastercard","Trustly","Brite","Zimpler","PayPal","Skrill","Neteller","MuchBetter","Paysafecard","Bank Transfer","Bitcoin","Ethereum","Litecoin","Tether","Apple Pay","Google Pay","Revolut","Klarna","Swish","MobilePay","Vipps","Interac"]
 const CURRENCIES = ["EUR","GBP","USD","SEK","NOK","DKK","CAD","BTC","ETH"]
@@ -208,6 +209,58 @@ function RatingSlider({ label, value, onChange, min = 0, max = 10, step = 0.1 }:
           onChange={e => onChange(parseFloat(e.target.value))}
           className="w-16 bg-[#F8F9FD] border border-[#E5E8F0] focus:border-[#2D1783] focus:outline-none rounded-lg px-2 py-1 text-sm text-center" />
       </div>
+    </div>
+  )
+}
+
+function TrustScoreField({ value, onChange, licenseAuthority, establishedYear, liveChatSupport, mobileOptimized, vipProgram }: {
+  value: number
+  onChange: (v: number) => void
+  licenseAuthority?: string | null
+  establishedYear?: number | null
+  liveChatSupport?: boolean | null
+  mobileOptimized?: boolean | null
+  vipProgram?: boolean | null
+}) {
+  const suggestion = useMemo(() => {
+    if (!licenseAuthority) return null
+    let base = LICENSE_TRUST_SCORES[licenseAuthority] ?? 30
+    if (establishedYear && establishedYear < 2015) base += 5
+    if (liveChatSupport) base += 3
+    if (mobileOptimized) base += 2
+    if (vipProgram) base += 2
+    return Math.min(100, base)
+  }, [licenseAuthority, establishedYear, liveChatSupport, mobileOptimized, vipProgram])
+
+  const badge =
+    value >= 86 ? { label: "Excellent trust", cls: "text-emerald-700 bg-emerald-50 border-emerald-200", dot: "🟢" }
+    : value >= 71 ? { label: "Good trust",    cls: "text-green-700 bg-green-50 border-green-200",     dot: "🟢" }
+    : value >= 41 ? { label: "Medium trust",  cls: "text-amber-700 bg-amber-50 border-amber-200",     dot: "🟡" }
+    :               { label: "Low trust",     cls: "text-red-700 bg-red-50 border-red-200",           dot: "🔴" }
+
+  return (
+    <div>
+      <div className="flex items-center justify-between mb-1">
+        <Label>Trust Score (0–100)</Label>
+        <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full border ${badge.cls}`}>{badge.dot} {badge.label}</span>
+      </div>
+      <div className="flex items-center gap-3">
+        <input type="range" min={0} max={100} step={1} value={value}
+          onChange={e => onChange(parseInt(e.target.value))}
+          className="flex-1 h-2 rounded-full appearance-none bg-[#E5E8F0] accent-[#2D1783]" />
+        <input type="number" min={0} max={100} step={1} value={value}
+          onChange={e => onChange(parseInt(e.target.value) || 0)}
+          className="w-16 bg-[#F8F9FD] border border-[#E5E8F0] focus:border-[#2D1783] focus:outline-none rounded-lg px-2 py-1 text-sm text-center" />
+      </div>
+      {suggestion !== null && suggestion !== value && (
+        <div className="mt-2 flex items-center gap-2 text-xs bg-[#2D1783]/5 border border-[#2D1783]/15 rounded-lg px-3 py-2">
+          <span className="material-symbols-outlined text-[#2D1783] text-[14px]" style={{ fontVariationSettings: "'FILL' 1" }}>auto_awesome</span>
+          <span className="flex-1 text-[#474554]">Suggested based on license: <strong className="text-[#2D1783]">{suggestion}</strong></span>
+          <button type="button" onClick={() => onChange(suggestion)}
+            className="text-[10px] font-bold text-[#2D1783] hover:underline flex-shrink-0">Apply</button>
+        </div>
+      )}
+      <p className="text-[10px] text-[#787585] mt-1.5">Based on license, history and player reviews. Can be manually adjusted.</p>
     </div>
   )
 }
@@ -861,7 +914,15 @@ export default function CasinoEditPage() {
               <SectionCard title="Ratings" icon="star">
                 <div className="space-y-4">
                   <RatingSlider label="Rating (0–10)" value={form.rating} onChange={v => patch({ rating: v })} min={0} max={10} step={0.1} />
-                  <RatingSlider label="Trust Score (0–100)" value={form.trust_score} onChange={v => patch({ trust_score: v })} min={0} max={100} step={1} />
+                  <TrustScoreField
+                    value={form.trust_score}
+                    onChange={v => patch({ trust_score: v })}
+                    licenseAuthority={form.license_authority}
+                    establishedYear={form.established_year}
+                    liveChatSupport={form.live_chat_support}
+                    mobileOptimized={form.mobile_optimized}
+                    vipProgram={form.vip_program}
+                  />
                 </div>
               </SectionCard>
               <SectionCard title="Flags" icon="flag">
@@ -1156,12 +1217,16 @@ export default function CasinoEditPage() {
               </SectionCard>
               <SectionCard title="KYC & Registration" icon="how_to_reg">
                 <div className="space-y-4">
-                  <Toggle label="KYC Required" checked={!!form.kyc_required} onChange={v => patch({ kyc_required: v })} />
+                  <Toggle label="KYC Required" checked={!!form.kyc_required} onChange={v => patch({ kyc_required: v })} description="Players must verify identity before withdrawing" />
                   {form.kyc_required && (
-                    <CheckboxGrid label="KYC Documents" items={["ID", "Proof of Address", "Payment Proof"]} selected={[]} onChange={() => {}} />
+                    <CheckboxGrid label="KYC Documents" items={["ID", "Proof of Address", "Payment Proof"]}
+                      selected={form.kyc_documents ?? []}
+                      onChange={v => patch({ kyc_documents: v })} />
                   )}
                   <RatingSlider label="Registration Steps (1–5)" value={form.registration_steps ?? 3} onChange={v => patch({ registration_steps: v })} min={1} max={5} step={1} />
-                  <Input label="Account Verification Time (hours)" type="number" placeholder="e.g. 24" />
+                  <Input label="Account Verification Time (hours)" type="number" placeholder="e.g. 24"
+                    value={form.account_verification_time ?? ""}
+                    onChange={e => patch({ account_verification_time: e.target.value ? parseInt(e.target.value) : undefined })} />
                 </div>
               </SectionCard>
             </>
