@@ -4,6 +4,7 @@ import { useState, useCallback, useEffect, useMemo } from "react"
 import Link from "next/link"
 import { useParams } from "next/navigation"
 import type { Casino } from "@/lib/types"
+import { RichTextEditor } from "@/components/admin/RichTextEditor"
 
 // ─── Constants ───────────────────────────────────────────────────────────────
 
@@ -306,9 +307,14 @@ function ContentTab({ lang, form, onChange }: {
         </div>
       </SectionCard>
       <SectionCard title="Review Content" icon="article">
-        <Textarea label="Full Review" value={review} rows={8}
-          onChange={v => onChange({ [`review_${lang}`]: v })}
-          placeholder="Write detailed casino review..." />
+        <div>
+          <label className="block text-xs font-bold text-[#474554] mb-2">Full Review</label>
+          <RichTextEditor
+            value={review}
+            onChange={v => onChange({ [`review_${lang}`]: v })}
+            placeholder="Write detailed casino review..."
+          />
+        </div>
       </SectionCard>
       <SectionCard title="Pros & Cons" icon="compare">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
