@@ -119,9 +119,10 @@
   button, a, [role="button"] {
     touch-action: manipulation;
   }
-  /* Prevent iOS zoom on input focus — must be 16px minimum */
+  /* Prevent iOS zoom on input focus — must be ≥16px and beats Tailwind text-sm */
   input, select, textarea {
-    font-size: 16px;
+    font-size: 16px !important;
+    touch-action: manipulation;
   }
   /* Prevent horizontal overflow on mobile */
   main, section, article, header, footer, nav {
