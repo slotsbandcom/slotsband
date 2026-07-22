@@ -403,16 +403,9 @@ function ContentTab({ lang, form, onChange }: {
 
 // ─── AI Populate tab ─────────────────────────────────────────────────────────
 
-type ConfidenceLevel = "high" | "medium" | "low"
-
 interface AiApiResponse {
   success: boolean
   data: Record<string, unknown>
-  sourcesUsed: string[]
-  sourcesAttempted: string[]
-  sourcesSummary?: Array<{ type: string; url: string }>
-  dataConfidence: ConfidenceLevel
-  summary?: string | null
 }
 
 const AI_META_KEYS = new Set(["data_sources", "data_confidence", "summary", "_sources"])
@@ -432,24 +425,6 @@ function formatAiValue(v: unknown): string {
   return String(v).slice(0, 80)
 }
 
-function getDomain(url: string): string {
-  try { return new URL(url).hostname.replace("www.", "") } catch { return url }
-}
-
-function ConfidenceBadge({ level }: { level: ConfidenceLevel }) {
-  const config = {
-    high:   { dot: "bg-[#27AE60]", text: "text-[#27AE60]", label: "HIGH — data scraped from review sites" },
-    medium: { dot: "bg-[#F39C12]", text: "text-[#F39C12]", label: "MEDIUM — partial data from sources" },
-    low:    { dot: "bg-[#E74C3C]", text: "text-[#E74C3C]", label: "LOW — AI knowledge only, no sources found" },
-  }[level]
-  return (
-    <div className="flex items-center gap-2">
-      <span className={`w-2.5 h-2.5 rounded-full flex-shrink-0 ${config.dot}`} />
-      <span className={`text-xs font-bold ${config.text}`}>{config.label}</span>
-    </div>
-  )
-}
-
 function AiPopulateTab({ casinoName, casinoSlug, casinoId, currentForm, onApply }: {
   casinoName: string
   casinoSlug: string
@@ -457,7 +432,6 @@ function AiPopulateTab({ casinoName, casinoSlug, casinoId, currentForm, onApply 
   currentForm: Casino
   onApply: (data: Partial<Casino>) => void
 }) {
-  const [customUrl, setCustomUrl] = useState("")
   const [regenerateReview, setRegenerateReview] = useState(false)
   const [loading, setLoading] = useState(false)
   const [saving, setSaving] = useState(false)
@@ -473,19 +447,15 @@ function AiPopulateTab({ casinoName, casinoSlug, casinoId, currentForm, onApply 
       const res = await fetch("/api/admin/ai-populate", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ casinoName, casinoSlug, sourceUrl: customUrl || undefined, regenerateReview }),
+        body: JSON.stringify({ casinoName, casinoSlug, regenerateReview }),
       })
       const json = await res.json()
       if (!res.ok) throw new Error(json.error || "Failed")
       setApiResponse(json as AiApiResponse)
-      // Auto-select fields from real sources; leave AI-estimated fields unchecked
-      const sources = (json as AiApiResponse).data._sources as Record<string, string> | undefined
+      // Auto-select all non-empty fields
       const auto = new Set<string>()
       for (const [key, val] of Object.entries((json as AiApiResponse).data)) {
-        if (!AI_META_KEYS.has(key) && !isEmptyValue(val)) {
-          const src = sources?.[key]
-          if (!src || src !== "ai_knowledge") auto.add(key)
-        }
+        if (!AI_META_KEYS.has(key) && !isEmptyValue(val)) auto.add(key)
       }
       setSelectedKeys(auto)
     } catch (e) {
@@ -575,11 +545,11 @@ function AiPopulateTab({ casinoName, casinoSlug, casinoId, currentForm, onApply 
         <div className="space-y-5">
           <div className="bg-gradient-to-r from-[#2D1783]/8 to-[#FFD700]/8 border border-[#2D1783]/20 rounded-2xl p-5">
             <div className="flex items-start gap-3">
-              <span className="material-symbols-outlined text-[#2D1783] text-[28px] flex-shrink-0" style={{ fontVariationSettings: "'FILL' 1" }}>manage_search</span>
+              <span className="material-symbols-outlined text-[#2D1783] text-[28px] flex-shrink-0" style={{ fontVariationSettings: "'FILL' 1" }}>auto_awesome</span>
               <div>
-                <p className="font-bold text-[#1b1b1c] text-sm">Hybrid AI Research</p>
+                <p className="font-bold text-[#1b1b1c] text-sm">AI Casino Research</p>
                 <p className="text-xs text-[#787585] mt-0.5 leading-relaxed">
-                  Scrapes real data from AskGamblers, CasinoGuru and Bojoko, then uses Claude AI to extract and structure the information.
+                  Uses Claude AI to generate structured casino data, pros/cons, FAQs, and SEO fields based on its knowledge of {casinoName}.
                 </p>
               </div>
             </div>
@@ -592,19 +562,6 @@ function AiPopulateTab({ casinoName, casinoSlug, casinoId, currentForm, onApply 
               <span className="text-sm font-semibold text-[#1b1b1c]">{casinoName}</span>
               <span className="text-xs text-[#787585] ml-1">({casinoSlug})</span>
             </div>
-          </div>
-
-          <div>
-            <Label>Add specific review URL (optional)</Label>
-            <input
-              value={customUrl}
-              onChange={e => setCustomUrl(e.target.value)}
-              placeholder="https://www.askgamblers.com/online-casinos/reviews/casino-name"
-              className="w-full bg-[#F8F9FD] border border-[#E5E8F0] focus:border-[#2D1783] focus:outline-none rounded-xl px-3 py-2 text-sm placeholder:text-[#b0adb8] transition-colors"
-            />
-            <p className="text-[10px] text-[#787585] mt-1">
-              Paste a casino review page URL for more accurate data. If empty, auto-searches AskGamblers, CasinoGuru &amp; Bojoko.
-            </p>
           </div>
 
           <label className="flex items-start gap-2.5 cursor-pointer select-none group">
@@ -633,8 +590,8 @@ function AiPopulateTab({ casinoName, casinoSlug, casinoId, currentForm, onApply 
           <button type="button" onClick={generate} disabled={loading}
             className="w-full flex items-center justify-center gap-2 bg-[#2D1783] text-white font-bold py-3 rounded-xl hover:bg-[#3e2db2] disabled:opacity-50 disabled:cursor-not-allowed transition-colors">
             {loading
-              ? <><span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />Scraping &amp; researching {casinoName}...</>
-              : <><span className="material-symbols-outlined text-[18px]" style={{ fontVariationSettings: "'FILL' 1" }}>auto_awesome</span>Scrape &amp; Populate with AI</>
+              ? <><span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />Generating data for {casinoName}...</>
+              : <><span className="material-symbols-outlined text-[18px]" style={{ fontVariationSettings: "'FILL' 1" }}>auto_awesome</span>Populate with AI</>
             }
           </button>
         </div>
@@ -652,64 +609,6 @@ function AiPopulateTab({ casinoName, casinoSlug, casinoId, currentForm, onApply 
 
       {apiResponse && (
         <>
-          {/* Data sources & confidence */}
-          <SectionCard title="Data Sources" icon="travel_explore">
-            <div className="space-y-3">
-              <ConfidenceBadge level={apiResponse.dataConfidence} />
-              {/* Per-source type summary (new multi-source scraping) */}
-              {apiResponse.sourcesSummary && apiResponse.sourcesSummary.length > 0 ? (
-                <div className="space-y-1.5">
-                  {apiResponse.sourcesSummary.map(s => (
-                    <div key={s.url} className="flex items-center gap-2 text-xs px-3 py-2 rounded-lg border bg-[#27AE60]/6 border-[#27AE60]/20">
-                      <span className="material-symbols-outlined text-[14px] text-[#27AE60]">check_circle</span>
-                      <span className="font-bold text-[#1b1b1c] uppercase text-[9px] w-16 flex-shrink-0">{s.type}</span>
-                      <span className="text-[#787585] truncate">{getDomain(s.url)}</span>
-                    </div>
-                  ))}
-                  {/* Show attempted but failed */}
-                  {apiResponse.sourcesAttempted
-                    .filter(url => !apiResponse.sourcesUsed.includes(url))
-                    .map(url => (
-                      <div key={url} className="flex items-center gap-2 text-xs px-3 py-2 rounded-lg border bg-[#F8F9FD] border-[#E5E8F0]">
-                        <span className="material-symbols-outlined text-[14px] text-[#b0adb8]">cancel</span>
-                        <span className="text-[#787585] truncate">{getDomain(url)}</span>
-                        <span className="text-[#b0adb8] flex-shrink-0">— no data</span>
-                      </div>
-                    ))}
-                </div>
-              ) : (
-                <div className="space-y-1.5">
-                  {apiResponse.sourcesAttempted.map(url => {
-                    const used = apiResponse.sourcesUsed.includes(url)
-                    return (
-                      <div key={url} className={`flex items-center gap-2 text-xs px-3 py-2 rounded-lg border ${used ? "bg-[#27AE60]/6 border-[#27AE60]/20" : "bg-[#F8F9FD] border-[#E5E8F0]"}`}>
-                        <span className={`material-symbols-outlined text-[14px] ${used ? "text-[#27AE60]" : "text-[#b0adb8]"}`}>
-                          {used ? "check_circle" : "cancel"}
-                        </span>
-                        <span className={`font-medium ${used ? "text-[#1b1b1c]" : "text-[#787585]"}`}>{getDomain(url)}</span>
-                        {!used && <span className="text-[#b0adb8]">— no data returned</span>}
-                      </div>
-                    )
-                  })}
-                </div>
-              )}
-              {/* AI-estimated field warning */}
-              {(() => {
-                const sources = apiResponse.data._sources as Record<string, string> | undefined
-                const aiCount = sources ? Object.values(sources).filter(v => v === "ai_knowledge").length : 0
-                return aiCount > 0 ? (
-                  <div className="flex items-center gap-2 text-xs text-[#E74C3C] bg-[#E74C3C]/5 border border-[#E74C3C]/20 rounded-lg px-3 py-2">
-                    <span className="material-symbols-outlined text-[14px]">warning</span>
-                    <span><strong>{aiCount} fields</strong> are AI estimates (not found in HTML) — unchecked by default, review before applying</span>
-                  </div>
-                ) : null
-              })()}
-              {apiResponse.summary && (
-                <p className="text-xs text-[#787585] italic border-t border-[#E5E8F0] pt-3">{apiResponse.summary}</p>
-              )}
-            </div>
-          </SectionCard>
-
           {/* Diff preview */}
           <SectionCard title={`Diff Preview — ${newCount} new, ${updateCount} updates`} icon="difference">
             {diffItems.length === 0 ? (
@@ -732,17 +631,13 @@ function AiPopulateTab({ casinoName, casinoSlug, casinoId, currentForm, onApply 
                 {/* Field rows */}
                 <div className="max-h-80 overflow-y-auto space-y-0.5 pr-1">
                   {diffItems.map(({ key, newVal, status }) => {
-                    const fieldSources = apiResponse.data._sources as Record<string, string> | undefined
-                    const fieldSource = fieldSources?.[key]
-                    const isAiOnly = fieldSource === "ai_knowledge"
                     const s = {
                       new:    { bg: "bg-[#27AE60]/6 border-[#27AE60]/20",  badge: "bg-[#27AE60]/15 text-[#27AE60]",  label: "NEW" },
                       update: { bg: "bg-[#F39C12]/6 border-[#F39C12]/20",  badge: "bg-[#F39C12]/15 text-[#F39C12]",  label: "UPDATE" },
                       same:   { bg: "bg-[#F8F9FD] border-[#E5E8F0]",       badge: "bg-[#E5E8F0] text-[#787585]",     label: "SAME" },
                     }[status]
-                    const rowBg = isAiOnly ? "bg-[#E74C3C]/5 border-[#E74C3C]/20" : s.bg
                     return (
-                      <label key={key} className={`flex items-center gap-2.5 px-3 py-2 rounded-lg border cursor-pointer hover:opacity-90 transition-opacity ${rowBg}`}>
+                      <label key={key} className={`flex items-center gap-2.5 px-3 py-2 rounded-lg border cursor-pointer hover:opacity-90 transition-opacity ${s.bg}`}>
                         <input type="checkbox" checked={selectedKeys.has(key)}
                           onChange={e => {
                             const next = new Set(selectedKeys)
@@ -754,15 +649,6 @@ function AiPopulateTab({ casinoName, casinoSlug, casinoId, currentForm, onApply 
                         <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded flex-shrink-0 ${s.badge}`}>{s.label}</span>
                         <span className="text-[11px] font-mono text-[#474554] flex-shrink-0 w-36 truncate">{key}</span>
                         <span className="text-[11px] text-[#787585] flex-1 truncate">{formatAiValue(newVal)}</span>
-                        {fieldSource && (
-                          <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded flex-shrink-0 ${
-                            isAiOnly
-                              ? "bg-[#E74C3C]/15 text-[#E74C3C]"
-                              : "bg-[#27AE60]/15 text-[#27AE60]"
-                          }`} title={isAiOnly ? "AI estimate — not found in HTML sources" : `Scraped from ${fieldSource}`}>
-                            {isAiOnly ? "AI" : fieldSource.slice(0, 2).toUpperCase()}
-                          </span>
-                        )}
                       </label>
                     )
                   })}

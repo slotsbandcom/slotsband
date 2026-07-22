@@ -2,118 +2,10 @@ import Anthropic from "@anthropic-ai/sdk"
 import { z } from "zod"
 import { NextRequest, NextResponse } from "next/server"
 
+// Allow up to 60 s — Stage-1 Claude (~15s) + Stage-2 Claude (~15s)
+export const maxDuration = 60
+
 const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })
-
-const FETCH_HEADERS = {
-  "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36",
-  Accept: "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
-  "Accept-Language": "en-US,en;q=0.9,fi;q=0.8",
-  "Cache-Control": "no-cache",
-}
-
-function stripToText(html: string): string {
-  return html
-    .replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, "")
-    .replace(/<style\b[^<]*(?:(?!<\/style>)<[^<]*)*<\/style>/gi, "")
-    .replace(/<[^>]+>/g, " ")
-    .replace(/\s+/g, " ")
-    .trim()
-}
-
-interface ScrapedSource {
-  url: string
-  text: string
-  type: string // "askgamblers" | "casinoguru" | "bojoko" | "official" | "custom"
-}
-
-async function fetchSource(url: string): Promise<{ url: string; text: string } | null> {
-  try {
-    const controller = new AbortController()
-    const timer = setTimeout(() => controller.abort(), 8000)
-    const res = await fetch(url, { headers: FETCH_HEADERS, signal: controller.signal })
-    clearTimeout(timer)
-    if (!res.ok) return null
-    const html = await res.text()
-    const text = stripToText(html)
-    // Reject pages that are clearly login/redirect walls (< 500 chars of content)
-    if (text.length < 500) return null
-    return { url, text: text.slice(0, 14000) }
-  } catch {
-    return null
-  }
-}
-
-async function scrapeAllSources(
-  slug: string,
-  casinoName: string,
-  customUrl?: string,
-): Promise<ScrapedSource[]> {
-  if (customUrl) {
-    const r = await fetchSource(customUrl)
-    return r ? [{ ...r, type: "custom" }] : []
-  }
-
-  const nameDash = casinoName.toLowerCase().replace(/\s+/g, "-")
-
-  // Ordered groups — first URL in each list is most likely to succeed
-  const groups: Array<{ type: string; urls: string[] }> = [
-    {
-      type: "askgamblers",
-      urls: [
-        `https://www.askgamblers.com/online-casinos/reviews/${slug}`,
-        `https://www.askgamblers.com/online-casinos/reviews/${slug}-casino`,
-        `https://www.askgamblers.com/online-casinos/reviews/${nameDash}`,
-        `https://www.askgamblers.com/online-casinos/reviews/${nameDash}-casino`,
-      ],
-    },
-    {
-      type: "casinoguru",
-      urls: [
-        `https://casinoguru.com/${slug}-casino-review`,
-        `https://casinoguru.com/${slug}-review`,
-        `https://www.casinoguru.com/${slug}-casino-review`,
-        `https://www.casinoguru.com/${slug}-review`,
-      ],
-    },
-    {
-      type: "bojoko",
-      urls: [
-        `https://bojoko.com/casino-reviews/${slug}`,
-        `https://bojoko.com/casino-reviews/${nameDash}`,
-        `https://bojoko.com/casino/${slug}`,
-      ],
-    },
-    {
-      type: "official",
-      urls: [
-        `https://www.${slug}.com`,
-        `https://${slug}.com`,
-        `https://www.${slug}.com/promotions`,
-        `https://www.${slug}.com/en`,
-      ],
-    },
-  ]
-
-  // Fire all URL attempts in parallel; take first success per source type
-  const flat = groups.flatMap(g => g.urls.map(url => ({ url, type: g.type })))
-  const settled = await Promise.allSettled(
-    flat.map(async ({ url, type }) => {
-      const r = await fetchSource(url)
-      return r ? ({ ...r, type } as ScrapedSource) : null
-    })
-  )
-
-  // Collect first success per type (preserving input order → priority order)
-  const seen = new Set<string>()
-  const scraped: ScrapedSource[] = []
-  for (const r of settled) {
-    if (r.status === "fulfilled" && r.value && !seen.has(r.value.type)) {
-      scraped.push(r.value)
-      seen.add(r.value.type)
-    }
-  }
-  return scraped
-}
 
 function extractJsonText(text: string): string {
   return text
@@ -200,7 +92,6 @@ function normalizeAiData(raw: unknown): unknown {
   const obj = raw as Record<string, unknown>
   const out: Record<string, unknown> = {}
   for (const [key, val] of Object.entries(obj)) {
-    if (key === "_sources") { out[key] = val; continue } // pass through as-is
     if (INT_FIELDS.has(key))        out[key] = toInt(val)
     else if (FLOAT_FIELDS.has(key)) out[key] = toFloat(val)
     else if (BOOL_FIELDS.has(key))  out[key] = toBool(val)
@@ -272,11 +163,6 @@ const FactualSchema = z.object({
   cons_en: z.array(z.string()).optional(),
   faq_fi: z.array(z.object({ q: z.string(), a: z.string() })).optional(),
   faq_en: z.array(z.object({ q: z.string(), a: z.string() })).optional(),
-  data_sources: z.array(z.string()).optional(),
-  data_confidence: z.enum(["high", "medium", "low"]).optional(),
-  summary: z.string().nullish(),
-  // Per-field source attribution — NOT saved to Supabase (not in DB_COLUMNS whitelist)
-  _sources: z.record(z.string(), z.string()).optional(),
 })
 
 const ReviewSchema = z.object({
@@ -288,39 +174,16 @@ type FactualData = z.infer<typeof FactualSchema>
 
 // ── Prompt builders ──────────────────────────────────────────────────────────────
 
-function buildFactualPrompt(casinoName: string, scraped: ScrapedSource[]): string {
-  const sourceSection = scraped.length > 0
-    ? scraped.map((s, i) =>
-        `\n--- SOURCE ${i + 1} [TYPE: ${s.type.toUpperCase()}] ${s.url} ---\n${s.text}`
-      ).join("\n")
-    : ""
+function buildFactualPrompt(casinoName: string): string {
+  return `You are a casino data expert. Use your knowledge about "${casinoName}" to fill in the following fields.
 
-  const sourceTypes = [...new Set(scraped.map(s => s.type))]
+RULES:
+- Only fill values you are CONFIDENT about — if unsure, return null
+- Do not invent specific numbers you don't know (deposit amounts, wagering requirements)
+- For boolean fields: only true if certain, otherwise omit
+- Prioritize accuracy over completeness
 
-  return `You are a casino data extraction expert. Extract ONLY facts that are EXPLICITLY STATED in the HTML sources below about "${casinoName}".
-
-CRITICAL RULES:
-- If a fact is NOT explicitly written in the HTML → return null, never guess
-- Do NOT estimate or infer values not directly stated
-- For license: look for text like "licensed by", "regulated by", "MGA license", "license number"
-- For bonus: look for exact amounts, e.g. "100% up to €500" or "35x wagering"
-- For deposit: look for exact payment method names in the deposit/payment section
-- For boolean fields: only set to true if EXPLICITLY stated, otherwise omit
-- data_confidence = "high" if sources ${sourceTypes.join("+")} provided clear data;
-  "medium" if partial; "low" if no sources found and you are using general knowledge
-
-SOURCE ATTRIBUTION — _sources field:
-For each field you extract, record which source it came from.
-Source type values (from the SOURCE TYPE labels above):
-  "askgamblers" | "casinoguru" | "bojoko" | "official" | "custom"
-  "ai_knowledge" → ONLY if you are drawing on general knowledge NOT from the HTML
-Be HONEST: if you are not sure, mark as "ai_knowledge"
-${scraped.length > 0
-  ? `SOURCES:${sourceSection}`
-  : `No HTML sources were fetched. Use general knowledge about "${casinoName}" where confident. Mark ALL fields as "ai_knowledge" in _sources. Set data_confidence to "low".`
-}
-
-PROS/CONS RULES — these must be SPECIFIC, not generic:
+PROS/CONS RULES — must be SPECIFIC, not generic:
 - Each item MAX 6 words, punchy and specific to ${casinoName}
 - GOOD: "Pikakasino Trustly-tunnistautumisella", "MGA-lisenssi verovapaille voitoille", "200 ilmaiskierrosta uusille", "Evolution live yli 300 pöydällä"
 - BAD (never write): "Laaja pelitarjonta", "Hyvä asiakaspalvelu", "Luotettava kasino", "Paljon pelejä"
@@ -329,7 +192,7 @@ PROS/CONS RULES — these must be SPECIFIC, not generic:
 
 Return ONLY valid JSON, no markdown:
 {
-  "license_authority": "Exact value from: MGA|UKGC|Gibraltar|Isle of Man|Spelinspektionen|Kahnawake|Curacao eGaming|Curaçao Gaming Control Board|Antillephone N.V.|PAGCOR|Anjouan Gaming Board|Government of Belize|Comoros Island Gaming Authority|Veikkaus|null. Hints: 'PAGCOR'/'Philippine'→'PAGCOR'; 'Anjouan'→'Anjouan Gaming Board'; 'Antillephone'→'Antillephone N.V.'; 'GCB'/'Gaming Control Board' (Curaçao)→'Curaçao Gaming Control Board'; 'Belize'→'Government of Belize'; 'Comoros'→'Comoros Island Gaming Authority'. ONLY set if explicitly in HTML",
+  "license_authority": "MGA|UKGC|Gibraltar|Isle of Man|Spelinspektionen|Kahnawake|Curacao eGaming|Curaçao Gaming Control Board|Antillephone N.V.|PAGCOR|Anjouan Gaming Board|Government of Belize|Comoros Island Gaming Authority|Veikkaus|null",
   "license_number": "string|null",
   "license_url": "string|null",
   "established_year": number|null,
@@ -368,40 +231,25 @@ Return ONLY valid JSON, no markdown:
   "live_chat_support": boolean,
   "support_email": boolean,
   "support_phone": boolean,
-  "support_languages": ["fi","en","uk","se","no","de","pl","es","pt"] — use ONLY these codes,
+  "support_languages": ["fi","en","uk","se","no","de","pl","es","pt"],
   "kyc_required": boolean,
   "is_active": true,
   "is_featured": false,
-  "is_new": false (true only if established after July 2025),
-  "is_pikakasino": boolean (true = Finnish no-registration casino using Trustly/Brite),
-  "available_in": ["FI","SE","NO","DK","DE","NL","BE","AT","CH","CA","AU","NZ","IE","GB","US"] — 2-letter ISO only,
-  "restricted_in": same ISO list, must NOT overlap with available_in,
-  "languages_supported": ["fi","en","uk","se","no","de","pl","es","pt"] — use ONLY these codes,
+  "is_new": false,
+  "is_pikakasino": boolean,
+  "available_in": ["FI","SE","NO","DK","DE","NL","BE","AT","CH","CA","AU","NZ","IE","GB","US"],
+  "restricted_in": [],
+  "languages_supported": ["fi","en","uk","se","no","de","pl","es","pt"],
   "meta_title_fi": "SEO title Finnish max 60 chars",
   "meta_description_fi": "SEO description Finnish max 155 chars",
   "meta_title_en": "SEO title English max 60 chars",
   "meta_description_en": "SEO description English max 155 chars",
-  "pros_fi": ["max 5 items, max 6 words each, SPECIFIC — see PROS/CONS RULES"],
+  "pros_fi": ["max 5 items, max 6 words each, SPECIFIC"],
   "cons_fi": ["max 4 items, max 6 words each, honest real limitations"],
   "pros_en": ["same as pros_fi but English"],
   "cons_en": ["same as cons_fi but English"],
   "faq_fi": [{"q": "Kysymys", "a": "Vastaus"}, max 5],
-  "faq_en": [{"q": "Question", "a": "Answer"}, max 5],
-  "data_sources": ["URLs that had useful data"],
-  "data_confidence": "high|medium|low",
-  "summary": "One sentence: what sources were used and what was found",
-  "_sources": {
-    "license_authority": "askgamblers|casinoguru|bojoko|official|ai_knowledge",
-    "min_deposit": "...",
-    "payment_methods": "...",
-    "game_providers": "...",
-    "welcome_bonus_text": "...",
-    "established_year": "...",
-    "trust_score": "...",
-    "is_pikakasino": "...",
-    "withdrawal_time_max_hours": "...",
-    "total_games_count": "..."
-  }
+  "faq_en": [{"q": "Question", "a": "Answer"}, max 5]
 }`
 }
 
@@ -432,15 +280,15 @@ function buildReviewPrompt(casinoName: string, data: FactualData): string {
     hasSports     && `Sports betting: YES`,
   ].filter(Boolean).join("\n")
 
-  return `Write two unique casino reviews for ${casinoName} based on these VERIFIED facts:
+  return `Write two unique casino reviews for ${casinoName} based on these facts:
 
 ${facts}
 
 STRICT RULES FOR BOTH REVIEWS:
 1. Do NOT open with "${casinoName} on..." or "Kasino on..." or "The casino..."
-2. Open with a SPECIFIC hook about what makes THIS casino stand out — use a concrete detail
-3. Reference the EXACT bonus text, EXACT license, EXACT payment method names from the facts
-4. Name at least 3 specific game providers from the list (not generic "leading providers")
+2. Open with a SPECIFIC hook about what makes THIS casino stand out
+3. Reference the EXACT bonus text, EXACT license, EXACT payment method names
+4. Name at least 3 specific game providers from the list
 5. ${isPika ? "PROMINENTLY feature pikakasino/no-registration as the #1 selling point" : "Do not claim it is a pikakasino"}
 6. ${hasSports ? "Mention the sportsbook as a real differentiator" : "Do not mention sports betting"}
 7. ${year ? `Say it has operated since ${year} to establish credibility` : "Do not speculate about founding year"}
@@ -448,20 +296,17 @@ STRICT RULES FOR BOTH REVIEWS:
 9. FORMAT — return HTML, not plain text:
    - Wrap EVERY paragraph in <p>...</p> tags
    - Write 3–4 separate <p> blocks, never one long block
-   - CORRECT: "<p>First paragraph.</p><p>Second paragraph.</p><p>Third paragraph.</p>"
-   - WRONG:   "First paragraph. Second paragraph. Third paragraph." (no tags)
    - Do NOT add headings or <br> tags — only <p> blocks
 10. Tone: knowledgeable friend recommending — honest, personal, not a brochure
 
-FORBIDDEN (never use these phrases):
+FORBIDDEN phrases:
 - "laaja valikoima pelejä" / "wide selection of games"
 - "tunnettu peliyhtiö" / "well-known game provider"
 - "turvallinen ja luotettava" / "safe and reliable"
-- "tervetuliaisbonus" (use the SPECIFIC offer text instead)
-- "asiakaspalvelu on saatavilla"
+- "tervetuliaisbonus"
 - Sentences starting with just "Kasino" or "The casino"
 
-END each review with: who specifically benefits most from this casino (e.g. "suomalaiset, jotka etsivät X")
+End each review with who specifically benefits most from this casino.
 
 Return ONLY valid JSON — both values must be HTML strings with <p> tags:
 {
@@ -470,40 +315,33 @@ Return ONLY valid JSON — both values must be HTML strings with <p> tags:
 }`
 }
 
-// ── Route handler ────────────────────────────────────────────────────────────────
+// ── Route handler ─────────────────────────────────────────────────────────────────
 
 export async function POST(req: NextRequest) {
+  const t0 = Date.now()
+
+  let body: { casinoName?: string; casinoSlug?: string; regenerateReview?: boolean }
   try {
-    const body = await req.json()
-    const { casinoName, casinoSlug, sourceUrl, regenerateReview = false } = body as {
-      casinoName: string
-      casinoSlug?: string
-      sourceUrl?: string
-      regenerateReview?: boolean
-    }
+    body = await req.json()
+  } catch {
+    return NextResponse.json({ error: "Invalid JSON body" }, { status: 400 })
+  }
 
-    if (!casinoName) {
-      return NextResponse.json({ error: "casinoName is required" }, { status: 400 })
-    }
+  const { casinoName, regenerateReview = false } = body
 
-    const slug = casinoSlug || casinoName.toLowerCase().replace(/\s+/g, "-")
+  if (!casinoName) {
+    return NextResponse.json({ error: "casinoName is required" }, { status: 400 })
+  }
 
-    // ── Scrape sources ──
-    const scraped = await scrapeAllSources(slug, casinoName, sourceUrl || undefined)
-    const sourcesUsed = scraped.map(s => s.url)
-    const sourcesAttempted: string[] = sourceUrl ? [sourceUrl] : [
-      `https://www.askgamblers.com/online-casinos/reviews/${slug}`,
-      `https://casinoguru.com/${slug}-casino-review`,
-      `https://bojoko.com/casino-reviews/${slug}`,
-      `https://www.${slug}.com`,
-    ]
-
-    // ── Stage 1: extract factual data ──
+  try {
+    // ── Stage 1: Claude — factual extraction ────────────────────────────────────
+    const tS1 = Date.now()
     const stage1 = await client.messages.create({
       model: "claude-sonnet-4-6",
       max_tokens: 6144,
-      messages: [{ role: "user", content: buildFactualPrompt(casinoName, scraped) }],
+      messages: [{ role: "user", content: buildFactualPrompt(casinoName) }],
     })
+    console.log(`[ai-populate] stage1 claude: ${Date.now() - tS1}ms, input_tokens=${stage1.usage.input_tokens}, output_tokens=${stage1.usage.output_tokens}`)
 
     const s1Block = stage1.content.find(b => b.type === "text")
     if (!s1Block || s1Block.type !== "text") throw new Error("No response from AI (stage 1)")
@@ -513,22 +351,22 @@ export async function POST(req: NextRequest) {
       s1Parsed = JSON.parse(extractJsonText(s1Block.text))
     } catch {
       console.error("[ai-populate] Stage 1 JSON parse error:", s1Block.text.slice(0, 300))
-      throw new Error("AI returned invalid JSON")
+      throw new Error("AI returned invalid JSON — try again")
     }
 
     const factual = FactualSchema.parse(normalizeAiData(s1Parsed))
-    const dataConfidence = factual.data_confidence
-      ?? (scraped.length >= 2 ? "high" : scraped.length === 1 ? "medium" : "low")
 
-    // ── Stage 2: generate reviews (only when requested) ──
+    // ── Stage 2 (optional): Claude — review writing ──────────────────────────────
     let reviews: { review_fi?: string | null; review_en?: string | null } = {}
 
     if (regenerateReview) {
+      const tS2 = Date.now()
       const stage2 = await client.messages.create({
         model: "claude-sonnet-4-6",
         max_tokens: 3000,
         messages: [{ role: "user", content: buildReviewPrompt(casinoName, factual) }],
       })
+      console.log(`[ai-populate] stage2 claude: ${Date.now() - tS2}ms, input_tokens=${stage2.usage.input_tokens}, output_tokens=${stage2.usage.output_tokens}`)
 
       const s2Block = stage2.content.find(b => b.type === "text")
       if (s2Block && s2Block.type === "text") {
@@ -541,28 +379,14 @@ export async function POST(req: NextRequest) {
       }
     }
 
+    // ── Merge & clean ────────────────────────────────────────────────────────────
     const merged = { ...factual, ...reviews }
-
-    // A casino cannot simultaneously be in available_in and restricted_in
     const availableSet = new Set(merged.available_in ?? [])
-    const cleanRestrictedIn = (merged.restricted_in ?? []).filter(c => !availableSet.has(c))
-    const finalData = { ...merged, restricted_in: cleanRestrictedIn }
+    const finalData = { ...merged, restricted_in: (merged.restricted_in ?? []).filter(c => !availableSet.has(c)) }
 
-    // Source summary for UI display
-    const sourcesSummary = scraped.map(s => ({
-      type: s.type,
-      url: s.url,
-    }))
+    console.log(`[ai-populate] DONE in ${Date.now() - t0}ms`)
 
-    return NextResponse.json({
-      success: true,
-      data: finalData,
-      sourcesUsed,
-      sourcesAttempted,
-      sourcesSummary,
-      dataConfidence,
-      summary: factual.summary ?? null,
-    })
+    return NextResponse.json({ success: true, data: finalData })
   } catch (err) {
     console.error("[ai-populate]", err)
     return NextResponse.json(
