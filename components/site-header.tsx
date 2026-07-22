@@ -1,8 +1,8 @@
 "use client"
 
 import Link from "next/link"
-import Image from "next/image"
 import { useState, useRef, useEffect, useCallback } from "react"
+import { CasinoLogo } from "@/components/casino-logo"
 import { createPortal } from "react-dom"
 import { useRouter, usePathname } from "next/navigation"
 import type { Lang } from "@/lib/types"
@@ -62,11 +62,12 @@ function SuggestionsDropdown({ sugs, query, lang, activeIdx, onSelect, onViewAll
               onMouseEnter={e => { if (!isActive) (e.currentTarget as HTMLElement).style.background = "#F3F0FA" }}
               onMouseLeave={e => { if (!isActive) (e.currentTarget as HTMLElement).style.background = "" }}
             >
-              <div className="w-8 h-8 bg-[#F0EDEE] rounded-lg flex-shrink-0 overflow-hidden flex items-center justify-center">
-                {s.logo_url
-                  ? <Image src={s.logo_url} alt="" width={32} height={32} className="w-full h-full object-contain" />
-                  : <span className={`text-xs font-bold ${isActive ? "text-white" : "text-[#2D1783]"}`}>{s.name[0]}</span>}
-              </div>
+              <CasinoLogo
+                src={s.logo_url}
+                name={s.name}
+                size={32}
+                className="w-8 h-8 rounded-lg bg-white border border-[#E5E7EB] flex-shrink-0"
+              />
               <span className={`flex-1 text-sm font-semibold truncate ${isActive ? "text-white" : "text-[#1b1b1c]"}`}>
                 {s.name}
               </span>

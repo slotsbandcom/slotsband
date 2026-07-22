@@ -4,6 +4,7 @@ import { useState, useTransition } from "react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
 import type { Casino } from "@/lib/types"
+import { CasinoLogo } from "@/components/casino-logo"
 
 export default function AdminCasinosClient({ casinos }: { casinos: Casino[] }) {
   const router = useRouter()
@@ -117,9 +118,12 @@ export default function AdminCasinosClient({ casinos }: { casinos: Casino[] }) {
                     </td>
                     <td className="px-4 py-3">
                       <div className="flex items-center gap-2.5">
-                        <div className="w-8 h-8 rounded-lg bg-[#F0EDEE] flex items-center justify-center flex-shrink-0">
-                          <span className="material-symbols-outlined text-[#2D1783] text-[15px]">casino</span>
-                        </div>
+                        <CasinoLogo
+                          src={casino.logo_url}
+                          name={casino.name}
+                          size={32}
+                          className="w-8 h-8 rounded-lg bg-white border border-[#E5E7EB]"
+                        />
                         <div>
                           <p className="text-sm font-semibold text-[#1b1b1c]">{casino.name}</p>
                           <p className="text-xs text-[#787585]">{casino.slug}</p>

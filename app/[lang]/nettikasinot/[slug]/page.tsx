@@ -239,7 +239,7 @@ export default async function CasinoPage({ params }: CasinoPageProps) {
                 name={casino.name ?? ""}
                 size={80}
                 priority
-                className="w-20 h-20 bg-white border border-[#E5E7EB] rounded-xl p-2 shadow-[0_2px_8px_rgba(0,0,0,0.08)]"
+                className="w-20 h-20 bg-white border border-[#E5E7EB] rounded-xl shadow-[0_2px_8px_rgba(0,0,0,0.08)]"
               />
               <div className="flex-1 min-w-0">
                 <h1 className="font-display font-bold text-2xl text-[#1b1b1c] leading-tight">{casino.name}</h1>
@@ -335,7 +335,7 @@ export default async function CasinoPage({ params }: CasinoPageProps) {
                 name={casino.name ?? ""}
                 size={120}
                 priority
-                className="w-[120px] h-[120px] bg-white border border-[#E5E7EB] rounded-xl p-2 shadow-[0_2px_8px_rgba(0,0,0,0.08)]"
+                className="w-[120px] h-[120px] bg-white border border-[#E5E7EB] rounded-xl shadow-[0_2px_8px_rgba(0,0,0,0.08)]"
               />
               <span className="text-xs font-semibold text-[#787585] text-center">
                 {c.established} {casino.established_year ?? "—"}

@@ -99,7 +99,7 @@ export function CasinoCard({ casino, lang, rank }: CasinoCardProps) {
               src={casino.logo_url}
               name={casino.name ?? ""}
               size={64}
-              className="w-16 h-16 bg-white border border-[#E5E7EB] rounded-xl p-1.5 shadow-[0_2px_8px_rgba(0,0,0,0.08)]"
+              className="w-16 h-16 bg-white border border-[#E5E7EB] rounded-xl shadow-[0_2px_8px_rgba(0,0,0,0.08)]"
             />
 
           <div className="flex-1 min-w-0 space-y-1">
@@ -189,7 +189,7 @@ export function CasinoCard({ casino, lang, rank }: CasinoCardProps) {
               src={casino.logo_url}
               name={casino.name ?? ""}
               size={80}
-              className="w-20 h-20 bg-white border border-[#E5E7EB] rounded-xl p-2 shadow-[0_2px_8px_rgba(0,0,0,0.08)]"
+              className="w-20 h-20 bg-white border border-[#E5E7EB] rounded-xl shadow-[0_2px_8px_rgba(0,0,0,0.08)]"
             />
             <span className="font-display font-bold text-[#1b1b1c] text-center text-sm leading-tight">
               {casino.name}
