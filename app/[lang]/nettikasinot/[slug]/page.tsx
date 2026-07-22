@@ -154,11 +154,11 @@ function getBonusDisplayText(casino: Casino, lang: Lang): string {
 
 function cleanWpHtml(html: string): string {
   return html
-    .replace(/<!--\s*wp:[^>]*?-->/g, "")
-    .replace(/<!--\s*\/wp:[^>]*?-->/g, "")
-    .replace(/<figure[\s\S]*?<\/figure>/gi, "")
-    .replace(/\[joli-faq-seo[^\]]*\]/g, "")
-    .replace(/<p>\s*<\/p>/g, "")
+    .replace(/<!--[\s\S]*?-->/g, "")                           // strip all HTML comments (WP block markers)
+    .replace(/<figure\b[^>]*>[\s\S]*?<\/figure>/gi, "")        // strip image/figure blocks
+    .replace(/\[joli-faq-seo[^\]]*\]/g, "")                    // strip FAQ shortcodes
+    .replace(/<p[^>]*>\s*(<br\s*\/?>)?\s*<\/p>/gi, "")         // strip empty paragraphs
+    .replace(/\n{3,}/g, "\n\n")                                 // collapse extra blank lines
     .trim()
 }
 
@@ -700,12 +700,12 @@ export default async function CasinoPage({ params }: CasinoPageProps) {
 
             {/* Review text */}
             {reviewHtml && (
-              <section className="bg-white rounded-2xl border border-[#E5E8F0] p-5 md:p-6">
-                <h2 className="font-display font-bold text-lg md:text-xl text-[#1b1b1c] mb-4">
+              <section className="bg-white rounded-2xl border border-[#E5E8F0] p-6 md:p-8">
+                <h2 className="font-display font-bold text-lg md:text-xl text-[#111827] mb-4">
                   {c.reviewTitle(casino.name ?? "")}
                 </h2>
                 <div
-                  className="prose prose-sm max-w-none text-[#474554] leading-relaxed [&_h2]:font-display [&_h2]:font-bold [&_h2]:text-[#1b1b1c] [&_h3]:font-bold [&_h3]:text-[#1b1b1c] [&_a]:text-[#2D1783] [&_a]:underline"
+                  className="casino-review"
                   dangerouslySetInnerHTML={{ __html: reviewHtml }}
                 />
               </section>
@@ -713,8 +713,8 @@ export default async function CasinoPage({ params }: CasinoPageProps) {
 
             {/* FAQ */}
             {faqs && faqs.length > 0 && (
-              <section className="bg-white rounded-2xl border border-[#E5E8F0] p-5 md:p-6">
-                <h2 className="font-display font-bold text-lg md:text-xl text-[#1b1b1c] mb-4">
+              <section className="bg-white rounded-2xl border border-[#E5E8F0] p-6 md:p-8">
+                <h2 className="font-display font-bold text-lg md:text-xl text-[#111827] mb-4">
                   {c.faq}
                 </h2>
                 <script
@@ -731,17 +731,17 @@ export default async function CasinoPage({ params }: CasinoPageProps) {
                     }),
                   }}
                 />
-                <div className="space-y-2">
+                <div className="divide-y divide-[#E5E8F0]">
                   {faqs.map((faq, i) => (
-                    <details key={i} className="group border border-[#E5E8F0] rounded-xl overflow-hidden">
-                      <summary className="flex items-center justify-between p-4 cursor-pointer text-sm font-semibold text-[#1b1b1c] list-none hover:bg-[#F8F9FD] transition-colors gap-3">
+                    <details key={i} className="group">
+                      <summary className="flex items-center justify-between py-4 cursor-pointer text-sm font-semibold text-[#111827] list-none hover:text-[#2D1783] hover:bg-[#F5F3FF] rounded-lg px-3 -mx-3 transition-colors gap-3 select-none">
                         <span className="flex-1">{faq.q}</span>
-                        <span className="material-symbols-outlined text-[#787585] group-open:rotate-180 transition-transform text-[18px] flex-shrink-0" aria-hidden="true">
+                        <span className="material-symbols-outlined text-[#2D1783] group-open:rotate-180 transition-transform duration-200 text-[20px] flex-shrink-0" aria-hidden="true">
                           expand_more
                         </span>
                       </summary>
-                      <div className="px-4 pb-4 text-sm text-[#787585] leading-relaxed border-t border-[#E5E8F0]">
-                        <div className="pt-3">{faq.a}</div>
+                      <div className="faq-answer pb-4 pt-3 text-sm text-[#6B7280] leading-relaxed">
+                        {faq.a}
                       </div>
                     </details>
                   ))}
