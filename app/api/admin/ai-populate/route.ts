@@ -1,6 +1,9 @@
 import Anthropic from "@anthropic-ai/sdk"
 import { z } from "zod"
-import { NextRequest, NextResponse } from "next/server"
+import { NextRequest } from "next/server"
+
+// Allow up to 60 s — scraping (8s) + Stage-1 Claude (~15s) + Stage-2 Claude (~15s)
+export const maxDuration = 60
 
 const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })
 
@@ -23,7 +26,7 @@ function stripToText(html: string): string {
 interface ScrapedSource {
   url: string
   text: string
-  type: string // "askgamblers" | "casinoguru" | "bojoko" | "official" | "custom"
+  type: string
 }
 
 async function fetchSource(url: string): Promise<{ url: string; text: string } | null> {
@@ -35,7 +38,6 @@ async function fetchSource(url: string): Promise<{ url: string; text: string } |
     if (!res.ok) return null
     const html = await res.text()
     const text = stripToText(html)
-    // Reject pages that are clearly login/redirect walls (< 500 chars of content)
     if (text.length < 500) return null
     return { url, text: text.slice(0, 14000) }
   } catch {
@@ -55,7 +57,6 @@ async function scrapeAllSources(
 
   const nameDash = casinoName.toLowerCase().replace(/\s+/g, "-")
 
-  // Ordered groups — first URL in each list is most likely to succeed
   const groups: Array<{ type: string; urls: string[] }> = [
     {
       type: "askgamblers",
@@ -94,7 +95,6 @@ async function scrapeAllSources(
     },
   ]
 
-  // Fire all URL attempts in parallel; take first success per source type
   const flat = groups.flatMap(g => g.urls.map(url => ({ url, type: g.type })))
   const settled = await Promise.allSettled(
     flat.map(async ({ url, type }) => {
@@ -103,7 +103,6 @@ async function scrapeAllSources(
     })
   )
 
-  // Collect first success per type (preserving input order → priority order)
   const seen = new Set<string>()
   const scraped: ScrapedSource[] = []
   for (const r of settled) {
@@ -200,7 +199,7 @@ function normalizeAiData(raw: unknown): unknown {
   const obj = raw as Record<string, unknown>
   const out: Record<string, unknown> = {}
   for (const [key, val] of Object.entries(obj)) {
-    if (key === "_sources") { out[key] = val; continue } // pass through as-is
+    if (key === "_sources") { out[key] = val; continue }
     if (INT_FIELDS.has(key))        out[key] = toInt(val)
     else if (FLOAT_FIELDS.has(key)) out[key] = toFloat(val)
     else if (BOOL_FIELDS.has(key))  out[key] = toBool(val)
@@ -275,7 +274,6 @@ const FactualSchema = z.object({
   data_sources: z.array(z.string()).optional(),
   data_confidence: z.enum(["high", "medium", "low"]).optional(),
   summary: z.string().nullish(),
-  // Per-field source attribution — NOT saved to Supabase (not in DB_COLUMNS whitelist)
   _sources: z.record(z.string(), z.string()).optional(),
 })
 
@@ -401,8 +399,7 @@ Return ONLY valid JSON, no markdown:
     "is_pikakasino": "...",
     "withdrawal_time_max_hours": "...",
     "total_games_count": "..."
-  }
-}`
+  }}`
 }
 
 function buildReviewPrompt(casinoName: string, data: FactualData): string {
@@ -470,104 +467,150 @@ Return ONLY valid JSON — both values must be HTML strings with <p> tags:
 }`
 }
 
-// ── Route handler ────────────────────────────────────────────────────────────────
+// ── Route handler ─────────────────────────────────────────────────────────────────
+// Streams NDJSON so the client can show live progress instead of waiting 30s blind.
+// Each line is a complete JSON object:
+//   {"type":"progress","stage":"scraping","message":"...","elapsed":1234}
+//   {"type":"progress","stage":"analyzing","message":"...","elapsed":5678}
+//   {"type":"progress","stage":"writing","message":"...","elapsed":18000}   ← only when regenerateReview
+//   {"type":"result","success":true,"data":{...},...,"elapsed":24100}
+//   {"type":"error","message":"...","elapsed":5000}                         ← on failure
 
 export async function POST(req: NextRequest) {
+  const t0 = Date.now()
+
+  // Must read body before starting the stream
+  let body: { casinoName?: string; casinoSlug?: string; sourceUrl?: string; regenerateReview?: boolean }
   try {
-    const body = await req.json()
-    const { casinoName, casinoSlug, sourceUrl, regenerateReview = false } = body as {
-      casinoName: string
-      casinoSlug?: string
-      sourceUrl?: string
-      regenerateReview?: boolean
-    }
-
-    if (!casinoName) {
-      return NextResponse.json({ error: "casinoName is required" }, { status: 400 })
-    }
-
-    const slug = casinoSlug || casinoName.toLowerCase().replace(/\s+/g, "-")
-
-    // ── Scrape sources ──
-    const scraped = await scrapeAllSources(slug, casinoName, sourceUrl || undefined)
-    const sourcesUsed = scraped.map(s => s.url)
-    const sourcesAttempted: string[] = sourceUrl ? [sourceUrl] : [
-      `https://www.askgamblers.com/online-casinos/reviews/${slug}`,
-      `https://casinoguru.com/${slug}-casino-review`,
-      `https://bojoko.com/casino-reviews/${slug}`,
-      `https://www.${slug}.com`,
-    ]
-
-    // ── Stage 1: extract factual data ──
-    const stage1 = await client.messages.create({
-      model: "claude-sonnet-4-6",
-      max_tokens: 6144,
-      messages: [{ role: "user", content: buildFactualPrompt(casinoName, scraped) }],
-    })
-
-    const s1Block = stage1.content.find(b => b.type === "text")
-    if (!s1Block || s1Block.type !== "text") throw new Error("No response from AI (stage 1)")
-
-    let s1Parsed: unknown
-    try {
-      s1Parsed = JSON.parse(extractJsonText(s1Block.text))
-    } catch {
-      console.error("[ai-populate] Stage 1 JSON parse error:", s1Block.text.slice(0, 300))
-      throw new Error("AI returned invalid JSON")
-    }
-
-    const factual = FactualSchema.parse(normalizeAiData(s1Parsed))
-    const dataConfidence = factual.data_confidence
-      ?? (scraped.length >= 2 ? "high" : scraped.length === 1 ? "medium" : "low")
-
-    // ── Stage 2: generate reviews (only when requested) ──
-    let reviews: { review_fi?: string | null; review_en?: string | null } = {}
-
-    if (regenerateReview) {
-      const stage2 = await client.messages.create({
-        model: "claude-sonnet-4-6",
-        max_tokens: 3000,
-        messages: [{ role: "user", content: buildReviewPrompt(casinoName, factual) }],
-      })
-
-      const s2Block = stage2.content.find(b => b.type === "text")
-      if (s2Block && s2Block.type === "text") {
-        try {
-          const parsed = JSON.parse(extractJsonText(s2Block.text))
-          reviews = ReviewSchema.parse(parsed)
-        } catch {
-          console.error("[ai-populate] Stage 2 JSON parse error — reviews skipped")
-        }
-      }
-    }
-
-    const merged = { ...factual, ...reviews }
-
-    // A casino cannot simultaneously be in available_in and restricted_in
-    const availableSet = new Set(merged.available_in ?? [])
-    const cleanRestrictedIn = (merged.restricted_in ?? []).filter(c => !availableSet.has(c))
-    const finalData = { ...merged, restricted_in: cleanRestrictedIn }
-
-    // Source summary for UI display
-    const sourcesSummary = scraped.map(s => ({
-      type: s.type,
-      url: s.url,
-    }))
-
-    return NextResponse.json({
-      success: true,
-      data: finalData,
-      sourcesUsed,
-      sourcesAttempted,
-      sourcesSummary,
-      dataConfidence,
-      summary: factual.summary ?? null,
-    })
-  } catch (err) {
-    console.error("[ai-populate]", err)
-    return NextResponse.json(
-      { error: err instanceof Error ? err.message : "AI generation failed" },
-      { status: 500 }
+    body = await req.json()
+  } catch {
+    return new Response(
+      JSON.stringify({ type: "error", message: "Invalid JSON body", elapsed: 0 }) + "\n",
+      { status: 400, headers: { "Content-Type": "application/x-ndjson" } }
     )
   }
+
+  const { casinoName, casinoSlug, sourceUrl, regenerateReview = false } = body
+
+  if (!casinoName) {
+    return new Response(
+      JSON.stringify({ type: "error", message: "casinoName is required", elapsed: 0 }) + "\n",
+      { status: 400, headers: { "Content-Type": "application/x-ndjson" } }
+    )
+  }
+
+  const slug = casinoSlug || casinoName.toLowerCase().replace(/\s+/g, "-")
+  const enc  = new TextEncoder()
+
+  // TransformStream lets us write progress events while work runs
+  const { readable, writable } = new TransformStream<Uint8Array, Uint8Array>()
+  const writer = writable.getWriter()
+  const send   = (obj: object) => writer.write(enc.encode(JSON.stringify(obj) + "\n"))
+
+  ;(async () => {
+    try {
+      // ── Stage 1: Scrape ────────────────────────────────────────────────────────
+      const sourceCount = sourceUrl ? 1 : 4
+      send({ type: "progress", stage: "scraping", message: `Scraping ${sourceCount} source${sourceCount > 1 ? "s" : ""} in parallel...`, elapsed: Date.now() - t0 })
+
+      const tScrape = Date.now()
+      const scraped = await scrapeAllSources(slug, casinoName, sourceUrl || undefined)
+      const scrapeMs = Date.now() - tScrape
+      console.log(`[ai-populate] scrape: ${scrapeMs}ms — ${scraped.length}/${sourceCount} sources succeeded (${scraped.map(s => s.type).join(", ") || "none"})`)
+
+      const sourcesUsed      = scraped.map(s => s.url)
+      const sourcesAttempted = sourceUrl ? [sourceUrl] : [
+        `https://www.askgamblers.com/online-casinos/reviews/${slug}`,
+        `https://casinoguru.com/${slug}-casino-review`,
+        `https://bojoko.com/casino-reviews/${slug}`,
+        `https://www.${slug}.com`,
+      ]
+      const sourcesSummary = scraped.map(s => ({ type: s.type, url: s.url }))
+
+      // ── Stage 2: Claude — factual extraction ──────────────────────────────────
+      send({ type: "progress", stage: "analyzing", message: `Extracting data with Claude AI${scraped.length ? ` (${scraped.length} sources)` : " (no sources — using AI knowledge)"}...`, elapsed: Date.now() - t0 })
+
+      const tS1 = Date.now()
+      const stage1 = await client.messages.create({
+        model: "claude-sonnet-4-6",
+        max_tokens: 6144,
+        messages: [{ role: "user", content: buildFactualPrompt(casinoName, scraped) }],
+      })
+      console.log(`[ai-populate] stage1 claude: ${Date.now() - tS1}ms, input_tokens=${stage1.usage.input_tokens}, output_tokens=${stage1.usage.output_tokens}`)
+
+      const s1Block = stage1.content.find(b => b.type === "text")
+      if (!s1Block || s1Block.type !== "text") throw new Error("No response from AI (stage 1)")
+
+      let s1Parsed: unknown
+      try {
+        s1Parsed = JSON.parse(extractJsonText(s1Block.text))
+      } catch {
+        console.error("[ai-populate] Stage 1 JSON parse error:", s1Block.text.slice(0, 300))
+        throw new Error("AI returned invalid JSON — try again")
+      }
+
+      const factual = FactualSchema.parse(normalizeAiData(s1Parsed))
+      const dataConfidence = factual.data_confidence
+        ?? (scraped.length >= 2 ? "high" : scraped.length === 1 ? "medium" : "low")
+
+      // ── Stage 3 (optional): Claude — review writing ───────────────────────────
+      let reviews: { review_fi?: string | null; review_en?: string | null } = {}
+
+      if (regenerateReview) {
+        send({ type: "progress", stage: "writing", message: "Writing Finnish & English casino reviews...", elapsed: Date.now() - t0 })
+
+        const tS2 = Date.now()
+        const stage2 = await client.messages.create({
+          model: "claude-sonnet-4-6",
+          max_tokens: 3000,
+          messages: [{ role: "user", content: buildReviewPrompt(casinoName, factual) }],
+        })
+        console.log(`[ai-populate] stage2 claude: ${Date.now() - tS2}ms, input_tokens=${stage2.usage.input_tokens}, output_tokens=${stage2.usage.output_tokens}`)
+
+        const s2Block = stage2.content.find(b => b.type === "text")
+        if (s2Block && s2Block.type === "text") {
+          try {
+            const parsed = JSON.parse(extractJsonText(s2Block.text))
+            reviews = ReviewSchema.parse(parsed)
+          } catch {
+            console.error("[ai-populate] Stage 2 JSON parse error — reviews skipped")
+          }
+        }
+      }
+
+      // ── Merge & clean ─────────────────────────────────────────────────────────
+      const merged = { ...factual, ...reviews }
+      const availableSet = new Set(merged.available_in ?? [])
+      const finalData = { ...merged, restricted_in: (merged.restricted_in ?? []).filter(c => !availableSet.has(c)) }
+
+      const totalMs = Date.now() - t0
+      console.log(`[ai-populate] DONE in ${totalMs}ms — scrape ${scrapeMs}ms, sources: ${scraped.length}, confidence: ${dataConfidence}`)
+
+      send({
+        type: "result",
+        success: true,
+        data: finalData,
+        sourcesUsed,
+        sourcesAttempted,
+        sourcesSummary,
+        dataConfidence,
+        summary: factual.summary ?? null,
+        elapsed: totalMs,
+      })
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : "AI generation failed"
+      console.error("[ai-populate] ERROR after", Date.now() - t0, "ms:", msg)
+      send({ type: "error", message: msg, elapsed: Date.now() - t0 })
+    } finally {
+      writer.close()
+    }
+  })()
+
+  return new Response(readable, {
+    headers: {
+      "Content-Type": "application/x-ndjson",
+      "Cache-Control": "no-store",
+      "X-Content-Type-Options": "nosniff",
+    },
+  })
 }

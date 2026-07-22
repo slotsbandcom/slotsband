@@ -466,32 +466,87 @@ function AiPopulateTab({ casinoName, casinoSlug, casinoId, currentForm, onApply 
   const [selectedKeys, setSelectedKeys] = useState<Set<string>>(new Set())
   const [applyMsg, setApplyMsg] = useState<string | null>(null)
   const [applyError, setApplyError] = useState<string | null>(null)
+  const [progress, setProgress] = useState<{ stage: string; message: string; elapsed: number } | null>(null)
 
   const generate = async () => {
-    setLoading(true); setError(null); setApiResponse(null); setApplyMsg(null); setApplyError(null)
+    setLoading(true); setError(null); setApiResponse(null); setApplyMsg(null); setApplyError(null); setProgress(null)
     try {
       const res = await fetch("/api/admin/ai-populate", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ casinoName, casinoSlug, sourceUrl: customUrl || undefined, regenerateReview }),
       })
-      const json = await res.json()
-      if (!res.ok) throw new Error(json.error || "Failed")
-      setApiResponse(json as AiApiResponse)
-      // Auto-select fields from real sources; leave AI-estimated fields unchecked
-      const sources = (json as AiApiResponse).data._sources as Record<string, string> | undefined
-      const auto = new Set<string>()
-      for (const [key, val] of Object.entries((json as AiApiResponse).data)) {
-        if (!AI_META_KEYS.has(key) && !isEmptyValue(val)) {
-          const src = sources?.[key]
-          if (!src || src !== "ai_knowledge") auto.add(key)
+      if (!res.ok || !res.body) {
+        const json = await res.json().catch(() => ({}))
+        throw new Error((json as { error?: string }).error || `HTTP ${res.status}`)
+      }
+
+      // Read NDJSON stream — each line is a JSON event
+      const reader = res.body.getReader()
+      const decoder = new TextDecoder()
+      let buffer = ""
+
+      while (true) {
+        const { value, done } = await reader.read()
+        if (done) break
+        buffer += decoder.decode(value, { stream: true })
+        const lines = buffer.split("\n")
+        buffer = lines.pop() ?? ""        // keep incomplete last line
+        for (const line of lines) {
+          const trimmed = line.trim()
+          if (!trimmed) continue
+          try {
+            const evt = JSON.parse(trimmed) as {
+              type: "progress" | "result" | "error"
+              stage?: string
+              message?: string
+              elapsed?: number
+              success?: boolean
+              data?: AiApiResponse["data"]
+              sourcesUsed?: string[]
+              sourcesAttempted?: string[]
+              sourcesSummary?: AiApiResponse["sourcesSummary"]
+              dataConfidence?: AiApiResponse["dataConfidence"]
+              summary?: string | null
+            }
+
+            if (evt.type === "progress") {
+              setProgress({ stage: evt.stage ?? "", message: evt.message ?? "", elapsed: evt.elapsed ?? 0 })
+            } else if (evt.type === "result" && evt.success && evt.data) {
+              const resp: AiApiResponse = {
+                success: true,
+                data: evt.data,
+                sourcesUsed: evt.sourcesUsed ?? [],
+                sourcesAttempted: evt.sourcesAttempted ?? [],
+                sourcesSummary: evt.sourcesSummary,
+                dataConfidence: evt.dataConfidence ?? "low",
+                summary: evt.summary ?? null,
+              }
+              setApiResponse(resp)
+              // Auto-select fields from real sources; leave AI-estimated unchecked
+              const sources = evt.data._sources as Record<string, string> | undefined
+              const auto = new Set<string>()
+              for (const [key, val] of Object.entries(evt.data)) {
+                if (!AI_META_KEYS.has(key) && !isEmptyValue(val)) {
+                  const src = sources?.[key]
+                  if (!src || src !== "ai_knowledge") auto.add(key)
+                }
+              }
+              setSelectedKeys(auto)
+            } else if (evt.type === "error") {
+              throw new Error(evt.message || "AI generation failed")
+            }
+          } catch (parseErr) {
+            // If we already set an error from an "error" event, re-throw it
+            if (parseErr instanceof Error && parseErr.message !== "JSON parse error") throw parseErr
+          }
         }
       }
-      setSelectedKeys(auto)
     } catch (e) {
       setError(e instanceof Error ? e.message : "Unknown error")
     } finally {
       setLoading(false)
+      setProgress(null)
     }
   }
 
@@ -633,10 +688,55 @@ function AiPopulateTab({ casinoName, casinoSlug, casinoId, currentForm, onApply 
           <button type="button" onClick={generate} disabled={loading}
             className="w-full flex items-center justify-center gap-2 bg-[#2D1783] text-white font-bold py-3 rounded-xl hover:bg-[#3e2db2] disabled:opacity-50 disabled:cursor-not-allowed transition-colors">
             {loading
-              ? <><span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />Scraping &amp; researching {casinoName}...</>
+              ? <><span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />Researching {casinoName}...</>
               : <><span className="material-symbols-outlined text-[18px]" style={{ fontVariationSettings: "'FILL' 1" }}>auto_awesome</span>Scrape &amp; Populate with AI</>
             }
           </button>
+
+          {/* Live progress stages */}
+          {loading && (() => {
+            const stages = [
+              { id: "scraping",  label: "Scraping sources",      icon: "travel_explore" },
+              { id: "analyzing", label: "Analyzing with Claude",  icon: "psychology" },
+              ...(regenerateReview ? [{ id: "writing", label: "Writing reviews", icon: "edit_note" }] : []),
+            ]
+            const currentIdx = stages.findIndex(s => s.id === progress?.stage)
+            return (
+              <div className="bg-[#F8F9FD] border border-[#E5E8F0] rounded-xl p-3 space-y-2">
+                {stages.map((stage, idx) => {
+                  const done    = currentIdx > idx
+                  const active  = currentIdx === idx
+                  const pending = currentIdx < idx
+                  return (
+                    <div key={stage.id} className={`flex items-center gap-2.5 text-xs transition-opacity ${pending ? "opacity-35" : ""}`}>
+                      <span className={`w-5 h-5 rounded-full flex items-center justify-center flex-shrink-0 ${
+                        done   ? "bg-[#27AE60] text-white" :
+                        active ? "bg-[#2D1783] text-white" :
+                                 "bg-[#E5E8F0] text-[#787585]"
+                      }`}>
+                        {done
+                          ? <span className="material-symbols-outlined text-[11px]" style={{ fontVariationSettings: "'FILL' 1" }}>check</span>
+                          : active
+                          ? <span className="w-2.5 h-2.5 border-[1.5px] border-white/30 border-t-white rounded-full animate-spin block" />
+                          : <span className="material-symbols-outlined text-[11px]">{stage.icon}</span>
+                        }
+                      </span>
+                      <span className={`font-semibold ${done ? "text-[#27AE60]" : active ? "text-[#2D1783]" : "text-[#787585]"}`}>
+                        {stage.label}
+                      </span>
+                      {active && progress?.elapsed != null && (
+                        <span className="ml-auto text-[10px] text-[#787585]">{(progress.elapsed / 1000).toFixed(1)}s</span>
+                      )}
+                      {done && <span className="ml-auto text-[10px] text-[#27AE60]">Done</span>}
+                    </div>
+                  )
+                })}
+                {progress?.message && (
+                  <p className="text-[10px] text-[#787585] border-t border-[#E5E8F0] pt-2 mt-1">{progress.message}</p>
+                )}
+              </div>
+            )
+          })()}
         </div>
       </SectionCard>
 

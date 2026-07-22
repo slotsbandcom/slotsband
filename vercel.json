@@ -1,0 +1,7 @@
+{
+  "functions": {
+    "app/api/admin/ai-populate/route.ts": {
+      "maxDuration": 60
+    }
+  }
+}
