@@ -64,8 +64,6 @@ export function CasinoLogo({
             width: "100%",
             height: "100%",
             objectFit: "contain",
-            padding: "8%",
-            boxSizing: "border-box",
           }}
           className={`transition-opacity duration-300 ${loaded ? "opacity-100" : "opacity-0"}`}
         />
