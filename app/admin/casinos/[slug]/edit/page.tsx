@@ -462,6 +462,7 @@ function AiPopulateTab({ casinoName, casinoSlug, casinoId, currentForm, onApply 
   const [contentSelectedKeys, setContentSelectedKeys] = useState<Set<string>>(new Set())
   const [contentApplyMsg, setContentApplyMsg] = useState<string | null>(null)
   const [contentApplyError, setContentApplyError] = useState<string | null>(null)
+  const [contentProgress, setContentProgress] = useState<string | null>(null)
 
   const generate = async () => {
     setLoading(true); setError(null); setApiResponse(null); setApplyMsg(null); setApplyError(null)
@@ -473,7 +474,8 @@ function AiPopulateTab({ casinoName, casinoSlug, casinoId, currentForm, onApply 
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ casinoName }),
       })
-      const json1 = await res1.json()
+      let json1: { success?: boolean; data?: Record<string, unknown>; error?: string }
+      try { json1 = await res1.json() } catch { throw new Error("Research timed out — try again") }
       if (!res1.ok) throw new Error(json1.error || "Research failed")
 
       // Step 2: content generation (non-fatal if it fails)
@@ -485,10 +487,10 @@ function AiPopulateTab({ casinoName, casinoSlug, casinoId, currentForm, onApply 
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ casinoName, facts: json1.data, regenerateReview }),
         })
-        const json2 = await res2.json()
+        let json2: { success?: boolean; data?: Record<string, unknown> }
+        try { json2 = await res2.json() } catch { json2 = {} }
         if (res2.ok && json2.data) contentData = json2.data
       } catch {
-        // Step 2 failure is non-fatal — show Step 1 data only
         console.warn("[AI Populate] Content generation failed — showing research data only")
       }
 
@@ -515,23 +517,48 @@ function AiPopulateTab({ casinoName, casinoSlug, casinoId, currentForm, onApply 
     setContentApiResponse(null)
     setContentApplyMsg(null)
     setContentApplyError(null)
+    setContentProgress(null)
+
     try {
-      const res = await fetch("/api/admin/ai-content", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          casinoSlug,
-          languages: [...contentLanguages],
-          regenerateExisting,
-        }),
-      })
-      const json = await res.json()
-      if (!res.ok) throw new Error(json.error || "Content generation failed")
-      if (json.message) setContentMessage(json.message)
-      if (json.data && Object.keys(json.data).length > 0) {
-        setContentApiResponse(json as AiApiResponse)
+      const langs = [...contentLanguages]
+      const allData: Record<string, unknown> = {}
+      let anyGenerated = false
+      const skipMessages: string[] = []
+
+      // Call API once per language — each fits in 30s, all-at-once does not
+      for (const lang of langs) {
+        const langLabel = { fi: "Finnish", en: "English", uk: "UK English" }[lang] ?? lang.toUpperCase()
+        setContentProgress(`Generating ${langLabel}... (${langs.indexOf(lang) + 1}/${langs.length})`)
+
+        const res = await fetch("/api/admin/ai-content", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ casinoSlug, languages: [lang], regenerateExisting }),
+        })
+
+        // Vercel timeout returns HTML, not JSON — catch the parse failure
+        let json: { success?: boolean; data?: Record<string, unknown>; error?: string; message?: string }
+        try {
+          json = await res.json()
+        } catch {
+          throw new Error(`${langLabel} timed out — try one language at a time`)
+        }
+
+        if (!res.ok) throw new Error(json.error || `${langLabel} generation failed`)
+
+        if (json.message) skipMessages.push(json.message)
+        if (json.data && Object.keys(json.data).length > 0) {
+          Object.assign(allData, json.data)
+          anyGenerated = true
+        }
+      }
+
+      if (!anyGenerated) {
+        setContentMessage(skipMessages[0] ?? "No content was generated.")
+      } else {
+        setContentApiResponse({ success: true, data: allData })
         const auto = new Set<string>()
-        for (const [key, val] of Object.entries((json as AiApiResponse).data)) {
+        for (const [key, val] of Object.entries(allData)) {
           if (CONTENT_FIELDS.has(key) && !isEmptyValue(val)) auto.add(key)
         }
         setContentSelectedKeys(auto)
@@ -540,6 +567,7 @@ function AiPopulateTab({ casinoName, casinoSlug, casinoId, currentForm, onApply 
       setContentError(e instanceof Error ? e.message : "Unknown error")
     } finally {
       setContentLoading(false)
+      setContentProgress(null)
     }
   }
 
@@ -909,7 +937,7 @@ function AiPopulateTab({ casinoName, casinoSlug, casinoId, currentForm, onApply 
             className="w-full flex items-center justify-center gap-2 bg-white text-[#2D1783] border-2 border-[#2D1783] font-bold py-3 rounded-xl hover:bg-[#2D1783]/5 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
           >
             {contentLoading
-              ? <><span className="w-4 h-4 border-2 border-[#2D1783]/30 border-t-[#2D1783] rounded-full animate-spin" />Generating content...</>
+              ? <><span className="w-4 h-4 border-2 border-[#2D1783]/30 border-t-[#2D1783] rounded-full animate-spin" />{contentProgress ?? "Generating content..."}</>
               : <>✍️ Generate Written Content</>
             }
           </button>
