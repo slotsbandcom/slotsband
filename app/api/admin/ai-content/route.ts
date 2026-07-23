@@ -3,7 +3,7 @@ import { z } from "zod"
 import { NextRequest, NextResponse } from "next/server"
 import { createClient as createSupabaseClient } from "@supabase/supabase-js"
 
-export const maxDuration = 30
+export const maxDuration = 60
 
 const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })
 
@@ -184,7 +184,7 @@ function buildDbContentPrompt(casino: Record<string, unknown>, languages: string
 
   const jsonFields: string[] = []
   if (hasFi) jsonFields.push(
-    `  "review_fi": "300-400 words unique Finnish review, HTML <p> tags, 3-4 paragraphs, no headings"`,
+    `  "review_fi": "200-250 words unique Finnish review, HTML <p> tags, 3-4 paragraphs, no headings"`,
     `  "pros_fi": ["5-6 specific pros in Finnish, max 6 words each, NO generic phrases"]`,
     `  "cons_fi": ["4-5 honest specific cons in Finnish, max 6 words each"]`,
     `  "faq_fi": [{"q": "Suomenkielinen kysymys?", "a": "Vastaus 1-2 lauseella."}, max 5]`,
@@ -192,7 +192,7 @@ function buildDbContentPrompt(casino: Record<string, unknown>, languages: string
     `  "meta_description_fi": "SEO description Finnish max 155 chars"`,
   )
   if (hasEn) jsonFields.push(
-    `  "review_en": "300-400 words unique English review, HTML <p> tags, 3-4 paragraphs, no headings"`,
+    `  "review_en": "200-250 words unique English review, HTML <p> tags, 3-4 paragraphs, no headings"`,
     `  "pros_en": ["5-6 specific pros in English, max 6 words each, NO generic phrases"]`,
     `  "cons_en": ["4-5 honest specific cons in English, max 6 words each"]`,
     `  "faq_en": [{"q": "English question?", "a": "Answer in 1-2 sentences."}, max 5]`,
@@ -200,7 +200,7 @@ function buildDbContentPrompt(casino: Record<string, unknown>, languages: string
     `  "meta_description_en": "SEO description English max 155 chars"`,
   )
   if (hasUk) jsonFields.push(
-    `  "review_uk": "300-400 words unique UK English review, HTML <p> tags, 3-4 paragraphs, no headings"`,
+    `  "review_uk": "200-250 words unique UK English review, HTML <p> tags, 3-4 paragraphs, no headings"`,
     `  "pros_uk": ["5-6 specific pros in UK English, max 6 words each, NO generic phrases"]`,
     `  "cons_uk": ["4-5 honest specific cons in UK English, max 6 words each"]`,
     `  "faq_uk": [{"q": "UK English question?", "a": "Answer in 1-2 sentences."}, max 5]`,
@@ -296,7 +296,7 @@ export async function POST(req: NextRequest) {
         })
       }
 
-      const maxTok = toLang.length >= 3 ? 4000 : toLang.length === 2 ? 2500 : 1500
+      const maxTok = 2000
 
       const response = await client.messages.create({
         model: "claude-sonnet-4-6",
