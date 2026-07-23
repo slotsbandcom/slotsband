@@ -410,6 +410,15 @@ interface AiApiResponse {
 
 const AI_META_KEYS = new Set(["data_sources", "data_confidence", "summary", "_sources"])
 
+const CONTENT_FIELDS = new Set([
+  "review_fi", "review_en", "review_uk",
+  "pros_fi", "cons_fi", "pros_en", "cons_en", "pros_uk", "cons_uk",
+  "faq_fi", "faq_en", "faq_uk",
+  "meta_title_fi", "meta_description_fi",
+  "meta_title_en", "meta_description_en",
+  "meta_title_uk", "meta_description_uk",
+])
+
 function isEmptyValue(v: unknown): boolean {
   if (v === null || v === undefined) return true
   if (typeof v === "string") return v === ""
@@ -441,6 +450,18 @@ function AiPopulateTab({ casinoName, casinoSlug, casinoId, currentForm, onApply 
   const [applyMsg, setApplyMsg] = useState<string | null>(null)
   const [applyError, setApplyError] = useState<string | null>(null)
   const [progress, setProgress] = useState<"researching" | "generating" | null>(null)
+
+  // ── Written Content section state ───────────────────────────────────────────
+  const [contentLanguages, setContentLanguages] = useState<Set<"fi" | "en" | "uk">>(new Set(["fi", "en", "uk"]))
+  const [regenerateExisting, setRegenerateExisting] = useState(false)
+  const [contentLoading, setContentLoading] = useState(false)
+  const [contentSaving, setContentSaving] = useState(false)
+  const [contentApiResponse, setContentApiResponse] = useState<AiApiResponse | null>(null)
+  const [contentError, setContentError] = useState<string | null>(null)
+  const [contentMessage, setContentMessage] = useState<string | null>(null)
+  const [contentSelectedKeys, setContentSelectedKeys] = useState<Set<string>>(new Set())
+  const [contentApplyMsg, setContentApplyMsg] = useState<string | null>(null)
+  const [contentApplyError, setContentApplyError] = useState<string | null>(null)
 
   const generate = async () => {
     setLoading(true); setError(null); setApiResponse(null); setApplyMsg(null); setApplyError(null)
@@ -485,6 +506,92 @@ function AiPopulateTab({ casinoName, casinoSlug, casinoId, currentForm, onApply 
       setLoading(false)
       setProgress(null)
     }
+  }
+
+  const generateContent = async () => {
+    setContentLoading(true)
+    setContentError(null)
+    setContentMessage(null)
+    setContentApiResponse(null)
+    setContentApplyMsg(null)
+    setContentApplyError(null)
+    try {
+      const res = await fetch("/api/admin/ai-content", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          casinoSlug,
+          languages: [...contentLanguages],
+          regenerateExisting,
+        }),
+      })
+      const json = await res.json()
+      if (!res.ok) throw new Error(json.error || "Content generation failed")
+      if (json.message) setContentMessage(json.message)
+      if (json.data && Object.keys(json.data).length > 0) {
+        setContentApiResponse(json as AiApiResponse)
+        const auto = new Set<string>()
+        for (const [key, val] of Object.entries((json as AiApiResponse).data)) {
+          if (CONTENT_FIELDS.has(key) && !isEmptyValue(val)) auto.add(key)
+        }
+        setContentSelectedKeys(auto)
+      }
+    } catch (e) {
+      setContentError(e instanceof Error ? e.message : "Unknown error")
+    } finally {
+      setContentLoading(false)
+    }
+  }
+
+  const saveContentToDb = async (patch: Record<string, unknown>): Promise<boolean> => {
+    if (!casinoId) {
+      setContentApplyError("Casino ID missing — save the casino record first, then retry.")
+      return false
+    }
+    setContentSaving(true)
+    setContentApplyError(null)
+    try {
+      const res = await fetch(`/api/admin/casinos/${casinoId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(patch),
+      })
+      const json = await res.json()
+      if (!res.ok) throw new Error((json as { error?: string }).error || `HTTP ${res.status}`)
+      return true
+    } catch (e) {
+      setContentApplyError(e instanceof Error ? e.message : "Save failed")
+      return false
+    } finally {
+      setContentSaving(false)
+    }
+  }
+
+  const doContentApply = async (patch: Record<string, unknown>, count: number) => {
+    onApply(patch as Partial<Casino>)
+    const ok = await saveContentToDb(patch)
+    if (ok) {
+      setContentApplyMsg(`Applied & saved ${count} field${count !== 1 ? "s" : ""} to Supabase`)
+      setTimeout(() => setContentApplyMsg(null), 5000)
+    }
+  }
+
+  const applyContentSelected = async () => {
+    if (!contentApiResponse || contentSelectedKeys.size === 0) return
+    const patch: Record<string, unknown> = {}
+    for (const key of contentSelectedKeys) {
+      if (CONTENT_FIELDS.has(key) && key in contentApiResponse.data) patch[key] = contentApiResponse.data[key]
+    }
+    await doContentApply(patch, Object.keys(patch).length)
+  }
+
+  const applyContentAll = async () => {
+    if (!contentApiResponse) return
+    const patch: Record<string, unknown> = {}
+    for (const [key, val] of Object.entries(contentApiResponse.data)) {
+      if (CONTENT_FIELDS.has(key) && !isEmptyValue(val)) patch[key] = val
+    }
+    await doContentApply(patch, Object.keys(patch).length)
   }
 
   const saveToDb = async (patch: Record<string, unknown>): Promise<boolean> => {
@@ -560,6 +667,20 @@ function AiPopulateTab({ casinoName, casinoSlug, casinoId, currentForm, onApply 
 
   const newCount = diffItems.filter(i => i.status === "new").length
   const updateCount = diffItems.filter(i => i.status === "update").length
+
+  const contentDiffItems = contentApiResponse ? Object.entries(contentApiResponse.data)
+    .filter(([key, val]) => CONTENT_FIELDS.has(key) && !isEmptyValue(val))
+    .map(([key, newVal]) => {
+      const currentVal = (currentForm as unknown as Record<string, unknown>)[key]
+      const status: "new" | "update" | "same" =
+        isEmptyValue(currentVal) ? "new"
+        : JSON.stringify(currentVal) !== JSON.stringify(newVal) ? "update"
+        : "same"
+      return { key, newVal, status }
+    }) : []
+
+  const contentNewCount = contentDiffItems.filter(i => i.status === "new").length
+  const contentUpdateCount = contentDiffItems.filter(i => i.status === "update").length
 
   return (
     <div className="space-y-4">
@@ -645,12 +766,11 @@ function AiPopulateTab({ casinoName, casinoSlug, casinoId, currentForm, onApply 
       {apiResponse && (
         <>
           {/* Diff preview */}
-          <SectionCard title={`Diff Preview — ${newCount} new, ${updateCount} updates`} icon="difference">
+          <SectionCard title={`Research Results — ${newCount} new, ${updateCount} updates`} icon="difference">
             {diffItems.length === 0 ? (
               <p className="text-sm text-[#787585] text-center py-4">No data could be extracted from the sources.</p>
             ) : (
               <div className="space-y-1">
-                {/* Toolbar */}
                 <div className="flex items-center gap-3 pb-2 mb-1 border-b border-[#E5E8F0] sticky top-0 bg-white z-10">
                   <button type="button"
                     onClick={() => setSelectedKeys(new Set(diffItems.filter(i => i.status !== "same").map(i => i.key)))}
@@ -663,7 +783,6 @@ function AiPopulateTab({ casinoName, casinoSlug, casinoId, currentForm, onApply 
                     className="text-xs font-bold text-[#787585] hover:underline">Clear</button>
                   <span className="text-xs text-[#787585] ml-auto">{selectedKeys.size} selected</span>
                 </div>
-                {/* Field rows */}
                 <div className="max-h-80 overflow-y-auto space-y-0.5 pr-1">
                   {diffItems.map(({ key, newVal, status }) => {
                     const s = {
@@ -691,22 +810,16 @@ function AiPopulateTab({ casinoName, casinoSlug, casinoId, currentForm, onApply 
               </div>
             )}
           </SectionCard>
-
-          {/* Apply buttons */}
           <div className="space-y-3">
             <div className="flex gap-3">
               <button type="button" onClick={applySelected} disabled={selectedKeys.size === 0 || saving}
                 className="flex-1 flex items-center justify-center gap-2 bg-[#2D1783] text-white font-bold py-2.5 rounded-xl hover:bg-[#3e2db2] disabled:opacity-40 disabled:cursor-not-allowed transition-colors text-sm">
-                {saving
-                  ? <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                  : <span className="material-symbols-outlined text-[16px]">checklist</span>}
+                {saving ? <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" /> : <span className="material-symbols-outlined text-[16px]">checklist</span>}
                 Apply Selected ({selectedKeys.size})
               </button>
               <button type="button" onClick={applyAll} disabled={saving}
                 className="flex-1 flex items-center justify-center gap-2 bg-[#27AE60] text-white font-bold py-2.5 rounded-xl hover:bg-[#219a52] disabled:opacity-50 disabled:cursor-not-allowed transition-colors text-sm">
-                {saving
-                  ? <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                  : <span className="material-symbols-outlined text-[16px]">done_all</span>}
+                {saving ? <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" /> : <span className="material-symbols-outlined text-[16px]">done_all</span>}
                 {saving ? "Saving..." : "Apply All & Save"}
               </button>
             </div>
@@ -728,6 +841,179 @@ function AiPopulateTab({ casinoName, casinoSlug, casinoId, currentForm, onApply 
           </div>
         </>
       )}
+
+      {/* ── SECTION 2: Written Content ──────────────────────────────────────── */}
+      <SectionCard title="✍️ Generate Written Content" icon="article">
+        <div className="space-y-5">
+          <p className="text-xs text-[#787585] leading-relaxed">
+            Generates reviews, pros/cons, FAQ and meta tags based on casino data already saved in database.
+          </p>
+
+          {/* Language checkboxes */}
+          <div>
+            <Label>Languages</Label>
+            <div className="flex gap-5 mt-2">
+              {(["fi", "en", "uk"] as const).map(lang => {
+                const labels = { fi: "Finnish (FI)", en: "English (EN)", uk: "UK English (UK)" }
+                return (
+                  <label key={lang} className="flex items-center gap-2 cursor-pointer select-none">
+                    <div className="relative">
+                      <input
+                        type="checkbox"
+                        checked={contentLanguages.has(lang)}
+                        onChange={e => {
+                          const next = new Set(contentLanguages)
+                          e.target.checked ? next.add(lang) : next.delete(lang)
+                          setContentLanguages(next)
+                        }}
+                        className="sr-only"
+                      />
+                      <div className={`w-4 h-4 rounded border-2 flex items-center justify-center transition-colors ${contentLanguages.has(lang) ? "bg-[#2D1783] border-[#2D1783]" : "bg-white border-[#E5E8F0]"}`}>
+                        {contentLanguages.has(lang) && <span className="material-symbols-outlined text-white text-[11px]" style={{ fontVariationSettings: "'FILL' 1" }}>check</span>}
+                      </div>
+                    </div>
+                    <span className="text-xs font-semibold text-[#474554]">{labels[lang]}</span>
+                  </label>
+                )
+              })}
+            </div>
+          </div>
+
+          {/* Regenerate checkbox */}
+          <label className="flex items-center gap-2.5 cursor-pointer select-none group">
+            <div className="relative">
+              <input
+                type="checkbox"
+                checked={regenerateExisting}
+                onChange={e => setRegenerateExisting(e.target.checked)}
+                className="sr-only"
+              />
+              <div className={`w-4 h-4 rounded border-2 flex items-center justify-center transition-colors ${regenerateExisting ? "bg-[#E74C3C] border-[#E74C3C]" : "bg-white border-[#E5E8F0] group-hover:border-[#E74C3C]"}`}>
+                {regenerateExisting && <span className="material-symbols-outlined text-white text-[11px]" style={{ fontVariationSettings: "'FILL' 1" }}>check</span>}
+              </div>
+            </div>
+            <div>
+              <p className="text-xs font-semibold text-[#1b1b1c]">
+                Regenerate if content already exists
+                <span className="ml-1.5 text-[9px] font-bold bg-[#E74C3C]/10 text-[#E74C3C] px-1.5 py-0.5 rounded uppercase tracking-wide">Overwrites</span>
+              </p>
+              <p className="text-[10px] text-[#787585] mt-0.5">Unchecked protects existing content — only fills empty language slots.</p>
+            </div>
+          </label>
+
+          {/* Button — secondary/outline style */}
+          <button
+            type="button"
+            onClick={generateContent}
+            disabled={contentLoading || contentLanguages.size === 0}
+            className="w-full flex items-center justify-center gap-2 bg-white text-[#2D1783] border-2 border-[#2D1783] font-bold py-3 rounded-xl hover:bg-[#2D1783]/5 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+          >
+            {contentLoading
+              ? <><span className="w-4 h-4 border-2 border-[#2D1783]/30 border-t-[#2D1783] rounded-full animate-spin" />Generating content...</>
+              : <>✍️ Generate Written Content</>
+            }
+          </button>
+        </div>
+      </SectionCard>
+
+      {/* Content section — info / error / diff / apply */}
+      {contentMessage && !contentApiResponse && (
+        <div className="bg-blue-50 border border-blue-200 rounded-2xl p-4 flex items-start gap-3">
+          <span className="material-symbols-outlined text-blue-500 text-[18px] flex-shrink-0">info</span>
+          <p className="text-sm text-blue-700">{contentMessage}</p>
+        </div>
+      )}
+
+      {contentError && (
+        <div className="bg-red-50 border border-red-200 rounded-2xl p-4 flex items-start gap-3">
+          <span className="material-symbols-outlined text-red-500 text-[18px] flex-shrink-0">error</span>
+          <div>
+            <p className="text-sm font-bold text-red-700">Content generation failed</p>
+            <p className="text-xs text-red-600 mt-0.5">{contentError}</p>
+          </div>
+        </div>
+      )}
+
+      {contentApiResponse && contentDiffItems.length > 0 && (
+        <>
+          <SectionCard title={`Written Content — ${contentNewCount} new, ${contentUpdateCount} updates`} icon="difference">
+            <div className="space-y-1">
+              <div className="flex items-center gap-3 pb-2 mb-1 border-b border-[#E5E8F0] sticky top-0 bg-white z-10">
+                <button type="button"
+                  onClick={() => setContentSelectedKeys(new Set(contentDiffItems.filter(i => i.status !== "same").map(i => i.key)))}
+                  className="text-xs font-bold text-[#2D1783] hover:underline">Select changed</button>
+                <button type="button"
+                  onClick={() => setContentSelectedKeys(new Set(contentDiffItems.map(i => i.key)))}
+                  className="text-xs font-bold text-[#2D1783] hover:underline">Select all</button>
+                <button type="button"
+                  onClick={() => setContentSelectedKeys(new Set())}
+                  className="text-xs font-bold text-[#787585] hover:underline">Clear</button>
+                <span className="text-xs text-[#787585] ml-auto">{contentSelectedKeys.size} selected</span>
+              </div>
+              <div className="max-h-80 overflow-y-auto space-y-0.5 pr-1">
+                {contentDiffItems.map(({ key, newVal, status }) => {
+                  const s = {
+                    new:    { bg: "bg-[#27AE60]/6 border-[#27AE60]/20",  badge: "bg-[#27AE60]/15 text-[#27AE60]",  label: "NEW" },
+                    update: { bg: "bg-[#F39C12]/6 border-[#F39C12]/20",  badge: "bg-[#F39C12]/15 text-[#F39C12]",  label: "UPDATE" },
+                    same:   { bg: "bg-[#F8F9FD] border-[#E5E8F0]",       badge: "bg-[#E5E8F0] text-[#787585]",     label: "SAME" },
+                  }[status]
+                  return (
+                    <label key={key} className={`flex items-center gap-2.5 px-3 py-2 rounded-lg border cursor-pointer hover:opacity-90 transition-opacity ${s.bg}`}>
+                      <input type="checkbox" checked={contentSelectedKeys.has(key)}
+                        onChange={e => {
+                          const next = new Set(contentSelectedKeys)
+                          e.target.checked ? next.add(key) : next.delete(key)
+                          setContentSelectedKeys(next)
+                        }}
+                        className="w-3.5 h-3.5 accent-[#2D1783] flex-shrink-0"
+                      />
+                      <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded flex-shrink-0 ${s.badge}`}>{s.label}</span>
+                      <span className="text-[11px] font-mono text-[#474554] flex-shrink-0 w-36 truncate">{key}</span>
+                      <span className="text-[11px] text-[#787585] flex-1 truncate">{formatAiValue(newVal)}</span>
+                    </label>
+                  )
+                })}
+              </div>
+            </div>
+          </SectionCard>
+
+          <div className="space-y-3">
+            <div className="flex gap-3">
+              <button type="button" onClick={applyContentSelected} disabled={contentSelectedKeys.size === 0 || contentSaving}
+                className="flex-1 flex items-center justify-center gap-2 bg-[#2D1783] text-white font-bold py-2.5 rounded-xl hover:bg-[#3e2db2] disabled:opacity-40 disabled:cursor-not-allowed transition-colors text-sm">
+                {contentSaving
+                  ? <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                  : <span className="material-symbols-outlined text-[16px]">checklist</span>}
+                Apply Selected ({contentSelectedKeys.size})
+              </button>
+              <button type="button" onClick={applyContentAll} disabled={contentSaving}
+                className="flex-1 flex items-center justify-center gap-2 bg-[#27AE60] text-white font-bold py-2.5 rounded-xl hover:bg-[#219a52] disabled:opacity-50 disabled:cursor-not-allowed transition-colors text-sm">
+                {contentSaving
+                  ? <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                  : <span className="material-symbols-outlined text-[16px]">done_all</span>}
+                {contentSaving ? "Saving..." : "Apply All & Save"}
+              </button>
+            </div>
+            {contentApplyMsg && (
+              <div className="flex items-center gap-2 text-sm text-[#27AE60] font-medium">
+                <span className="material-symbols-outlined text-[16px]">check_circle</span>
+                {contentApplyMsg}
+              </div>
+            )}
+            {contentApplyError && (
+              <div className="flex items-center gap-2 text-sm text-red-600 font-medium">
+                <span className="material-symbols-outlined text-[16px]">error</span>
+                <span className="flex-1">{contentApplyError}</span>
+                <button type="button" onClick={() => setContentApplyError(null)} className="text-red-400 hover:text-red-600 flex-shrink-0">
+                  <span className="material-symbols-outlined text-[14px]">close</span>
+                </button>
+              </div>
+            )}
+          </div>
+        </>
+      )}
+
+      {/* research results rendered above, before Written Content section */}
     </div>
   )
 }
