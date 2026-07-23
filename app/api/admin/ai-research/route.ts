@@ -2,7 +2,7 @@ import Anthropic from "@anthropic-ai/sdk"
 import { z } from "zod"
 import { NextRequest, NextResponse } from "next/server"
 
-export const maxDuration = 30
+export const maxDuration = 60
 
 const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })
 
@@ -210,7 +210,7 @@ export async function POST(req: NextRequest) {
     const t0 = Date.now()
     const response = await client.messages.create({
       model: "claude-sonnet-4-6",
-      max_tokens: 800,
+      max_tokens: 2000,
       tools: [{ type: "web_search_20250305" as const, name: "web_search" }],
       messages: [{ role: "user", content: buildResearchPrompt(casinoName) }],
     })
