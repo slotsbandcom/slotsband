@@ -211,11 +211,14 @@ function SectionCard({ title, icon, children }: { title: string; icon?: string; 
 }
 function CheckboxGrid({ label, items, selected, onChange }: { label: string; items: string[]; selected: string[]; onChange: (v: string[]) => void }) {
   const toggle = (item: string) => onChange(selected.includes(item) ? selected.filter(x => x !== item) : [...selected, item])
+  // Show known items + any values from Supabase not in the predefined list (so they're visible and removable)
+  const extras = selected.filter(s => !items.includes(s))
+  const allItems = extras.length > 0 ? [...items, ...extras] : items
   return (
     <div>
       <Label>{label}</Label>
       <div className="flex flex-wrap gap-2 mt-1">
-        {items.map(item => (
+        {allItems.map(item => (
           <button key={item} type="button" onClick={() => toggle(item)}
             className={`text-xs px-3 py-1.5 rounded-xl border font-medium transition-colors ${selected.includes(item) ? "bg-[#2D1783] text-white border-[#2D1783]" : "bg-white text-[#474554] border-[#E5E8F0] hover:border-[#2D1783]"}`}>
             {item}
