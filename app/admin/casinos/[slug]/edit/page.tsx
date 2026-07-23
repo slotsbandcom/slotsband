@@ -440,21 +440,42 @@ function AiPopulateTab({ casinoName, casinoSlug, casinoId, currentForm, onApply 
   const [selectedKeys, setSelectedKeys] = useState<Set<string>>(new Set())
   const [applyMsg, setApplyMsg] = useState<string | null>(null)
   const [applyError, setApplyError] = useState<string | null>(null)
+  const [progress, setProgress] = useState<"researching" | "generating" | null>(null)
 
   const generate = async () => {
     setLoading(true); setError(null); setApiResponse(null); setApplyMsg(null); setApplyError(null)
     try {
-      const res = await fetch("/api/admin/ai-populate", {
+      // Step 1: factual data with web search
+      setProgress("researching")
+      const res1 = await fetch("/api/admin/ai-research", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ casinoName, casinoSlug, regenerateReview }),
+        body: JSON.stringify({ casinoName }),
       })
-      const json = await res.json()
-      if (!res.ok) throw new Error(json.error || "Failed")
-      setApiResponse(json as AiApiResponse)
-      // Auto-select all non-empty fields
+      const json1 = await res1.json()
+      if (!res1.ok) throw new Error(json1.error || "Research failed")
+
+      // Step 2: content generation (non-fatal if it fails)
+      setProgress("generating")
+      let contentData: Record<string, unknown> = {}
+      try {
+        const res2 = await fetch("/api/admin/ai-content", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ casinoName, facts: json1.data, regenerateReview }),
+        })
+        const json2 = await res2.json()
+        if (res2.ok && json2.data) contentData = json2.data
+      } catch {
+        // Step 2 failure is non-fatal — show Step 1 data only
+        console.warn("[AI Populate] Content generation failed — showing research data only")
+      }
+
+      const merged = { ...json1.data, ...contentData }
+      setApiResponse({ success: true, data: merged })
+
       const auto = new Set<string>()
-      for (const [key, val] of Object.entries((json as AiApiResponse).data)) {
+      for (const [key, val] of Object.entries(merged)) {
         if (!AI_META_KEYS.has(key) && !isEmptyValue(val)) auto.add(key)
       }
       setSelectedKeys(auto)
@@ -462,6 +483,7 @@ function AiPopulateTab({ casinoName, casinoSlug, casinoId, currentForm, onApply 
       setError(e instanceof Error ? e.message : "Unknown error")
     } finally {
       setLoading(false)
+      setProgress(null)
     }
   }
 
@@ -590,10 +612,23 @@ function AiPopulateTab({ casinoName, casinoSlug, casinoId, currentForm, onApply 
           <button type="button" onClick={generate} disabled={loading}
             className="w-full flex items-center justify-center gap-2 bg-[#2D1783] text-white font-bold py-3 rounded-xl hover:bg-[#3e2db2] disabled:opacity-50 disabled:cursor-not-allowed transition-colors">
             {loading
-              ? <><span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />Generating data for {casinoName}...</>
+              ? <><span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />{progress === "researching" ? "🔍 Researching casino data..." : "✍️ Generating content..."}</>
               : <><span className="material-symbols-outlined text-[18px]" style={{ fontVariationSettings: "'FILL' 1" }}>auto_awesome</span>Populate with AI</>
             }
           </button>
+          {loading && (
+            <div className="flex items-center gap-3 text-[10px] text-[#787585]">
+              <span className={`flex items-center gap-1 ${progress === "researching" ? "text-[#2D1783] font-bold" : progress === "generating" ? "text-[#27AE60]" : ""}`}>
+                {progress === "researching" ? <span className="w-2 h-2 rounded-full bg-[#2D1783] animate-pulse inline-block" /> : <span className="w-2 h-2 rounded-full bg-[#27AE60] inline-block" />}
+                Step 1: Research
+              </span>
+              <span className="text-[#C5C3CE]">→</span>
+              <span className={`flex items-center gap-1 ${progress === "generating" ? "text-[#2D1783] font-bold" : "text-[#C5C3CE]"}`}>
+                {progress === "generating" && <span className="w-2 h-2 rounded-full bg-[#2D1783] animate-pulse inline-block" />}
+                Step 2: Content
+              </span>
+            </div>
+          )}
         </div>
       </SectionCard>
 
