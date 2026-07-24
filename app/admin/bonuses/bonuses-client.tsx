@@ -25,33 +25,55 @@ const TYPE_STYLES: Record<BonusType, string> = {
 
 const LANG_FLAGS: Record<Lang, string> = { fi: "🇫🇮", en: "🇬🇧", uk: "🇺🇦" }
 
+const TYPE_TITLES: Record<BonusType, string> = {
+  welcome:    "Welcome Bonus",
+  no_deposit: "No Deposit Bonus",
+  free_spins: "Free Spins",
+  cashback:   "Cashback",
+  reload:     "Reload Bonus",
+}
+
 // ─── Form ─────────────────────────────────────────────────────────────────────
 function BonusForm({
   onClose,
   onSaved,
   casinos,
+  editBonus,
 }: {
   onClose: () => void
   onSaved: () => void
   casinos: Casino[]
+  editBonus?: Bonus
 }) {
+  const isEdit = !!editBonus
+
+  const parsedDesc = (() => {
+    if (!editBonus?.description) return { fi: "", en: "", uk: "" }
+    try {
+      const p = JSON.parse(editBonus.description)
+      return { fi: p.fi ?? "", en: p.en ?? "", uk: p.uk ?? "" }
+    } catch {
+      return { fi: editBonus.description, en: "", uk: "" }
+    }
+  })()
+
   const [activeLang, setActiveLang] = useState<Lang>("fi")
-  const [bonusType, setBonusType] = useState<BonusType>("welcome")
+  const [bonusType, setBonusType] = useState<BonusType>(editBonus?.bonus_type ?? "welcome")
   const [casinoSearch, setCasinoSearch] = useState("")
   const [selectedCasino, setSelectedCasino] = useState<Casino | null>(null)
   const [showCasinoDrop, setShowCasinoDrop] = useState(false)
-  const [amount, setAmount] = useState("")
-  const [wagering, setWagering] = useState("")
-  const [minDeposit, setMinDeposit] = useState("")
+  const [amount, setAmount] = useState(editBonus?.amount ?? "")
+  const [wagering, setWagering] = useState(editBonus?.wagering != null ? String(editBonus.wagering) : "")
+  const [minDeposit, setMinDeposit] = useState(editBonus?.min_deposit != null ? String(editBonus.min_deposit) : "")
   const [maxBonus, setMaxBonus] = useState("")
   const [freeSpinsCount, setFreeSpinsCount] = useState("")
   const [freeSpinsGame, setFreeSpinsGame] = useState("")
-  const [validFrom, setValidFrom] = useState("")
-  const [validUntil, setValidUntil] = useState("")
-  const [descFi, setDescFi] = useState("")
-  const [descEn, setDescEn] = useState("")
-  const [descUk, setDescUk] = useState("")
-  const [isFeatured, setIsFeatured] = useState(false)
+  const [validFrom, setValidFrom] = useState(editBonus?.start_date?.slice(0, 10) ?? "")
+  const [validUntil, setValidUntil] = useState(editBonus?.end_date?.slice(0, 10) ?? "")
+  const [descFi, setDescFi] = useState(parsedDesc.fi)
+  const [descEn, setDescEn] = useState(parsedDesc.en)
+  const [descUk, setDescUk] = useState(parsedDesc.uk)
+  const [isFeatured, setIsFeatured] = useState(editBonus?.is_featured ?? false)
   const [saving, setSaving] = useState(false)
   const [formError, setFormError] = useState<string | null>(null)
 
@@ -60,30 +82,50 @@ function BonusForm({
   ).slice(0, 6)
 
   const handleSubmit = async () => {
-    if (!selectedCasino) { setFormError("Please select a casino"); return }
+    if (!isEdit && !selectedCasino) { setFormError("Please select a casino"); return }
     setSaving(true)
     setFormError(null)
     try {
-      const res = await fetch("/api/admin/bonuses", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          casinoId: selectedCasino.id,
-          bonusType,
-          amount: amount || null,
-          wagering: wagering ? Number(wagering) : null,
-          minDeposit: minDeposit ? Number(minDeposit) : null,
-          maxBonus: maxBonus ? Number(maxBonus) : null,
-          freeSpinsCount: freeSpinsCount ? Number(freeSpinsCount) : null,
-          freeSpinsGame: freeSpinsGame || null,
-          validFrom: validFrom || null,
-          validUntil: validUntil || null,
-          descriptionFi: descFi,
-          descriptionEn: descEn,
-          descriptionUk: descUk,
-          isFeatured,
-        }),
-      })
+      let res: Response
+      if (isEdit) {
+        const title = amount ? `${amount} ${TYPE_TITLES[bonusType]}` : TYPE_TITLES[bonusType]
+        res = await fetch(`/api/admin/bonuses/${editBonus!.id}`, {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            bonus_type: bonusType,
+            title,
+            amount: amount || null,
+            wagering: wagering ? Number(wagering) : null,
+            min_deposit: minDeposit ? Number(minDeposit) : null,
+            is_featured: isFeatured,
+            start_date: validFrom || null,
+            end_date: validUntil || null,
+            description: JSON.stringify({ fi: descFi, en: descEn, uk: descUk }),
+          }),
+        })
+      } else {
+        res = await fetch("/api/admin/bonuses", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            casinoId: selectedCasino!.id,
+            bonusType,
+            amount: amount || null,
+            wagering: wagering ? Number(wagering) : null,
+            minDeposit: minDeposit ? Number(minDeposit) : null,
+            maxBonus: maxBonus ? Number(maxBonus) : null,
+            freeSpinsCount: freeSpinsCount ? Number(freeSpinsCount) : null,
+            freeSpinsGame: freeSpinsGame || null,
+            validFrom: validFrom || null,
+            validUntil: validUntil || null,
+            descriptionFi: descFi,
+            descriptionEn: descEn,
+            descriptionUk: descUk,
+            isFeatured,
+          }),
+        })
+      }
       const json = await res.json()
       if (!res.ok) throw new Error(json.error ?? "Save failed")
       onSaved()
@@ -106,7 +148,7 @@ function BonusForm({
       <aside className="w-full max-w-2xl bg-white h-full flex flex-col shadow-2xl overflow-hidden">
         {/* Header */}
         <div className="flex items-center justify-between px-6 py-4 border-b border-[#E5E8F0]">
-          <h2 className="font-display font-bold text-lg text-[#1b1b1c]">Add Bonus</h2>
+          <h2 className="font-display font-bold text-lg text-[#1b1b1c]">{isEdit ? "Edit Bonus" : "Add Bonus"}</h2>
           <button onClick={onClose} className="w-8 h-8 rounded-lg bg-[#F8F9FD] border border-[#E5E8F0] flex items-center justify-center hover:border-[#2D1783] transition-colors">
             <span className="material-symbols-outlined text-[16px]">close</span>
           </button>
@@ -126,26 +168,33 @@ function BonusForm({
           {/* Casino picker */}
           <div className="relative">
             <label className="block text-xs font-bold text-[#474554] uppercase tracking-wider mb-1.5">Casino</label>
-            <div className="relative">
-              <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-[#787585] text-[18px]">search</span>
-              <input
-                type="text"
-                value={selectedCasino ? selectedCasino.name : casinoSearch}
-                onChange={e => { setCasinoSearch(e.target.value); setSelectedCasino(null); setShowCasinoDrop(true) }}
-                onFocus={() => setShowCasinoDrop(true)}
-                placeholder="Search casino..."
-                className="w-full bg-[#F8F9FD] border border-[#E5E8F0] rounded-xl pl-9 pr-4 py-2.5 text-sm focus:border-[#2D1783] focus:outline-none"
-              />
-            </div>
-            {showCasinoDrop && casinoMatches.length > 0 && (
-              <div className="absolute z-10 top-full mt-1 w-full bg-white border border-[#E5E8F0] rounded-xl shadow-lg overflow-hidden">
-                {casinoMatches.map(c => (
-                  <button key={c.id} onMouseDown={() => { setSelectedCasino(c); setCasinoSearch(""); setShowCasinoDrop(false) }}
-                    className="w-full text-left px-4 py-2.5 text-sm hover:bg-[#F8F9FD] flex items-center gap-2 transition-colors">
-                    <span className="material-symbols-outlined text-[#2D1783] text-[16px]">casino</span>
-                    {c.name}
-                  </button>
-                ))}
+            {isEdit ? (
+              <div className="w-full bg-[#F8F9FD] border border-[#E5E8F0] rounded-xl px-4 py-2.5 text-sm text-[#1b1b1c] font-semibold flex items-center gap-2">
+                <span className="material-symbols-outlined text-[#2D1783] text-[18px]">casino</span>
+                {editBonus!.casino_name}
+              </div>
+            ) : (
+              <div className="relative">
+                <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-[#787585] text-[18px]">search</span>
+                <input
+                  type="text"
+                  value={selectedCasino ? selectedCasino.name : casinoSearch}
+                  onChange={e => { setCasinoSearch(e.target.value); setSelectedCasino(null); setShowCasinoDrop(true) }}
+                  onFocus={() => setShowCasinoDrop(true)}
+                  placeholder="Search casino..."
+                  className="w-full bg-[#F8F9FD] border border-[#E5E8F0] rounded-xl pl-9 pr-4 py-2.5 text-sm focus:border-[#2D1783] focus:outline-none"
+                />
+                {showCasinoDrop && casinoMatches.length > 0 && (
+                  <div className="absolute z-10 top-full mt-1 w-full bg-white border border-[#E5E8F0] rounded-xl shadow-lg overflow-hidden">
+                    {casinoMatches.map(c => (
+                      <button key={c.id} onMouseDown={() => { setSelectedCasino(c); setCasinoSearch(""); setShowCasinoDrop(false) }}
+                        className="w-full text-left px-4 py-2.5 text-sm hover:bg-[#F8F9FD] flex items-center gap-2 transition-colors">
+                        <span className="material-symbols-outlined text-[#2D1783] text-[16px]">casino</span>
+                        {c.name}
+                      </button>
+                    ))}
+                  </div>
+                )}
               </div>
             )}
           </div>
@@ -233,7 +282,7 @@ function BonusForm({
           <button onClick={handleSubmit} disabled={saving}
             className="px-5 py-2 text-sm font-semibold text-white bg-[#2D1783] rounded-xl hover:bg-[#3e2db2] disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center gap-2">
             {saving && <span className="w-3.5 h-3.5 border-2 border-white/30 border-t-white rounded-full animate-spin" />}
-            {saving ? "Saving..." : "Save Bonus"}
+            {saving ? "Saving..." : isEdit ? "Update Bonus" : "Save Bonus"}
           </button>
         </div>
       </aside>
@@ -253,6 +302,7 @@ export default function AdminBonusesPage({
   const [search, setSearch] = useState("")
   const [typeFilter, setTypeFilter] = useState<BonusType | "all">("all")
   const [showForm, setShowForm] = useState(false)
+  const [editingBonus, setEditingBonus] = useState<Bonus | null>(null)
   const [toast, setToast] = useState<string | null>(null)
 
   const showToast = (msg: string) => {
@@ -262,6 +312,7 @@ export default function AdminBonusesPage({
 
   const handleSaved = () => {
     setShowForm(false)
+    setEditingBonus(null)
     router.refresh()
     showToast("Bonus saved successfully")
   }
@@ -285,6 +336,7 @@ export default function AdminBonusesPage({
   return (
     <div className="space-y-5">
       {showForm && <BonusForm onClose={() => setShowForm(false)} onSaved={handleSaved} casinos={casinos} />}
+      {editingBonus && <BonusForm editBonus={editingBonus} onClose={() => setEditingBonus(null)} onSaved={handleSaved} casinos={casinos} />}
 
       {/* Toast */}
       {toast && (
@@ -375,6 +427,13 @@ export default function AdminBonusesPage({
                     </td>
                     <td className="px-4 py-3">
                       <div className="flex items-center justify-end gap-1.5">
+                        <button
+                          onClick={() => setEditingBonus(bonus)}
+                          className="w-7 h-7 rounded-lg bg-[#F8F9FD] border border-[#E5E8F0] flex items-center justify-center hover:border-[#2D1783] transition-colors"
+                          title="Edit"
+                        >
+                          <span className="material-symbols-outlined text-[13px] text-[#474554]">edit</span>
+                        </button>
                         <button
                           onClick={() => handleDelete(bonus.id)}
                           className="w-7 h-7 rounded-lg bg-[#F8F9FD] border border-[#E5E8F0] flex items-center justify-center hover:border-[#E74C3C] transition-colors"
