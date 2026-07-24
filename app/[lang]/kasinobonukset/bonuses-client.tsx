@@ -3,8 +3,8 @@
 import { useState } from "react"
 import Link from "next/link"
 import { TRANSLATIONS } from "@/lib/data"
+import { CasinoLogo } from "@/components/casino-logo"
 import type { Lang, Bonus } from "@/lib/types"
-// Note: Casino data comes from the bonus.casino_name / casino_slug / casino_logo join fields
 
 const BONUS_TABS = [
   { id: "all",         label_fi: "Kaikki bonukset",     icon: "redeem" },
@@ -91,9 +91,12 @@ export default function BonusesPage({
             return (
               <div key={b.id} className="bg-white rounded-2xl border border-[#E5E8F0] p-4 flex flex-col gap-2 shadow-sm hover:shadow-md transition-shadow">
                 <div className="flex items-start justify-between gap-2">
-                  <div className="w-10 h-10 bg-[#F0EDEE] rounded-xl flex items-center justify-center flex-shrink-0">
-                    <span className="material-symbols-outlined text-[#2D1783] text-[20px]" aria-hidden="true">casino</span>
-                  </div>
+                  <CasinoLogo
+                    src={b.casino_logo}
+                    name={b.casino_name ?? "?"}
+                    size={48}
+                    className="w-12 h-12 rounded-xl bg-white border border-[#E5E8F0]"
+                  />
                   <span className="bg-[#FFF4B0] text-[#775900] text-[9px] font-bold uppercase px-2 py-0.5 rounded-full tracking-wide">Eksklusiivinen</span>
                 </div>
                 <div>
@@ -194,9 +197,12 @@ export default function BonusesPage({
                   <div className="flex flex-col sm:flex-row">
                     {/* Left: casino identity */}
                     <div className="flex items-center gap-3 p-4 sm:w-48 sm:flex-shrink-0 sm:border-r sm:border-[#E5E8F0]">
-                      <div className="w-12 h-12 bg-[#F0EDEE] rounded-xl flex items-center justify-center flex-shrink-0">
-                        <span className="material-symbols-outlined text-[#2D1783] text-2xl" aria-hidden="true">casino</span>
-                      </div>
+                      <CasinoLogo
+                        src={bonus.casino_logo}
+                        name={bonus.casino_name ?? "?"}
+                        size={80}
+                        className="w-20 h-20 rounded-xl bg-white border border-[#E5E8F0] flex-shrink-0"
+                      />
                       <div>
                         <p className="font-bold text-sm text-[#1b1b1c]">{bonus.casino_name}</p>
                         <Link
