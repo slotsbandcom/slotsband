@@ -98,7 +98,6 @@ export async function getBonuses(options?: { lang?: string; activeOnly?: boolean
     .select("*, casinos(name, logo_url, slug)")
     .order("created_at", { ascending: false })
 
-  if (options?.lang) query = query.eq("lang", options.lang)
   if (options?.activeOnly) query = query.eq("is_active", true)
 
   const { data, error } = await query
@@ -107,12 +106,57 @@ export async function getBonuses(options?: { lang?: string; activeOnly?: boolean
     return []
   }
 
-  return (data ?? []).map((row: any) => ({
-    ...row,
-    casino_name: row.casinos?.name,
-    casino_logo: row.casinos?.logo_url,
-    casino_slug: row.casinos?.slug,
-  })) as Bonus[]
+  const lang = options?.lang ?? "fi"
+  return (data ?? []).map((row: any) => {
+    let description = row.description ?? ""
+    if (description.startsWith("{")) {
+      try {
+        const parsed = JSON.parse(description)
+        description = parsed[lang] ?? parsed.fi ?? description
+      } catch {}
+    }
+    return {
+      ...row,
+      description,
+      casino_name: row.casinos?.name,
+      casino_logo: row.casinos?.logo_url,
+      casino_slug: row.casinos?.slug,
+    }
+  }) as Bonus[]
+}
+
+export async function getBonusesByCasino(casinoId: string, lang = "fi"): Promise<Bonus[]> {
+  const supabase = await createClient()
+  const today = new Date().toISOString().split("T")[0]
+  const { data, error } = await supabase
+    .from("bonuses")
+    .select("*, casinos(name, logo_url, slug)")
+    .eq("casino_id", casinoId)
+    .eq("is_active", true)
+    .or(`end_date.is.null,end_date.gte.${today}`)
+    .order("created_at", { ascending: false })
+
+  if (error) {
+    console.error("[getBonusesByCasino]", error.message)
+    return []
+  }
+
+  return (data ?? []).map((row: any) => {
+    let description = row.description ?? ""
+    if (description.startsWith("{")) {
+      try {
+        const parsed = JSON.parse(description)
+        description = parsed[lang] ?? parsed.fi ?? description
+      } catch {}
+    }
+    return {
+      ...row,
+      description,
+      casino_name: row.casinos?.name,
+      casino_logo: row.casinos?.logo_url,
+      casino_slug: row.casinos?.slug,
+    }
+  }) as Bonus[]
 }
 
 // ─── Games ────────────────────────────────────────────────────────────────────

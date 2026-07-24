@@ -2,7 +2,8 @@ import { notFound } from "next/navigation"
 import Link from "next/link"
 import type { Metadata } from "next"
 import type { Casino, Lang } from "@/lib/types"
-import { getCasinos, getCasinoBySlug } from "@/lib/supabase/queries"
+import { getCasinos, getCasinoBySlug, getBonusesByCasino } from "@/lib/supabase/queries"
+import type { Bonus } from "@/lib/types"
 import { getCasinoSlugs } from "@/lib/supabase/build-client"
 import { CasinoCard } from "@/components/casino-card"
 import { CasinoLogo } from "@/components/casino-logo"
@@ -171,6 +172,7 @@ export default async function CasinoPage({ params }: CasinoPageProps) {
     getCasinos({ activeOnly: true }),
   ])
   if (!casino) notFound()
+  const casinoBonuses = await getBonusesByCasino(casino.id, lang)
 
   // For non-fi pages, fall back to en then fi so content shows even when translation is missing
   const reviewRaw = lang === "fi"
@@ -479,42 +481,109 @@ export default async function CasinoPage({ params }: CasinoPageProps) {
               <h2 className="font-display font-bold text-lg md:text-xl text-[#1b1b1c] mb-4">
                 {c.bonusDetails}
               </h2>
-              <div className="bg-[#F8F9FD] rounded-xl p-4 border border-[#E5E8F0] mb-4">
-                <p className="font-display font-bold text-[#2D1783] text-base mb-3">{getBonusDisplayText(casino, lang)}</p>
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4">
-                  {[
-                    { label: c.minDeposit, value: d(casino.welcome_bonus_min_deposit, "€") },
-                    { label: c.wagering, value: casino.welcome_bonus_wagering == null ? "—" : casino.welcome_bonus_wagering === 0 ? c.wageringFree : `${casino.welcome_bonus_wagering}x` },
-                    { label: c.maxBonus, value: d(casino.welcome_bonus_max_amount, "€") },
-                    { label: c.currency, value: casino.welcome_bonus_currency ?? "EUR" },
-                  ].map((item) => (
-                    <div key={item.label}>
-                      <p className="text-[10px] font-bold text-[#787585] uppercase tracking-wide leading-none">{item.label}</p>
-                      <p className="font-bold text-[#1b1b1c] text-sm mt-1">{item.value}</p>
-                    </div>
-                  ))}
+
+              {casinoBonuses.length > 0 ? (
+                <div className="space-y-3">
+                  {casinoBonuses.map((bonus: Bonus) => {
+                    const typeLabel: Record<string, string> = {
+                      welcome: lang === "fi" ? "Tervetuliaisbonus" : "Welcome Bonus",
+                      no_deposit: lang === "fi" ? "Ei talletusta" : "No Deposit",
+                      free_spins: lang === "fi" ? "Ilmaiskierrokset" : "Free Spins",
+                      cashback: "Cashback",
+                      reload: "Reload",
+                    }
+                    const typeStyle: Record<string, string> = {
+                      welcome: "bg-[#2D1783]/10 text-[#2D1783]",
+                      no_deposit: "bg-[#27AE60]/10 text-[#27AE60]",
+                      free_spins: "bg-[#FFD700]/20 text-[#775900]",
+                      cashback: "bg-[#3e2db2]/10 text-[#3e2db2]",
+                      reload: "bg-[#E5E8F0] text-[#787585]",
+                    }
+                    return (
+                      <div key={bonus.id} className="bg-[#F8F9FD] rounded-xl p-4 border border-[#E5E8F0]">
+                        <div className="flex items-start gap-3">
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center gap-2 mb-1.5">
+                              <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold flex-shrink-0 ${typeStyle[bonus.bonus_type] ?? ""}`}>
+                                {typeLabel[bonus.bonus_type] ?? bonus.bonus_type}
+                              </span>
+                              {bonus.is_featured && (
+                                <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-[#FFF4B0] text-[#775900]">
+                                  {lang === "fi" ? "Eksklusiivinen" : "Exclusive"}
+                                </span>
+                              )}
+                            </div>
+                            {bonus.amount && (
+                              <p className="font-display font-bold text-[#2D1783] text-base">{bonus.amount}</p>
+                            )}
+                            {bonus.description && (
+                              <p className="text-xs text-[#787585] mt-1 leading-relaxed">{bonus.description}</p>
+                            )}
+                            <div className="flex flex-wrap gap-2 mt-2">
+                              {bonus.wagering != null && (
+                                <span className="inline-flex items-center gap-1 bg-white border border-[#E5E8F0] text-[#474554] text-[10px] font-bold px-2 py-0.5 rounded-full">
+                                  {bonus.wagering === 0
+                                    ? (lang === "fi" ? "Kierrätysvapaa" : "Wagering free")
+                                    : `${bonus.wagering}x ${lang === "fi" ? "kierrätys" : "wagering"}`}
+                                </span>
+                              )}
+                              {bonus.min_deposit != null && bonus.min_deposit > 0 && (
+                                <span className="inline-flex items-center gap-1 bg-white border border-[#E5E8F0] text-[#474554] text-[10px] font-bold px-2 py-0.5 rounded-full">
+                                  {lang === "fi" ? "Min. talletus" : "Min. deposit"} €{bonus.min_deposit}
+                                </span>
+                              )}
+                              {bonus.end_date && (
+                                <span className="inline-flex items-center gap-1 bg-white border border-[#E5E8F0] text-[#474554] text-[10px] font-bold px-2 py-0.5 rounded-full">
+                                  {lang === "fi" ? "Voimassa" : "Valid until"} {bonus.end_date}
+                                </span>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    )
+                  })}
                 </div>
-              </div>
-              <div className="flex flex-wrap gap-2">
-                {casino.no_deposit_bonus && (
-                  <span className="flex items-center gap-1.5 bg-[#27AE60]/10 text-[#27AE60] text-xs font-bold px-3 py-1.5 rounded-lg">
-                    <span className="material-symbols-outlined text-[13px]" aria-hidden="true">money_off</span>
-                    {c.noDepositBonus}
-                  </span>
-                )}
-                {casino.free_spins_amount && casino.free_spins_amount > 0 && (
-                  <span className="flex items-center gap-1.5 bg-[#2D1783]/10 text-[#2D1783] text-xs font-bold px-3 py-1.5 rounded-lg">
-                    <span className="material-symbols-outlined text-[13px]" aria-hidden="true">rotate_right</span>
-                    {casino.free_spins_amount} {c.freeSpins}
-                  </span>
-                )}
-                {casino.cashback_percent && casino.cashback_percent > 0 && (
-                  <span className="flex items-center gap-1.5 bg-[#FFD700]/20 text-[#775900] text-xs font-bold px-3 py-1.5 rounded-lg">
-                    <span className="material-symbols-outlined text-[13px]" aria-hidden="true">percent</span>
-                    {casino.cashback_percent}% Cashback
-                  </span>
-                )}
-              </div>
+              ) : (
+                <>
+                  <div className="bg-[#F8F9FD] rounded-xl p-4 border border-[#E5E8F0] mb-4">
+                    <p className="font-display font-bold text-[#2D1783] text-base mb-3">{getBonusDisplayText(casino, lang)}</p>
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4">
+                      {[
+                        { label: c.minDeposit, value: d(casino.welcome_bonus_min_deposit, "€") },
+                        { label: c.wagering, value: casino.welcome_bonus_wagering == null ? "—" : casino.welcome_bonus_wagering === 0 ? c.wageringFree : `${casino.welcome_bonus_wagering}x` },
+                        { label: c.maxBonus, value: d(casino.welcome_bonus_max_amount, "€") },
+                        { label: c.currency, value: casino.welcome_bonus_currency ?? "EUR" },
+                      ].map((item) => (
+                        <div key={item.label}>
+                          <p className="text-[10px] font-bold text-[#787585] uppercase tracking-wide leading-none">{item.label}</p>
+                          <p className="font-bold text-[#1b1b1c] text-sm mt-1">{item.value}</p>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                  <div className="flex flex-wrap gap-2">
+                    {casino.no_deposit_bonus && (
+                      <span className="flex items-center gap-1.5 bg-[#27AE60]/10 text-[#27AE60] text-xs font-bold px-3 py-1.5 rounded-lg">
+                        <span className="material-symbols-outlined text-[13px]" aria-hidden="true">money_off</span>
+                        {c.noDepositBonus}
+                      </span>
+                    )}
+                    {casino.free_spins_amount && casino.free_spins_amount > 0 && (
+                      <span className="flex items-center gap-1.5 bg-[#2D1783]/10 text-[#2D1783] text-xs font-bold px-3 py-1.5 rounded-lg">
+                        <span className="material-symbols-outlined text-[13px]" aria-hidden="true">rotate_right</span>
+                        {casino.free_spins_amount} {c.freeSpins}
+                      </span>
+                    )}
+                    {casino.cashback_percent && casino.cashback_percent > 0 && (
+                      <span className="flex items-center gap-1.5 bg-[#FFD700]/20 text-[#775900] text-xs font-bold px-3 py-1.5 rounded-lg">
+                        <span className="material-symbols-outlined text-[13px]" aria-hidden="true">percent</span>
+                        {casino.cashback_percent}% Cashback
+                      </span>
+                    )}
+                  </div>
+                </>
+              )}
             </section>
 
             {/* Casino info table */}

@@ -117,20 +117,22 @@ export interface Casino {
 
 export interface Bonus {
   id: string
-  casino_id: string
+  casino_id?: string
   casino_name?: string
   casino_logo?: string
   casino_slug?: string
-  title: string
-  description: string
+  title?: string
+  description?: string
   bonus_type: "welcome" | "no_deposit" | "free_spins" | "cashback" | "reload"
   amount?: string
   wagering?: number
   min_deposit?: number
   is_featured?: boolean
+  is_active?: boolean
   start_date?: string
   end_date?: string
-  lang: Lang
+  lang?: string
+  created_at?: string
 }
 
 export interface Game {
