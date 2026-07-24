@@ -63,7 +63,7 @@ export function TaxonomyTermPage({ taxonomy, lang, term, casinos }: Props) {
           {/* Description */}
           {descHtml && (
             <div
-              className="mt-4 text-sm md:text-base text-[#474554] leading-relaxed prose max-w-none prose-a:text-[#2D1783]"
+              className="mt-4 casino-review"
               dangerouslySetInnerHTML={{ __html: descHtml }}
             />
           )}
