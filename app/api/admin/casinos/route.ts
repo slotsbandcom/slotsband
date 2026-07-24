@@ -1,5 +1,14 @@
 import { createClient } from "@/lib/supabase/server"
+import { createClient as createSupabaseClient } from "@supabase/supabase-js"
 import { NextRequest, NextResponse } from "next/server"
+import { syncCasinoBonus } from "@/lib/supabase/bonus-sync"
+
+function adminDb() {
+  return createSupabaseClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.SUPABASE_SERVICE_ROLE_KEY!
+  )
+}
 
 export async function GET() {
   const supabase = await createClient()
@@ -29,5 +38,11 @@ export async function POST(req: NextRequest) {
     .single()
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+
+  // Sync bonus table so new casino appears on /kasinobonukset/ immediately
+  try { await syncCasinoBonus(adminDb(), data) } catch (e) {
+    console.warn("[bonus-sync]", e)
+  }
+
   return NextResponse.json(data, { status: 201 })
 }

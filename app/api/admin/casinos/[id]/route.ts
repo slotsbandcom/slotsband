@@ -2,6 +2,7 @@ import { createClient } from "@/lib/supabase/server"
 import { createClient as createSupabaseClient } from "@supabase/supabase-js"
 import { revalidatePath } from "next/cache"
 import { NextRequest, NextResponse } from "next/server"
+import { syncCasinoBonus } from "@/lib/supabase/bonus-sync"
 
 // Columns that actually exist in the casinos table.
 // Fields in the Casino TypeScript type that are NOT here (bonus_text, bonus_terms,
@@ -103,6 +104,11 @@ export async function PATCH(
   if (error) {
     console.error("[admin/casinos PATCH]", error.message, "body keys:", Object.keys(safeBody))
     return NextResponse.json({ error: error.message }, { status: 500 })
+  }
+
+  // Sync bonus table so casino appears on /kasinobonukset/ immediately
+  try { await syncCasinoBonus(adminDb(), data) } catch (e) {
+    console.warn("[bonus-sync]", e)
   }
 
   // Invalidate the front-facing casino pages so changes show immediately
