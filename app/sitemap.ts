@@ -66,16 +66,23 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const ACTIVE_TAXONOMIES = TAXONOMY_CONFIGS.map((c) => c.taxonomy)
   const { data: terms } = await db
     .from("taxonomy_terms")
-    .select("taxonomy, slug")
+    .select("taxonomy, slug_fi, slug_en, slug_uk")
     .in("taxonomy", ACTIVE_TAXONOMIES)
     .eq("is_active", true)
+
+  const LANG_SLUG: Record<string, "slug_fi" | "slug_en" | "slug_uk"> = {
+    fi: "slug_fi",
+    en: "slug_en",
+    uk: "slug_uk",
+  }
 
   for (const term of terms ?? []) {
     const config = TAXONOMY_CONFIGS.find((c) => c.taxonomy === term.taxonomy)
     if (!config) continue
     for (const lang of LANGS) {
+      const slug = term[LANG_SLUG[lang]]
       urls.push({
-        url: `${SITE_URL}/${lang}/${config.path}/${term.slug}`,
+        url: `${SITE_URL}/${lang}/${config.path}/${slug}`,
         lastModified: now,
         changeFrequency: "weekly",
         priority: 0.6,

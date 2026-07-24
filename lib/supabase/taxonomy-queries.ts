@@ -10,7 +10,9 @@ export interface FaqItem {
 export interface TaxonomyTerm {
   id: string
   taxonomy: string
-  slug: string
+  slug_fi: string
+  slug_en: string
+  slug_uk: string
   name_fi: string
   name_en: string | null
   name_uk: string | null
@@ -42,13 +44,18 @@ export async function getTaxonomyTerms(taxonomy: string): Promise<TaxonomyTerm[]
   return (data ?? []) as TaxonomyTerm[]
 }
 
-export async function getTaxonomyTerm(taxonomy: string, slug: string): Promise<TaxonomyTerm | null> {
+export async function getTaxonomyTerm(
+  taxonomy: string,
+  slug: string,
+  lang = "fi"
+): Promise<TaxonomyTerm | null> {
   const supabase = await createClient()
+  const slugCol = lang === "fi" ? "slug_fi" : lang === "en" ? "slug_en" : "slug_uk"
   const { data, error } = await supabase
     .from("taxonomy_terms")
     .select("*")
     .eq("taxonomy", taxonomy)
-    .eq("slug", slug)
+    .eq(slugCol, slug)
     .single()
   if (error) return null
   return data as TaxonomyTerm
@@ -109,24 +116,32 @@ export async function getTaxonomyTermsWithCounts(
   })[]
 }
 
-export async function getTermSlugs(taxonomy: string): Promise<string[]> {
+export async function getTermSlugsByLang(
+  taxonomy: string
+): Promise<{ slug_fi: string; slug_en: string; slug_uk: string }[]> {
   const supabase = createBuildClient()
   const { data, error } = await supabase
     .from("taxonomy_terms")
-    .select("slug")
+    .select("slug_fi, slug_en, slug_uk")
     .eq("taxonomy", taxonomy)
     .eq("is_active", true)
   if (error) {
-    console.error(`[taxonomy-queries] getTermSlugs(${taxonomy}):`, error.message)
+    console.error(`[taxonomy-queries] getTermSlugsByLang(${taxonomy}):`, error.message)
     return []
   }
-  return (data ?? []).map((r: { slug: string }) => r.slug)
+  return (data ?? []) as { slug_fi: string; slug_en: string; slug_uk: string }[]
 }
 
 export function getTermName(term: TaxonomyTerm, lang: string): string {
   if (lang === "fi") return term.name_fi
   if (lang === "uk") return term.name_uk ?? term.name_en ?? term.name_fi
   return term.name_en ?? term.name_fi
+}
+
+export function getTermSlug(term: TaxonomyTerm, lang: string): string {
+  if (lang === "fi") return term.slug_fi
+  if (lang === "uk") return term.slug_uk
+  return term.slug_en
 }
 
 export function getTermDescription(term: TaxonomyTerm, lang: string): string | null {

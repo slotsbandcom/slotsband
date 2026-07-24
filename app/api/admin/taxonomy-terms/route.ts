@@ -45,14 +45,20 @@ export async function POST(req: NextRequest) {
   const body = await req.json()
   if (!body.taxonomy) return NextResponse.json({ error: "taxonomy is required" }, { status: 400 })
   if (!body.name_fi?.trim()) return NextResponse.json({ error: "name_fi is required" }, { status: 400 })
-  if (!body.slug?.trim()) return NextResponse.json({ error: "slug is required" }, { status: 400 })
+  if (!body.slug_fi?.trim()) return NextResponse.json({ error: "slug_fi is required" }, { status: 400 })
+
+  const slugFi = body.slug_fi.trim()
+  const slugEn = body.slug_en?.trim() || slugFi
+  const slugUk = body.slug_uk?.trim() || slugFi
 
   const db = adminDb()
   const { data, error } = await db
     .from("taxonomy_terms")
     .insert({
       taxonomy: body.taxonomy,
-      slug: body.slug.trim(),
+      slug_fi: slugFi,
+      slug_en: slugEn,
+      slug_uk: slugUk,
       name_fi: body.name_fi.trim(),
       name_en: body.name_en?.trim() || null,
       name_uk: body.name_uk?.trim() || null,

@@ -7,6 +7,7 @@ import { RichTextEditor } from "@/components/admin/RichTextEditor"
 
 type Lang = "fi" | "en" | "uk"
 const LANG_FLAGS: Record<Lang, string> = { fi: "🇫🇮", en: "🇬🇧", uk: "🇺🇦" }
+const LANG_LABEL: Record<Lang, string> = { fi: "FI", en: "EN", uk: "UK" }
 
 const TAXONOMIES = [
   "casino-category", "bonus-category", "deposit-method", "withdrawal-method",
@@ -54,14 +55,25 @@ export function TermFormPage({ termId, defaultTaxonomy }: TermFormPageProps) {
   const [taxonomy, setTaxonomy] = useState(
     defaultTaxonomy && TAXONOMIES.includes(defaultTaxonomy) ? defaultTaxonomy : "casino-category"
   )
+
+  // Names
   const [nameFi, setNameFi] = useState("")
   const [nameEn, setNameEn] = useState("")
   const [nameUk, setNameUk] = useState("")
-  const [slug, setSlug] = useState("")
-  const [slugManual, setSlugManual] = useState(isEdit)
+
+  // Slugs — separate per lang, auto-generate from name unless manual
+  const [slugFi, setSlugFi] = useState("")
+  const [slugEn, setSlugEn] = useState("")
+  const [slugUk, setSlugUk] = useState("")
+  const [slugFiManual, setSlugFiManual] = useState(isEdit)
+  const [slugEnManual, setSlugEnManual] = useState(isEdit)
+  const [slugUkManual, setSlugUkManual] = useState(isEdit)
+
+  // Descriptions
   const [descFi, setDescFi] = useState("")
   const [descEn, setDescEn] = useState("")
   const [descUk, setDescUk] = useState("")
+
   const [icon, setIcon] = useState("")
   const [imageUrl, setImageUrl] = useState("")
   const [sortOrder, setSortOrder] = useState("0")
@@ -79,8 +91,12 @@ export function TermFormPage({ termId, defaultTaxonomy }: TermFormPageProps) {
         setNameFi((term.name_fi as string) ?? "")
         setNameEn((term.name_en as string) ?? "")
         setNameUk((term.name_uk as string) ?? "")
-        setSlug((term.slug as string) ?? "")
-        setSlugManual(true)
+        setSlugFi((term.slug_fi as string) ?? "")
+        setSlugEn((term.slug_en as string) ?? "")
+        setSlugUk((term.slug_uk as string) ?? "")
+        setSlugFiManual(true)
+        setSlugEnManual(true)
+        setSlugUkManual(true)
         setDescFi((term.description_fi as string) ?? "")
         setDescEn((term.description_en as string) ?? "")
         setDescUk((term.description_uk as string) ?? "")
@@ -94,7 +110,7 @@ export function TermFormPage({ termId, defaultTaxonomy }: TermFormPageProps) {
 
   const handleSubmit = async () => {
     if (!nameFi.trim()) { setSaveError("Name (FI) is required"); return }
-    if (!slug.trim()) { setSaveError("Slug is required"); return }
+    if (!slugFi.trim()) { setSaveError("Slug (FI) is required"); return }
     setSaving("saving")
     setSaveError(null)
     try {
@@ -103,7 +119,9 @@ export function TermFormPage({ termId, defaultTaxonomy }: TermFormPageProps) {
         name_fi: nameFi.trim(),
         name_en: nameEn.trim() || null,
         name_uk: nameUk.trim() || null,
-        slug: slug.trim(),
+        slug_fi: slugFi.trim(),
+        slug_en: slugEn.trim() || slugFi.trim(),
+        slug_uk: slugUk.trim() || slugFi.trim(),
         description_fi: descFi || null,
         description_en: descEn || null,
         description_uk: descUk || null,
@@ -168,7 +186,7 @@ export function TermFormPage({ termId, defaultTaxonomy }: TermFormPageProps) {
                   {isActive ? "Active" : "Inactive"}
                 </span>
               </div>
-              <p className="text-xs text-[#787585] font-mono">{slug || "—"}</p>
+              <p className="text-xs text-[#787585] font-mono">{slugFi || "—"}</p>
             </div>
           </div>
           <button
@@ -184,23 +202,9 @@ export function TermFormPage({ termId, defaultTaxonomy }: TermFormPageProps) {
             }`}
           >
             <span className="material-symbols-outlined text-[16px]">
-              {saving === "ok"
-                ? "check"
-                : saving === "error"
-                ? "error"
-                : saving === "saving"
-                ? "hourglass_empty"
-                : "save"}
+              {saving === "ok" ? "check" : saving === "error" ? "error" : saving === "saving" ? "hourglass_empty" : "save"}
             </span>
-            {saving === "ok"
-              ? "Saved!"
-              : saving === "error"
-              ? "Error!"
-              : saving === "saving"
-              ? "Saving..."
-              : isEdit
-              ? "Save Changes"
-              : "Create Term"}
+            {saving === "ok" ? "Saved!" : saving === "error" ? "Error!" : saving === "saving" ? "Saving..." : isEdit ? "Save Changes" : "Create Term"}
           </button>
         </div>
       </div>
@@ -244,73 +248,11 @@ export function TermFormPage({ termId, defaultTaxonomy }: TermFormPageProps) {
             </div>
           </div>
 
-          {/* Names */}
+          {/* Content per language — Name, Slug, Description in each tab */}
           <div className="bg-white rounded-2xl border border-[#E5E8F0] overflow-hidden">
             <div className="flex items-center gap-2 px-5 py-3.5 border-b border-[#E5E8F0] bg-[#F8F9FD]">
               <span className="material-symbols-outlined text-[#2D1783] text-[18px]">translate</span>
-              <h3 className="text-sm font-bold text-[#1b1b1c]">Names</h3>
-            </div>
-            <div className="p-5 space-y-4">
-              <div>
-                <label className="block text-xs font-bold text-[#474554] uppercase tracking-wider mb-1.5">
-                  Name (FI) <span className="text-[#E74C3C]">*</span>
-                </label>
-                <input
-                  type="text"
-                  value={nameFi}
-                  onChange={e => {
-                    setNameFi(e.target.value)
-                    if (!slugManual) setSlug(slugify(e.target.value))
-                  }}
-                  placeholder="Finnish name..."
-                  className="w-full bg-[#F8F9FD] border border-[#E5E8F0] rounded-xl px-4 py-2.5 text-sm focus:border-[#2D1783] focus:outline-none"
-                />
-              </div>
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-xs font-bold text-[#474554] uppercase tracking-wider mb-1.5">Name (EN)</label>
-                  <input
-                    type="text"
-                    value={nameEn}
-                    onChange={e => setNameEn(e.target.value)}
-                    placeholder="English name..."
-                    className="w-full bg-[#F8F9FD] border border-[#E5E8F0] rounded-xl px-4 py-2.5 text-sm focus:border-[#2D1783] focus:outline-none"
-                  />
-                </div>
-                <div>
-                  <label className="block text-xs font-bold text-[#474554] uppercase tracking-wider mb-1.5">Name (UK)</label>
-                  <input
-                    type="text"
-                    value={nameUk}
-                    onChange={e => setNameUk(e.target.value)}
-                    placeholder="UK name..."
-                    className="w-full bg-[#F8F9FD] border border-[#E5E8F0] rounded-xl px-4 py-2.5 text-sm focus:border-[#2D1783] focus:outline-none"
-                  />
-                </div>
-              </div>
-              <div>
-                <label className="block text-xs font-bold text-[#474554] uppercase tracking-wider mb-1.5">
-                  Slug <span className="text-[#E74C3C]">*</span>
-                </label>
-                <input
-                  type="text"
-                  value={slug}
-                  onChange={e => { setSlug(e.target.value); setSlugManual(true) }}
-                  placeholder="term-slug"
-                  className="w-full bg-[#F8F9FD] border border-[#E5E8F0] rounded-xl px-4 py-2.5 text-sm font-mono focus:border-[#2D1783] focus:outline-none"
-                />
-                {!slugManual && nameFi && (
-                  <p className="text-[10px] text-[#787585] mt-1">Auto-generated from FI name</p>
-                )}
-              </div>
-            </div>
-          </div>
-
-          {/* Descriptions — TipTap per language */}
-          <div className="bg-white rounded-2xl border border-[#E5E8F0] overflow-hidden">
-            <div className="flex items-center gap-2 px-5 py-3.5 border-b border-[#E5E8F0] bg-[#F8F9FD]">
-              <span className="material-symbols-outlined text-[#2D1783] text-[18px]">article</span>
-              <h3 className="text-sm font-bold text-[#1b1b1c]">Description</h3>
+              <h3 className="text-sm font-bold text-[#1b1b1c]">Content</h3>
             </div>
             <div className="flex border-b border-[#E5E8F0] px-5">
               {(["fi", "en", "uk"] as Lang[]).map(l => (
@@ -324,19 +266,148 @@ export function TermFormPage({ termId, defaultTaxonomy }: TermFormPageProps) {
                       : "border-transparent text-[#787585] hover:text-[#1b1b1c]"
                   }`}
                 >
-                  <span>{LANG_FLAGS[l]}</span> {l.toUpperCase()}
+                  <span>{LANG_FLAGS[l]}</span> {LANG_LABEL[l]}
                 </button>
               ))}
             </div>
-            <div className="p-5">
+
+            <div className="p-5 space-y-4">
+              {/* FI tab */}
               {activeLang === "fi" && (
-                <RichTextEditor value={descFi} onChange={setDescFi} placeholder="Finnish description..." minHeight={300} />
+                <>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-xs font-bold text-[#474554] uppercase tracking-wider mb-1.5">
+                        Name (FI) <span className="text-[#E74C3C]">*</span>
+                      </label>
+                      <input
+                        type="text"
+                        value={nameFi}
+                        onChange={e => {
+                          setNameFi(e.target.value)
+                          if (!slugFiManual) setSlugFi(slugify(e.target.value))
+                        }}
+                        placeholder="Finnish name..."
+                        className="w-full bg-[#F8F9FD] border border-[#E5E8F0] rounded-xl px-4 py-2.5 text-sm focus:border-[#2D1783] focus:outline-none"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-bold text-[#474554] uppercase tracking-wider mb-1.5">
+                        Slug (FI) <span className="text-[#E74C3C]">*</span>
+                      </label>
+                      <input
+                        type="text"
+                        value={slugFi}
+                        onChange={e => { setSlugFi(e.target.value); setSlugFiManual(true) }}
+                        placeholder="term-slug-fi"
+                        className="w-full bg-[#F8F9FD] border border-[#E5E8F0] rounded-xl px-4 py-2.5 text-sm font-mono focus:border-[#2D1783] focus:outline-none"
+                      />
+                      {!slugFiManual && nameFi && (
+                        <p className="text-[10px] text-[#787585] mt-1">Auto-generated from FI name</p>
+                      )}
+                    </div>
+                  </div>
+                  <div>
+                    <label className="block text-xs font-bold text-[#474554] uppercase tracking-wider mb-1.5">
+                      Description (FI)
+                    </label>
+                    <RichTextEditor value={descFi} onChange={setDescFi} placeholder="Finnish description..." minHeight={280} />
+                  </div>
+                </>
               )}
+
+              {/* EN tab */}
               {activeLang === "en" && (
-                <RichTextEditor value={descEn} onChange={setDescEn} placeholder="English description..." minHeight={300} />
+                <>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-xs font-bold text-[#474554] uppercase tracking-wider mb-1.5">
+                        Name (EN)
+                      </label>
+                      <input
+                        type="text"
+                        value={nameEn}
+                        onChange={e => {
+                          setNameEn(e.target.value)
+                          if (!slugEnManual) setSlugEn(slugify(e.target.value))
+                        }}
+                        placeholder="English name..."
+                        className="w-full bg-[#F8F9FD] border border-[#E5E8F0] rounded-xl px-4 py-2.5 text-sm focus:border-[#2D1783] focus:outline-none"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-bold text-[#474554] uppercase tracking-wider mb-1.5">
+                        Slug (EN)
+                      </label>
+                      <input
+                        type="text"
+                        value={slugEn}
+                        onChange={e => { setSlugEn(e.target.value); setSlugEnManual(true) }}
+                        placeholder="term-slug-en"
+                        className="w-full bg-[#F8F9FD] border border-[#E5E8F0] rounded-xl px-4 py-2.5 text-sm font-mono focus:border-[#2D1783] focus:outline-none"
+                      />
+                      {!slugEnManual && nameEn && (
+                        <p className="text-[10px] text-[#787585] mt-1">Auto-generated from EN name</p>
+                      )}
+                      {!slugEn && slugFi && (
+                        <p className="text-[10px] text-[#787585]/60 mt-1">Defaults to FI slug if empty</p>
+                      )}
+                    </div>
+                  </div>
+                  <div>
+                    <label className="block text-xs font-bold text-[#474554] uppercase tracking-wider mb-1.5">
+                      Description (EN)
+                    </label>
+                    <RichTextEditor value={descEn} onChange={setDescEn} placeholder="English description..." minHeight={280} />
+                  </div>
+                </>
               )}
+
+              {/* UK tab */}
               {activeLang === "uk" && (
-                <RichTextEditor value={descUk} onChange={setDescUk} placeholder="UK English description..." minHeight={300} />
+                <>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-xs font-bold text-[#474554] uppercase tracking-wider mb-1.5">
+                        Name (UK)
+                      </label>
+                      <input
+                        type="text"
+                        value={nameUk}
+                        onChange={e => {
+                          setNameUk(e.target.value)
+                          if (!slugUkManual) setSlugUk(slugify(e.target.value))
+                        }}
+                        placeholder="UK English name..."
+                        className="w-full bg-[#F8F9FD] border border-[#E5E8F0] rounded-xl px-4 py-2.5 text-sm focus:border-[#2D1783] focus:outline-none"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-bold text-[#474554] uppercase tracking-wider mb-1.5">
+                        Slug (UK)
+                      </label>
+                      <input
+                        type="text"
+                        value={slugUk}
+                        onChange={e => { setSlugUk(e.target.value); setSlugUkManual(true) }}
+                        placeholder="term-slug-uk"
+                        className="w-full bg-[#F8F9FD] border border-[#E5E8F0] rounded-xl px-4 py-2.5 text-sm font-mono focus:border-[#2D1783] focus:outline-none"
+                      />
+                      {!slugUkManual && nameUk && (
+                        <p className="text-[10px] text-[#787585] mt-1">Auto-generated from UK name</p>
+                      )}
+                      {!slugUk && slugFi && (
+                        <p className="text-[10px] text-[#787585]/60 mt-1">Defaults to FI slug if empty</p>
+                      )}
+                    </div>
+                  </div>
+                  <div>
+                    <label className="block text-xs font-bold text-[#474554] uppercase tracking-wider mb-1.5">
+                      Description (UK)
+                    </label>
+                    <RichTextEditor value={descUk} onChange={setDescUk} placeholder="UK English description..." minHeight={280} />
+                  </div>
+                </>
               )}
             </div>
           </div>
@@ -428,6 +499,30 @@ export function TermFormPage({ termId, defaultTaxonomy }: TermFormPageProps) {
               />
             </div>
           </div>
+
+          {/* Slug summary */}
+          {isEdit && (slugEn !== slugFi || slugUk !== slugFi) && (
+            <div className="bg-white rounded-2xl border border-[#E5E8F0] overflow-hidden">
+              <div className="flex items-center gap-2 px-5 py-3.5 border-b border-[#E5E8F0] bg-[#F8F9FD]">
+                <span className="material-symbols-outlined text-[#2D1783] text-[18px]">link</span>
+                <h3 className="text-sm font-bold text-[#1b1b1c]">Slugs</h3>
+              </div>
+              <div className="p-5 space-y-1.5">
+                <div className="flex items-center gap-2">
+                  <span className="text-[10px] font-bold text-[#787585] uppercase w-6">FI</span>
+                  <span className="text-xs font-mono text-[#474554] bg-[#F8F9FD] border border-[#E5E8F0] px-2 py-0.5 rounded flex-1 truncate">{slugFi || "—"}</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="text-[10px] font-bold text-[#787585] uppercase w-6">EN</span>
+                  <span className="text-xs font-mono text-[#474554] bg-[#F8F9FD] border border-[#E5E8F0] px-2 py-0.5 rounded flex-1 truncate">{slugEn || slugFi || "—"}</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="text-[10px] font-bold text-[#787585] uppercase w-6">UK</span>
+                  <span className="text-xs font-mono text-[#474554] bg-[#F8F9FD] border border-[#E5E8F0] px-2 py-0.5 rounded flex-1 truncate">{slugUk || slugFi || "—"}</span>
+                </div>
+              </div>
+            </div>
+          )}
         </div>
       </div>
     </div>

@@ -1,7 +1,7 @@
 import Link from "next/link"
 import type { Lang } from "@/lib/types"
 import type { TaxonomyTerm } from "@/lib/supabase/taxonomy-queries"
-import { getTermName } from "@/lib/supabase/taxonomy-queries"
+import { getTermName, getTermSlug } from "@/lib/supabase/taxonomy-queries"
 import { TAXONOMY_CONFIG_BY_TAXONOMY } from "@/lib/taxonomy-config"
 
 interface Props {
@@ -60,7 +60,7 @@ export function TaxonomyIndexPage({ taxonomy, lang, terms }: Props) {
               return (
                 <Link
                   key={term.id}
-                  href={`/${lang}/${config.path}/${term.slug}`}
+                  href={`/${lang}/${config.path}/${getTermSlug(term, lang)}`}
                   className="group bg-white rounded-2xl border border-[#E5E8F0] p-5 flex flex-col gap-3 hover:border-[#2D1783] hover:shadow-md transition-all"
                 >
                   {/* Icon / image */}

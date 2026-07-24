@@ -24,6 +24,6 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 export default async function Page({ params }: Props) {
   const { lang, slug } = await params
   const resolvedLang = resolveLang(lang)
-  const { term, casinos } = await getTermData(TAX, slug)
+  const { term, casinos } = await getTermData(TAX, slug, resolvedLang)
   return <TaxonomyTermPage taxonomy={TAX} lang={resolvedLang} term={term} casinos={casinos} />
 }

@@ -6,7 +6,9 @@ import { useRouter } from "next/navigation"
 export interface TaxonomyTerm {
   id: string
   taxonomy: string
-  slug: string
+  slug_fi: string
+  slug_en: string
+  slug_uk: string
   name_fi: string
   name_en: string | null
   name_uk: string | null
@@ -349,7 +351,12 @@ export default function AdminTaxonomiesClient({
                       </div>
                     </td>
                     <td className="px-4 py-3">
-                      <span className="text-xs font-mono text-[#787585] bg-[#F8F9FD] border border-[#E5E8F0] px-2 py-0.5 rounded">{term.slug}</span>
+                      <div className="flex flex-col gap-0.5">
+                        <span className="text-xs font-mono text-[#787585] bg-[#F8F9FD] border border-[#E5E8F0] px-2 py-0.5 rounded">{term.slug_fi}</span>
+                        {term.slug_en !== term.slug_fi && (
+                          <span className="text-[10px] font-mono text-[#787585]/60">{term.slug_en}</span>
+                        )}
+                      </div>
                     </td>
                     <td className="px-4 py-3">
                       <div className="flex gap-1">

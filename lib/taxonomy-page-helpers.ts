@@ -5,7 +5,7 @@ import {
   getTaxonomyTermsWithCounts,
   getTaxonomyTerm,
   getCasinosByTerm,
-  getTermSlugs,
+  getTermSlugsByLang,
   getTermName,
   getTermDescription,
 } from "@/lib/supabase/taxonomy-queries"
@@ -48,17 +48,27 @@ export async function getIndexData(taxonomy: string) {
 // ─── Term detail page ─────────────────────────────────────────────────────────
 
 export async function buildTermStaticParams(taxonomy: string) {
-  const slugs = await getTermSlugs(taxonomy)
-  return VALID_LANGS.flatMap((lang) => slugs.map((slug) => ({ lang, slug })))
+  const slugs = await getTermSlugsByLang(taxonomy)
+  return slugs.flatMap(({ slug_fi, slug_en, slug_uk }) => [
+    { lang: "fi", slug: slug_fi },
+    { lang: "en", slug: slug_en },
+    { lang: "uk", slug: slug_uk },
+  ])
 }
 
-export async function buildTermMetadata(taxonomy: string, lang: Lang, slug: string): Promise<Metadata> {
+export async function buildTermMetadata(
+  taxonomy: string,
+  lang: Lang,
+  slug: string
+): Promise<Metadata> {
   const config = TAXONOMY_CONFIG_BY_TAXONOMY[taxonomy]
-  const term = await getTaxonomyTerm(taxonomy, slug)
+  const term = await getTaxonomyTerm(taxonomy, slug, lang)
   if (!term || !config) return {}
   const name = getTermName(term, lang)
   const descRaw = getTermDescription(term, lang)
-  const desc = descRaw ? descRaw.replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim().substring(0, 160) : `${name} – ${config.labels[lang].title} | SlotsBand`
+  const desc = descRaw
+    ? descRaw.replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim().substring(0, 160)
+    : `${name} – ${config.labels[lang].title} | SlotsBand`
   const title = `${name} ${config.labels[lang].termSuffix} 2026 | SlotsBand`
   return {
     title,
@@ -66,17 +76,17 @@ export async function buildTermMetadata(taxonomy: string, lang: Lang, slug: stri
     alternates: {
       canonical: `${SITE_URL}/${lang}/${config.path}/${slug}`,
       languages: {
-        fi: `${SITE_URL}/fi/${config.path}/${slug}`,
-        en: `${SITE_URL}/en/${config.path}/${slug}`,
-        "en-GB": `${SITE_URL}/uk/${config.path}/${slug}`,
-        "x-default": `${SITE_URL}/fi/${config.path}/${slug}`,
+        fi: `${SITE_URL}/fi/${config.path}/${term.slug_fi}`,
+        en: `${SITE_URL}/en/${config.path}/${term.slug_en}`,
+        "en-GB": `${SITE_URL}/uk/${config.path}/${term.slug_uk}`,
+        "x-default": `${SITE_URL}/fi/${config.path}/${term.slug_fi}`,
       },
     },
   }
 }
 
-export async function getTermData(taxonomy: string, slug: string) {
-  const term = await getTaxonomyTerm(taxonomy, slug)
+export async function getTermData(taxonomy: string, slug: string, lang: Lang) {
+  const term = await getTaxonomyTerm(taxonomy, slug, lang)
   if (!term) notFound()
   const casinos = await getCasinosByTerm(term.id)
   return { term, casinos }

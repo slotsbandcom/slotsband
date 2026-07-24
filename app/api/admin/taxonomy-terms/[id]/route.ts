@@ -10,7 +10,8 @@ function adminDb() {
 }
 
 const ALLOWED = [
-  "slug", "name_fi", "name_en", "name_uk",
+  "slug_fi", "slug_en", "slug_uk",
+  "name_fi", "name_en", "name_uk",
   "description_fi", "description_en", "description_uk",
   "icon", "image_url", "is_active", "sort_order",
 ]
