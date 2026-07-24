@@ -13,6 +13,7 @@ const NAV_ITEMS = [
   { icon: "redeem", label: "Bonuses", href: "/admin/bonuses" },
   { icon: "image", label: "Banners", href: "/admin/banners" },
   { icon: "category", label: "Categories", href: "/admin/categories" },
+  { icon: "label", label: "Taxonomies", href: "/admin/taxonomies" },
   { icon: "sports_esports", label: "Games", href: "/admin/games" },
   { icon: "email", label: "Newsletter", href: "/admin/newsletter" },
   { icon: "settings", label: "Settings", href: "/admin/settings" },
