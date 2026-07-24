@@ -2,6 +2,11 @@ import { createClient } from "@/lib/supabase/server"
 import { createBuildClient } from "@/lib/supabase/build-client"
 import type { Casino } from "@/lib/types"
 
+export interface FaqItem {
+  q: string
+  a: string
+}
+
 export interface TaxonomyTerm {
   id: string
   taxonomy: string
@@ -12,6 +17,9 @@ export interface TaxonomyTerm {
   description_fi: string | null
   description_en: string | null
   description_uk: string | null
+  faq_fi: FaqItem[] | null
+  faq_en: FaqItem[] | null
+  faq_uk: FaqItem[] | null
   icon: string | null
   image_url: string | null
   is_active: boolean
