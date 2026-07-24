@@ -3,8 +3,6 @@
 import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
 
-type Lang = "fi" | "en" | "uk"
-
 export interface TaxonomyTerm {
   id: string
   taxonomy: string
@@ -32,8 +30,6 @@ interface Casino {
   assigned: boolean
 }
 
-const LANG_FLAGS: Record<Lang, string> = { fi: "🇫🇮", en: "🇬🇧", uk: "🇺🇦" }
-
 const TAXONOMIES = [
   "casino-category",
   "bonus-category",
@@ -54,260 +50,6 @@ const TAXONOMY_LABELS: Record<string, string> = {
   "vendor": "Vendors",
   "licence": "Licences",
   "game-category": "Game Categories",
-}
-
-const ICONS = [
-  "casino", "redeem", "sports_esports", "menu_book", "bolt", "new_releases",
-  "star", "live_tv", "money_off", "shield", "category", "local_offer",
-  "workspace_premium", "diamond", "emoji_events", "percent", "payments",
-  "sports_score", "thumb_up", "verified",
-]
-
-function slugify(text: string) {
-  return text
-    .toLowerCase()
-    .replace(/ä/g, "a").replace(/ö/g, "o").replace(/å/g, "a")
-    .replace(/\s+/g, "-")
-    .replace(/[^a-z0-9-]/g, "")
-    .replace(/-+/g, "-")
-    .replace(/^-|-$/g, "")
-}
-
-// ─── Term Form ────────────────────────────────────────────────────────────────
-function TermForm({
-  onClose,
-  onSaved,
-  editTerm,
-  defaultTaxonomy,
-}: {
-  onClose: () => void
-  onSaved: () => void
-  editTerm?: TaxonomyTerm
-  defaultTaxonomy: string
-}) {
-  const isEdit = !!editTerm
-
-  const [activeLang, setActiveLang] = useState<Lang>("fi")
-  const [taxonomy, setTaxonomy] = useState(editTerm?.taxonomy ?? defaultTaxonomy)
-  const [nameFi, setNameFi] = useState(editTerm?.name_fi ?? "")
-  const [nameEn, setNameEn] = useState(editTerm?.name_en ?? "")
-  const [nameUk, setNameUk] = useState(editTerm?.name_uk ?? "")
-  const [slug, setSlug] = useState(editTerm?.slug ?? "")
-  const [slugManual, setSlugManual] = useState(isEdit)
-  const [descFi, setDescFi] = useState(editTerm?.description_fi ?? "")
-  const [descEn, setDescEn] = useState(editTerm?.description_en ?? "")
-  const [descUk, setDescUk] = useState(editTerm?.description_uk ?? "")
-  const [icon, setIcon] = useState(editTerm?.icon ?? "")
-  const [imageUrl, setImageUrl] = useState(editTerm?.image_url ?? "")
-  const [sortOrder, setSortOrder] = useState(String(editTerm?.sort_order ?? 0))
-  const [isActive, setIsActive] = useState(editTerm?.is_active ?? true)
-  const [saving, setSaving] = useState(false)
-  const [formError, setFormError] = useState<string | null>(null)
-
-  const nameMap: Record<Lang, { val: string; set: (v: string) => void }> = {
-    fi: { val: nameFi, set: (v) => { setNameFi(v); if (!slugManual) setSlug(slugify(v)) } },
-    en: { val: nameEn, set: setNameEn },
-    uk: { val: nameUk, set: setNameUk },
-  }
-  const descMap: Record<Lang, { val: string; set: (v: string) => void }> = {
-    fi: { val: descFi, set: setDescFi },
-    en: { val: descEn, set: setDescEn },
-    uk: { val: descUk, set: setDescUk },
-  }
-
-  const handleSubmit = async () => {
-    if (!nameFi.trim()) { setFormError("Name (FI) is required"); return }
-    if (!slug.trim()) { setFormError("Slug is required"); return }
-    setSaving(true)
-    setFormError(null)
-    try {
-      const payload = {
-        taxonomy,
-        name_fi: nameFi.trim(),
-        name_en: nameEn.trim() || null,
-        name_uk: nameUk.trim() || null,
-        slug: slug.trim(),
-        description_fi: descFi.trim() || null,
-        description_en: descEn.trim() || null,
-        description_uk: descUk.trim() || null,
-        icon: icon || null,
-        image_url: imageUrl.trim() || null,
-        is_active: isActive,
-        sort_order: Number(sortOrder) || 0,
-      }
-      const res = await fetch(
-        isEdit ? `/api/admin/taxonomy-terms/${editTerm!.id}` : "/api/admin/taxonomy-terms",
-        {
-          method: isEdit ? "PATCH" : "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(payload),
-        }
-      )
-      const json = await res.json()
-      if (!res.ok) throw new Error(json.error ?? "Save failed")
-      onSaved()
-    } catch (e) {
-      setFormError(e instanceof Error ? e.message : "Save failed")
-    } finally {
-      setSaving(false)
-    }
-  }
-
-  return (
-    <div className="fixed inset-0 z-50 flex">
-      <div className="flex-1 bg-black/40" onClick={onClose} aria-hidden="true" />
-      <aside className="w-full max-w-xl bg-white h-full flex flex-col shadow-2xl overflow-hidden">
-        {/* Header */}
-        <div className="flex items-center justify-between px-6 py-4 border-b border-[#E5E8F0]">
-          <h2 className="font-display font-bold text-lg text-[#1b1b1c]">
-            {isEdit ? "Edit Term" : "Add Term"}
-          </h2>
-          <button onClick={onClose} className="w-8 h-8 rounded-lg bg-[#F8F9FD] border border-[#E5E8F0] flex items-center justify-center hover:border-[#2D1783] transition-colors">
-            <span className="material-symbols-outlined text-[16px]">close</span>
-          </button>
-        </div>
-
-        {/* Lang tabs */}
-        <div className="flex border-b border-[#E5E8F0] px-6">
-          {(["fi", "en", "uk"] as Lang[]).map(l => (
-            <button key={l} onClick={() => setActiveLang(l)}
-              className={`flex items-center gap-1.5 px-4 py-3 text-sm font-semibold border-b-2 -mb-px transition-colors ${activeLang === l ? "border-[#2D1783] text-[#2D1783]" : "border-transparent text-[#787585] hover:text-[#1b1b1c]"}`}>
-              <span>{LANG_FLAGS[l]}</span> {l.toUpperCase()}
-            </button>
-          ))}
-        </div>
-
-        <div className="flex-1 overflow-y-auto px-6 py-5 space-y-4">
-          {/* Taxonomy */}
-          <div>
-            <label className="block text-xs font-bold text-[#474554] uppercase tracking-wider mb-1.5">
-              Taxonomy<span className="text-[#E74C3C] ml-0.5">*</span>
-            </label>
-            {isEdit ? (
-              <div className="inline-flex items-center gap-1.5 bg-[#2D1783]/10 text-[#2D1783] text-xs font-bold px-3 py-1.5 rounded-lg">
-                <span className="material-symbols-outlined text-[14px]">label</span>
-                {TAXONOMY_LABELS[taxonomy] ?? taxonomy}
-              </div>
-            ) : (
-              <select
-                value={taxonomy}
-                onChange={e => setTaxonomy(e.target.value)}
-                className="w-full bg-[#F8F9FD] border border-[#E5E8F0] rounded-xl px-4 py-2.5 text-sm focus:border-[#2D1783] focus:outline-none"
-              >
-                {TAXONOMIES.map(t => (
-                  <option key={t} value={t}>{TAXONOMY_LABELS[t] ?? t}</option>
-                ))}
-              </select>
-            )}
-          </div>
-
-          {/* Name */}
-          <div>
-            <label className="block text-xs font-bold text-[#474554] uppercase tracking-wider mb-1.5">
-              Name ({activeLang.toUpperCase()}){activeLang === "fi" && <span className="text-[#E74C3C] ml-0.5">*</span>}
-            </label>
-            <input
-              type="text"
-              value={nameMap[activeLang].val}
-              onChange={e => nameMap[activeLang].set(e.target.value)}
-              placeholder="Term name..."
-              className="w-full bg-[#F8F9FD] border border-[#E5E8F0] rounded-xl px-4 py-2.5 text-sm focus:border-[#2D1783] focus:outline-none"
-            />
-          </div>
-
-          {/* Slug */}
-          <div>
-            <label className="block text-xs font-bold text-[#474554] uppercase tracking-wider mb-1.5">
-              Slug<span className="text-[#E74C3C] ml-0.5">*</span>
-            </label>
-            <input
-              type="text"
-              value={slug}
-              onChange={e => { setSlug(e.target.value); setSlugManual(true) }}
-              placeholder="term-slug"
-              className="w-full bg-[#F8F9FD] border border-[#E5E8F0] rounded-xl px-4 py-2.5 text-sm font-mono focus:border-[#2D1783] focus:outline-none"
-            />
-            {!slugManual && nameFi && (
-              <p className="text-[10px] text-[#787585] mt-1">Auto-generated from FI name</p>
-            )}
-          </div>
-
-          {/* Description */}
-          <div>
-            <label className="block text-xs font-bold text-[#474554] uppercase tracking-wider mb-1.5">
-              Description ({activeLang.toUpperCase()})
-            </label>
-            <textarea
-              rows={3}
-              value={descMap[activeLang].val}
-              onChange={e => descMap[activeLang].set(e.target.value)}
-              placeholder="Term description..."
-              className="w-full bg-[#F8F9FD] border border-[#E5E8F0] rounded-xl px-4 py-3 text-sm focus:border-[#2D1783] focus:outline-none resize-none"
-            />
-          </div>
-
-          {/* Icon */}
-          <div>
-            <label className="block text-xs font-bold text-[#474554] uppercase tracking-wider mb-1.5">Icon</label>
-            <div className="grid grid-cols-5 gap-2">
-              {ICONS.map(ic => (
-                <button key={ic} onClick={() => setIcon(icon === ic ? "" : ic)} title={ic}
-                  className={`aspect-square rounded-xl flex items-center justify-center border-2 transition-colors ${icon === ic ? "border-[#2D1783] bg-[#2D1783]/10" : "border-[#E5E8F0] hover:border-[#2D1783]"}`}>
-                  <span className="material-symbols-outlined text-[20px] text-[#2D1783]">{ic}</span>
-                </button>
-              ))}
-            </div>
-            {icon && <p className="text-[10px] text-[#787585] mt-1">Selected: <span className="font-mono">{icon}</span></p>}
-          </div>
-
-          {/* Image URL */}
-          <div>
-            <label className="block text-xs font-bold text-[#474554] uppercase tracking-wider mb-1.5">Image URL</label>
-            <input
-              type="text"
-              value={imageUrl}
-              onChange={e => setImageUrl(e.target.value)}
-              placeholder="https://..."
-              className="w-full bg-[#F8F9FD] border border-[#E5E8F0] rounded-xl px-4 py-2.5 text-sm focus:border-[#2D1783] focus:outline-none"
-            />
-          </div>
-
-          {/* Sort order */}
-          <div>
-            <label className="block text-xs font-bold text-[#474554] uppercase tracking-wider mb-1.5">Sort Order</label>
-            <input
-              type="number"
-              value={sortOrder}
-              onChange={e => setSortOrder(e.target.value)}
-              className="w-32 bg-[#F8F9FD] border border-[#E5E8F0] rounded-xl px-4 py-2.5 text-sm focus:border-[#2D1783] focus:outline-none"
-            />
-          </div>
-
-          {/* Active toggle */}
-          <label className="flex items-center gap-3 cursor-pointer">
-            <div onClick={() => setIsActive(v => !v)}
-              className={`w-10 h-6 rounded-full transition-colors ${isActive ? "bg-[#2D1783]" : "bg-[#E5E8F0]"} relative flex-shrink-0`}>
-              <span className={`absolute top-1 w-4 h-4 bg-white rounded-full shadow transition-all ${isActive ? "left-5" : "left-1"}`} />
-            </div>
-            <span className="text-sm font-semibold text-[#1b1b1c]">Active</span>
-          </label>
-
-          {formError && (
-            <p className="text-xs text-[#E74C3C] bg-[#E74C3C]/8 border border-[#E74C3C]/25 rounded-xl px-4 py-2.5">{formError}</p>
-          )}
-        </div>
-
-        <div className="px-6 py-4 border-t border-[#E5E8F0] flex justify-end gap-2">
-          <button onClick={onClose} className="px-4 py-2 text-sm font-semibold text-[#787585] bg-[#F8F9FD] border border-[#E5E8F0] rounded-xl hover:border-[#2D1783] transition-colors">Cancel</button>
-          <button onClick={handleSubmit} disabled={saving}
-            className="px-5 py-2 text-sm font-semibold text-white bg-[#2D1783] rounded-xl hover:bg-[#3e2db2] disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center gap-2">
-            {saving && <span className="w-3.5 h-3.5 border-2 border-white/30 border-t-white rounded-full animate-spin" />}
-            {saving ? "Saving..." : isEdit ? "Update Term" : "Save Term"}
-          </button>
-        </div>
-      </aside>
-    </div>
-  )
 }
 
 // ─── Manage Casinos Panel ─────────────────────────────────────────────────────
@@ -471,24 +213,23 @@ function ManageCasinosPanel({
 }
 
 // ─── Main ─────────────────────────────────────────────────────────────────────
-export default function AdminTaxonomiesClient({ terms = [] }: { terms?: TaxonomyTerm[] }) {
+export default function AdminTaxonomiesClient({
+  terms = [],
+  initialTab,
+}: {
+  terms?: TaxonomyTerm[]
+  initialTab?: string
+}) {
   const router = useRouter()
-  const [activeTaxonomy, setActiveTaxonomy] = useState(TAXONOMIES[0])
-  const [showForm, setShowForm] = useState(false)
-  const [editingTerm, setEditingTerm] = useState<TaxonomyTerm | null>(null)
+  const [activeTaxonomy, setActiveTaxonomy] = useState(
+    initialTab && TAXONOMIES.includes(initialTab) ? initialTab : TAXONOMIES[0]
+  )
   const [managingTerm, setManagingTerm] = useState<TaxonomyTerm | null>(null)
   const [toast, setToast] = useState<string | null>(null)
 
   const showToast = (msg: string) => {
     setToast(msg)
     setTimeout(() => setToast(null), 3000)
-  }
-
-  const handleSaved = () => {
-    setShowForm(false)
-    setEditingTerm(null)
-    router.refresh()
-    showToast("Term saved successfully")
   }
 
   const handleCasinosSaved = () => {
@@ -513,21 +254,6 @@ export default function AdminTaxonomiesClient({ terms = [] }: { terms?: Taxonomy
 
   return (
     <div className="space-y-5">
-      {showForm && (
-        <TermForm
-          onClose={() => setShowForm(false)}
-          onSaved={handleSaved}
-          defaultTaxonomy={activeTaxonomy}
-        />
-      )}
-      {editingTerm && (
-        <TermForm
-          editTerm={editingTerm}
-          onClose={() => setEditingTerm(null)}
-          onSaved={handleSaved}
-          defaultTaxonomy={activeTaxonomy}
-        />
-      )}
       {managingTerm && (
         <ManageCasinosPanel
           term={managingTerm}
@@ -551,7 +277,7 @@ export default function AdminTaxonomiesClient({ terms = [] }: { terms?: Taxonomy
           <p className="text-sm text-[#787585] mt-0.5">{terms.length} terms across {TAXONOMIES.length} taxonomies</p>
         </div>
         <button
-          onClick={() => setShowForm(true)}
+          onClick={() => router.push(`/admin/taxonomies/new?taxonomy=${activeTaxonomy}`)}
           className="flex items-center gap-2 bg-[#2D1783] text-white font-semibold text-sm px-5 py-2.5 rounded-xl hover:bg-[#3e2db2] transition-colors"
         >
           <span className="material-symbols-outlined text-[18px]">add</span>
@@ -659,7 +385,7 @@ export default function AdminTaxonomiesClient({ terms = [] }: { terms?: Taxonomy
                           Casinos
                         </button>
                         <button
-                          onClick={() => setEditingTerm(term)}
+                          onClick={() => router.push(`/admin/taxonomies/${term.id}/edit`)}
                           className="w-7 h-7 rounded-lg bg-[#F8F9FD] border border-[#E5E8F0] flex items-center justify-center hover:border-[#2D1783] transition-colors"
                           title="Edit"
                         >

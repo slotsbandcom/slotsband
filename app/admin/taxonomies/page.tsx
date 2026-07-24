@@ -34,7 +34,12 @@ async function getTerms(): Promise<TaxonomyTerm[]> {
   })) as TaxonomyTerm[]
 }
 
-export default async function AdminTaxonomiesPage() {
+export default async function AdminTaxonomiesPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ tab?: string }>
+}) {
+  const { tab } = await searchParams
   const terms = await getTerms()
-  return <AdminTaxonomiesClient terms={terms} />
+  return <AdminTaxonomiesClient terms={terms} initialTab={tab} />
 }

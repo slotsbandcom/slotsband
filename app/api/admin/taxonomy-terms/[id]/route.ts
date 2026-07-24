@@ -15,6 +15,18 @@ const ALLOWED = [
   "icon", "image_url", "is_active", "sort_order",
 ]
 
+export async function GET(_req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params
+  const db = adminDb()
+  const { data, error } = await db
+    .from("taxonomy_terms")
+    .select("*")
+    .eq("id", id)
+    .single()
+  if (error) return NextResponse.json({ error: error.message }, { status: 404 })
+  return NextResponse.json(data)
+}
+
 export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
