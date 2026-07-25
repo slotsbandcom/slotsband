@@ -1,4 +1,4 @@
-import { notFound } from "next/navigation"
+import { notFound, permanentRedirect } from "next/navigation"
 import { cache } from "react"
 import Link from "next/link"
 import type { Metadata } from "next"
@@ -113,6 +113,35 @@ const getCodeRouteLangSlugs = cache(async (routeKey: string): Promise<LangSlugRo
     return (fb as LangSlugRow[]) ?? []
   }
   return (data as LangSlugRow[]) ?? []
+})
+
+// Returns the correct current slug for `lang` if `slug` was a code route slug that moved
+const getRedirectTargetForOldCodeSlug = cache(async (lang: Lang, slug: string): Promise<string | null> => {
+  try {
+    const supabase = await createClient()
+    // Find the route_key of any code route that currently OR previously had this slug
+    const { data: anyRow } = await supabase
+      .from("pages")
+      .select("route_key")
+      .eq("slug", slug)
+      .eq("is_code_route", true)
+      .not("route_key", "is", null)
+      .limit(1)
+      .maybeSingle()
+    if (!anyRow?.route_key) return null
+    // Get the current slug for the requested lang
+    const { data: targetRow } = await supabase
+      .from("pages")
+      .select("slug")
+      .eq("route_key", anyRow.route_key as string)
+      .eq("lang", lang)
+      .maybeSingle()
+    const targetSlug = (targetRow as { slug: string } | null)?.slug
+    if (!targetSlug || targetSlug === slug) return null
+    return targetSlug
+  } catch {
+    return null
+  }
 })
 
 async function getBlogPost(lang: Lang, slug: string): Promise<BlogPost | null> {
@@ -301,6 +330,12 @@ export default async function CatchAllPage({ params }: PageProps) {
 
     // Code route found but route_key not mapped — return 404
     notFound()
+  }
+
+  // Redirect old/moved code route slugs to the correct current slug for this lang
+  const redirectSlug = await getRedirectTargetForOldCodeSlug(lang, slug)
+  if (redirectSlug) {
+    permanentRedirect(`/${lang}/${redirectSlug}`)
   }
 
   const [post, newestCasinos, staticResult] = await Promise.all([

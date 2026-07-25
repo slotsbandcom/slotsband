@@ -1,6 +1,7 @@
 import { createClient } from "@/lib/supabase/server"
 import { createClient as createSupabaseClient } from "@supabase/supabase-js"
 import { NextRequest, NextResponse } from "next/server"
+import { revalidatePath } from "next/cache"
 
 function adminDb() {
   return createSupabaseClient(
@@ -83,6 +84,12 @@ export async function PATCH(req: NextRequest, { params }: Params) {
     for (const row of updated as Array<Record<string, unknown>>) {
       result[row.lang as string] = row
     }
+
+    // Purge layout cache for all langs so nav slugs update immediately
+    revalidatePath("/fi", "layout")
+    revalidatePath("/en", "layout")
+    revalidatePath("/uk", "layout")
+
     return NextResponse.json(result)
   }
 
