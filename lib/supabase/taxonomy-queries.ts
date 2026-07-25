@@ -146,6 +146,6 @@ export function getTermSlug(term: TaxonomyTerm, lang: string): string {
 
 export function getTermDescription(term: TaxonomyTerm, lang: string): string | null {
   if (lang === "fi") return term.description_fi
-  if (lang === "uk") return term.description_uk ?? term.description_en ?? term.description_fi
-  return term.description_en ?? term.description_fi
+  if (lang === "uk") return term.description_uk
+  return term.description_en
 }
