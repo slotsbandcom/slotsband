@@ -46,6 +46,21 @@ async function getBlogPost(lang: Lang, slug: string): Promise<BlogPost | null> {
   return data as BlogPost | null
 }
 
+interface StaticPageRow {
+  id: string; slug: string; lang: string
+  title: string; content: string | null
+  meta_title: string | null; meta_description: string | null
+  is_published: boolean
+}
+
+async function getStaticPage(lang: Lang, slug: string): Promise<{ page: StaticPageRow | null; slugExists: boolean }> {
+  const supabase = await createClient()
+  const { data } = await supabase.from("pages").select("*").eq("slug", slug)
+  if (!data || data.length === 0) return { page: null, slugExists: false }
+  const row = data.find((r: StaticPageRow) => r.lang === lang && r.is_published)
+  return { page: (row as StaticPageRow) ?? null, slugExists: true }
+}
+
 async function getNewestCasinos(): Promise<SidebarCasino[]> {
   const supabase = await createClient()
   const { data } = await supabase
@@ -80,46 +95,61 @@ interface PageProps {
 
 export async function generateStaticParams() {
   const db = createBuildClient()
-  const { data } = await db.from("blog_posts").select("slug_fi, slug_en, slug_uk").eq("is_active", true)
   const paths: { lang: string; slug: string }[] = []
-  for (const row of data ?? []) {
+
+  // Blog posts
+  const { data: blogData } = await db.from("blog_posts").select("slug_fi, slug_en, slug_uk").eq("is_active", true)
+  for (const row of blogData ?? []) {
     paths.push({ lang: "fi", slug: row.slug_fi })
     if (row.slug_en) paths.push({ lang: "en", slug: row.slug_en })
     if (row.slug_uk) paths.push({ lang: "uk", slug: row.slug_uk })
   }
+
+  // Static pages
+  const { data: pageData } = await db.from("pages").select("slug, lang").eq("is_published", true)
+  for (const row of pageData ?? []) {
+    if (["fi", "en", "uk"].includes(row.lang)) {
+      paths.push({ lang: row.lang, slug: row.slug })
+    }
+  }
+
   return paths
 }
 
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
   const { lang: rawLang, slug } = await params
   const lang = (VALID_LANGS.includes(rawLang as Lang) ? rawLang : "fi") as Lang
+
   const post = await getBlogPost(lang, slug)
-  if (!post) return {}
-
-  const title = (lang === "fi" ? post.meta_title_fi : lang === "en" ? post.meta_title_en : post.meta_title_uk)
-    ?? (lang === "fi" ? post.title_fi : lang === "en" ? (post.title_en ?? post.title_fi) : (post.title_uk ?? post.title_fi))
-  const desc = (lang === "fi" ? post.meta_description_fi : lang === "en" ? post.meta_description_en : post.meta_description_uk)
-    ?? (lang === "fi" ? post.excerpt_fi : lang === "en" ? post.excerpt_en : post.excerpt_uk)
-    ?? undefined
-
-  return {
-    title,
-    description: desc ?? undefined,
-    openGraph: {
-      title: title ?? undefined,
-      description: desc ?? undefined,
-      images: post.featured_image_url ? [post.featured_image_url] : [],
-    },
-    alternates: {
-      canonical: `${SITE_URL}/${lang}/${slug}`,
-      languages: {
-        fi:          `${SITE_URL}/fi/${post.slug_fi}`,
-        en:          `${SITE_URL}/en/${post.slug_en || post.slug_fi}`,
-        "en-GB":     `${SITE_URL}/uk/${post.slug_uk || post.slug_fi}`,
-        "x-default": `${SITE_URL}/fi/${post.slug_fi}`,
+  if (post) {
+    const title = (lang === "fi" ? post.meta_title_fi : lang === "en" ? post.meta_title_en : post.meta_title_uk)
+      ?? (lang === "fi" ? post.title_fi : lang === "en" ? (post.title_en ?? post.title_fi) : (post.title_uk ?? post.title_fi))
+    const desc = (lang === "fi" ? post.meta_description_fi : lang === "en" ? post.meta_description_en : post.meta_description_uk)
+      ?? (lang === "fi" ? post.excerpt_fi : lang === "en" ? post.excerpt_en : post.excerpt_uk)
+      ?? undefined
+    return {
+      title, description: desc ?? undefined,
+      openGraph: { title: title ?? undefined, description: desc ?? undefined, images: post.featured_image_url ? [post.featured_image_url] : [] },
+      alternates: {
+        canonical: `${SITE_URL}/${lang}/${slug}`,
+        languages: { fi: `${SITE_URL}/fi/${post.slug_fi}`, en: `${SITE_URL}/en/${post.slug_en || post.slug_fi}`, "en-GB": `${SITE_URL}/uk/${post.slug_uk || post.slug_fi}`, "x-default": `${SITE_URL}/fi/${post.slug_fi}` },
       },
-    },
+    }
   }
+
+  const { page: staticPage } = await getStaticPage(lang, slug)
+  if (staticPage) {
+    return {
+      title: staticPage.meta_title ?? staticPage.title,
+      description: staticPage.meta_description ?? undefined,
+      alternates: {
+        canonical: `${SITE_URL}/${lang}/${slug}`,
+        languages: { fi: `${SITE_URL}/fi/${slug}`, en: `${SITE_URL}/en/${slug}`, "en-GB": `${SITE_URL}/uk/${slug}`, "x-default": `${SITE_URL}/fi/${slug}` },
+      },
+    }
+  }
+
+  return {}
 }
 
 function formatDate(iso: string | null, lang: Lang) {
@@ -134,10 +164,62 @@ export default async function BlogPostPage({ params }: PageProps) {
   const { lang: rawLang, slug } = await params
   const lang = (VALID_LANGS.includes(rawLang as Lang) ? rawLang : "fi") as Lang
 
-  const [post, newestCasinos] = await Promise.all([
+  const [post, newestCasinos, staticResult] = await Promise.all([
     getBlogPost(lang, slug),
     getNewestCasinos(),
+    getStaticPage(lang, slug),
   ])
+
+  // Static page branch (no sidebar, full-width content)
+  if (!post && (staticResult.page || staticResult.slugExists)) {
+    const { page: sp, slugExists } = staticResult
+    const jsonLd = sp ? {
+      "@context": "https://schema.org", "@type": "WebPage",
+      "name": sp.title, "url": `${SITE_URL}/${lang}/${slug}`,
+    } : undefined
+
+    return (
+      <div className="min-h-screen bg-[#F8F9FD]">
+        {jsonLd && <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }} />}
+        <div className="bg-white border-b border-[#E5E8F0]">
+          <div className="max-w-[900px] mx-auto px-4 md:px-8 pt-6 pb-8">
+            <nav aria-label="Breadcrumb" className="flex items-center gap-1.5 text-xs text-[#787585] mb-5">
+              <Link href={`/${lang}`} className="hover:text-[#2D1783] transition-colors">{lang === "fi" ? "Etusivu" : "Home"}</Link>
+              <span className="material-symbols-outlined text-[13px]">chevron_right</span>
+              <span className="text-[#2D1783] font-semibold truncate max-w-[240px]">{sp?.title ?? slug}</span>
+            </nav>
+            <h1 className="font-display font-bold text-2xl md:text-4xl text-[#1b1b1c] leading-tight">{sp?.title ?? slug}</h1>
+          </div>
+        </div>
+        <div className="max-w-[900px] mx-auto px-4 md:px-8 py-8">
+          {sp ? (
+            sp.content ? (
+              <div className="bg-white rounded-2xl border border-[#E5E8F0] p-6 md:p-10">
+                <div className="casino-review" dangerouslySetInnerHTML={{ __html: sp.content }} />
+              </div>
+            ) : (
+              <div className="bg-white rounded-2xl border border-[#E5E8F0] p-10 text-center text-[#787585]">
+                <span className="material-symbols-outlined text-[48px] text-[#E5E8F0] block mb-3">description</span>
+                <p>{lang === "fi" ? "Sisältö tulossa pian." : "Content coming soon."}</p>
+              </div>
+            )
+          ) : slugExists ? (
+            <div className="bg-white rounded-2xl border border-[#E5E8F0] p-10 text-center">
+              <span className="material-symbols-outlined text-[48px] text-[#E5E8F0] block mb-3">translate</span>
+              <h2 className="font-display font-bold text-xl text-[#1b1b1c] mb-2">
+                {lang === "fi" ? "Käännös tulossa pian" : "Translation coming soon"}
+              </h2>
+              <Link href={`/fi/${slug}`}
+                className="inline-flex items-center gap-2 bg-[#2D1783] text-white font-semibold text-sm px-5 py-2.5 rounded-xl hover:bg-[#3e2db2] transition-colors mt-4">
+                🇫🇮 {lang === "fi" ? "Lue suomeksi" : "Read in Finnish"}
+              </Link>
+            </div>
+          ) : null}
+        </div>
+      </div>
+    )
+  }
+
   if (!post) notFound()
 
   const title = lang === "fi" ? post.title_fi
