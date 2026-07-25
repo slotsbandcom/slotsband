@@ -13,12 +13,14 @@ interface PageRow {
   title: string
   is_published: boolean
   is_code_route: boolean
+  route_key: string | null
   created_at: string
   updated_at: string
 }
 
 interface GroupedPage {
   slug: string
+  route_key: string | null
   langs: { lang: Lang; title: string; is_published: boolean }[]
   is_code_route: boolean
   created_at: string
@@ -27,11 +29,22 @@ interface GroupedPage {
 function groupPages(rows: PageRow[]): GroupedPage[] {
   const map = new Map<string, GroupedPage>()
   for (const row of rows) {
-    if (!map.has(row.slug)) {
-      map.set(row.slug, { slug: row.slug, langs: [], is_code_route: false, created_at: row.created_at })
+    // Code routes group by route_key; regular pages group by slug
+    const groupKey = row.is_code_route ? (row.route_key || row.slug) : row.slug
+    if (!map.has(groupKey)) {
+      map.set(groupKey, {
+        slug: row.slug,
+        route_key: row.route_key || null,
+        langs: [],
+        is_code_route: false,
+        created_at: row.created_at,
+      })
     }
-    const group = map.get(row.slug)!
-    if (row.is_code_route) group.is_code_route = true
+    const group = map.get(groupKey)!
+    if (row.is_code_route) {
+      group.is_code_route = true
+      if (row.route_key) group.route_key = row.route_key
+    }
     group.langs.push({
       lang: row.lang as Lang,
       title: row.title,
@@ -55,6 +68,7 @@ export function PagesClient() {
 
   const filtered = pages.filter(p =>
     p.slug.toLowerCase().includes(search.toLowerCase()) ||
+    (p.route_key && p.route_key.toLowerCase().includes(search.toLowerCase())) ||
     p.langs.some(l => l.title.toLowerCase().includes(search.toLowerCase()))
   )
 
@@ -99,7 +113,7 @@ export function PagesClient() {
             <thead>
               <tr className="bg-[#F8F9FD] text-[10px] font-bold uppercase tracking-wider text-[#787585]">
                 <th className="px-5 py-3 text-left">Page</th>
-                <th className="px-5 py-3 text-left hidden md:table-cell">Slug</th>
+                <th className="px-5 py-3 text-left hidden md:table-cell">Key / Slug</th>
                 <th className="px-5 py-3 text-center">Languages</th>
                 <th className="px-5 py-3 text-right">Actions</th>
               </tr>
@@ -107,14 +121,18 @@ export function PagesClient() {
             <tbody className="divide-y divide-[#F0F1F5]">
               {filtered.map(page => {
                 const fiLang = page.langs.find(l => l.lang === "fi")
-                const title = fiLang?.title || page.langs[0]?.title || page.slug
+                const title = fiLang?.title || page.langs[0]?.title || page.route_key || page.slug
                 const anyPublished = page.langs.some(l => l.is_published)
+                const adminKey = page.is_code_route ? (page.route_key || page.slug) : page.slug
+                const viewSlug = page.is_code_route ? page.slug : page.slug
                 return (
-                  <tr key={page.slug} className="hover:bg-[#F8F9FD]/60 transition-colors">
+                  <tr key={adminKey} className="hover:bg-[#F8F9FD]/60 transition-colors">
                     <td className="px-5 py-3.5">
                       <div className="flex items-center gap-3">
                         <div className="w-8 h-8 rounded-lg bg-[#2D1783]/10 flex items-center justify-center flex-shrink-0">
-                          <span className="material-symbols-outlined text-[#2D1783] text-[15px]">description</span>
+                          <span className="material-symbols-outlined text-[#2D1783] text-[15px]">
+                            {page.is_code_route ? "code" : "description"}
+                          </span>
                         </div>
                         <div>
                           <div className="flex items-center gap-2">
@@ -131,7 +149,7 @@ export function PagesClient() {
                     </td>
                     <td className="px-5 py-3.5 hidden md:table-cell">
                       <span className="text-xs font-mono text-[#474554] bg-[#F8F9FD] border border-[#E5E8F0] px-2 py-0.5 rounded">
-                        {page.slug}
+                        {page.is_code_route ? (page.route_key || page.slug) : page.slug}
                       </span>
                     </td>
                     <td className="px-5 py-3.5 text-center">
@@ -149,11 +167,11 @@ export function PagesClient() {
                     </td>
                     <td className="px-5 py-3.5 text-right">
                       <div className="flex items-center justify-end gap-1">
-                        <Link href={`/fi/${page.slug}`} target="_blank"
-                          className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-[#F0F1F5] transition-colors" title="View">
+                        <Link href={`/fi/${viewSlug}`} target="_blank"
+                          className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-[#F0F1F5] transition-colors" title="View (FI)">
                           <span className="material-symbols-outlined text-[#787585] text-[16px]">open_in_new</span>
                         </Link>
-                        <Link href={`/admin/pages/${encodeURIComponent(page.slug)}/edit`}
+                        <Link href={`/admin/pages/${encodeURIComponent(adminKey)}/edit`}
                           className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-[#F0F1F5] transition-colors" title="Edit">
                           <span className="material-symbols-outlined text-[#2D1783] text-[16px]">edit</span>
                         </Link>

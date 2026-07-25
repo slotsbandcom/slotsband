@@ -1,13 +1,36 @@
 import { notFound } from "next/navigation"
+import { cache } from "react"
 import Link from "next/link"
 import type { Metadata } from "next"
 import { createClient } from "@/lib/supabase/server"
 import { createBuildClient } from "@/lib/supabase/build-client"
 import { CasinoLogo } from "@/components/casino-logo"
+import { TaxonomyIndexPage } from "@/components/taxonomy-index-page"
+import { TAXONOMY_CONFIG_BY_TAXONOMY } from "@/lib/taxonomy-config"
+import { getTaxonomyTermsWithCounts } from "@/lib/supabase/taxonomy-queries"
+import { NettikasinotHub } from "@/components/pages/nettikasinot-hub"
+import { KasinopelitHub } from "@/components/pages/kasinopelit-hub"
+import { KasinobonuksetHub } from "@/components/pages/kasinobonukset-hub"
+import { RaffletHub } from "@/components/pages/rafflet-hub"
+import { BonushuntHub } from "@/components/pages/bonushunt-hub"
+import { BlogiHub } from "@/components/pages/blogi-hub"
 import type { Lang } from "@/lib/types"
 
 const VALID_LANGS: Lang[] = ["fi", "en", "uk"]
 const SITE_URL = "https://slotsband.com"
+
+// ─── Taxonomy config lookup ───────────────────────────────────────────────────
+
+const TAXONOMY_BY_ROUTE_KEY: Record<string, string> = {
+  kasinot: "casino-category",
+  talletustavat: "deposit-method",
+  kotiutustavat: "withdrawal-method",
+  ohjelmistot: "software",
+  valmistaja: "vendor",
+  lisenssi: "licence",
+}
+
+// ─── Data helpers ─────────────────────────────────────────────────────────────
 
 interface BlogPost {
   id: string
@@ -34,6 +57,64 @@ interface SidebarCasino {
   rating: number
 }
 
+interface CodeRouteRow {
+  route_key: string | null
+  meta_title: string | null
+  meta_description: string | null
+}
+
+interface LangSlugRow {
+  lang: string
+  slug: string
+}
+
+const getCodeRoute = cache(async (lang: Lang, slug: string): Promise<CodeRouteRow | null> => {
+  const supabase = await createClient()
+  const { data, error } = await supabase
+    .from("pages")
+    .select("route_key, meta_title, meta_description")
+    .eq("slug", slug)
+    .eq("lang", lang)
+    .eq("is_code_route", true)
+    .maybeSingle()
+
+  if (error) {
+    // route_key column may not exist yet — fall back without it
+    const { data: fb } = await supabase
+      .from("pages")
+      .select("meta_title, meta_description")
+      .eq("slug", slug)
+      .eq("lang", lang)
+      .eq("is_code_route", true)
+      .maybeSingle()
+    if (!fb) return null
+    return { route_key: slug, ...(fb as { meta_title: string | null; meta_description: string | null }) }
+  }
+
+  if (!data) return null
+  const row = data as { route_key: string | null; meta_title: string | null; meta_description: string | null }
+  return { route_key: row.route_key ?? slug, meta_title: row.meta_title, meta_description: row.meta_description }
+})
+
+const getCodeRouteLangSlugs = cache(async (routeKey: string): Promise<LangSlugRow[]> => {
+  const supabase = await createClient()
+  const { data, error } = await supabase
+    .from("pages")
+    .select("lang, slug")
+    .eq("route_key", routeKey)
+    .eq("is_code_route", true)
+  if (error) {
+    // route_key column not yet in DB — all langs use same slug as route_key
+    const { data: fb } = await supabase
+      .from("pages")
+      .select("lang, slug")
+      .eq("slug", routeKey)
+      .eq("is_code_route", true)
+    return (fb as LangSlugRow[]) ?? []
+  }
+  return (data as LangSlugRow[]) ?? []
+})
+
 async function getBlogPost(lang: Lang, slug: string): Promise<BlogPost | null> {
   const supabase = await createClient()
   const col = lang === "fi" ? "slug_fi" : lang === "en" ? "slug_en" : "slug_uk"
@@ -50,14 +131,14 @@ interface StaticPageRow {
   id: string; slug: string; lang: string
   title: string; content: string | null
   meta_title: string | null; meta_description: string | null
-  is_published: boolean
+  is_published: boolean; is_code_route: boolean
 }
 
 async function getStaticPage(lang: Lang, slug: string): Promise<{ page: StaticPageRow | null; slugExists: boolean }> {
   const supabase = await createClient()
   const { data } = await supabase.from("pages").select("*").eq("slug", slug)
   if (!data || data.length === 0) return { page: null, slugExists: false }
-  const row = data.find((r: StaticPageRow) => r.lang === lang && r.is_published)
+  const row = data.find((r: StaticPageRow) => r.lang === lang && r.is_published && !r.is_code_route)
   return { page: (row as StaticPageRow) ?? null, slugExists: true }
 }
 
@@ -105,7 +186,7 @@ export async function generateStaticParams() {
     if (row.slug_uk) paths.push({ lang: "uk", slug: row.slug_uk })
   }
 
-  // Static pages
+  // Static pages + code route slugs (all langs from pages table)
   const { data: pageData } = await db.from("pages").select("slug, lang").eq("is_published", true)
   for (const row of pageData ?? []) {
     if (["fi", "en", "uk"].includes(row.lang)) {
@@ -120,6 +201,29 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
   const { lang: rawLang, slug } = await params
   const lang = (VALID_LANGS.includes(rawLang as Lang) ? rawLang : "fi") as Lang
 
+  // 1. Code route
+  const codeRoute = await getCodeRoute(lang, slug)
+  if (codeRoute) {
+    const langSlugs = codeRoute.route_key ? await getCodeRouteLangSlugs(codeRoute.route_key) : []
+    const slugByLang: Record<string, string> = {}
+    for (const row of langSlugs) slugByLang[row.lang] = row.slug
+
+    return {
+      title: codeRoute.meta_title ?? undefined,
+      description: codeRoute.meta_description ?? undefined,
+      alternates: {
+        canonical: `${SITE_URL}/${lang}/${slug}`,
+        languages: {
+          fi: `${SITE_URL}/fi/${slugByLang.fi || slug}`,
+          en: `${SITE_URL}/en/${slugByLang.en || slug}`,
+          "en-GB": `${SITE_URL}/uk/${slugByLang.uk || slug}`,
+          "x-default": `${SITE_URL}/fi/${slugByLang.fi || slug}`,
+        },
+      },
+    }
+  }
+
+  // 2. Blog post
   const post = await getBlogPost(lang, slug)
   if (post) {
     const title = (lang === "fi" ? post.meta_title_fi : lang === "en" ? post.meta_title_en : post.meta_title_uk)
@@ -137,6 +241,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
     }
   }
 
+  // 3. Static page
   const { page: staticPage } = await getStaticPage(lang, slug)
   if (staticPage) {
     return {
@@ -160,9 +265,43 @@ function formatDate(iso: string | null, lang: Lang) {
   )
 }
 
-export default async function BlogPostPage({ params }: PageProps) {
+export default async function CatchAllPage({ params }: PageProps) {
   const { lang: rawLang, slug } = await params
   const lang = (VALID_LANGS.includes(rawLang as Lang) ? rawLang : "fi") as Lang
+
+  // ── 1. Code route ──────────────────────────────────────────────────────────
+  const codeRoute = await getCodeRoute(lang, slug)
+  if (codeRoute) {
+    const route_key = codeRoute.route_key ?? ""
+
+    // Taxonomy index routes
+    const taxonomy = route_key ? TAXONOMY_BY_ROUTE_KEY[route_key] : undefined
+    if (taxonomy) {
+      const config = TAXONOMY_CONFIG_BY_TAXONOMY[taxonomy]
+      if (config) {
+        const terms = await getTaxonomyTermsWithCounts(taxonomy)
+        return <TaxonomyIndexPage taxonomy={taxonomy} lang={lang} terms={terms} />
+      }
+    }
+
+    switch (route_key) {
+      case "nettikasinot":
+        return <NettikasinotHub lang={lang} />
+      case "kasinopelit":
+        return <KasinopelitHub lang={lang} />
+      case "kasinobonukset":
+        return <KasinobonuksetHub lang={lang} />
+      case "rafflet":
+        return <RaffletHub lang={lang} />
+      case "bonushunt":
+        return <BonushuntHub lang={lang} />
+      case "blogi":
+        return <BlogiHub lang={lang} />
+    }
+
+    // Code route found but route_key not mapped — return 404
+    notFound()
+  }
 
   const [post, newestCasinos, staticResult] = await Promise.all([
     getBlogPost(lang, slug),
@@ -170,7 +309,7 @@ export default async function BlogPostPage({ params }: PageProps) {
     getStaticPage(lang, slug),
   ])
 
-  // Static page branch (no sidebar, full-width content)
+  // ── 2. Static page (non-code-route) ───────────────────────────────────────
   if (!post && (staticResult.page || staticResult.slugExists)) {
     const { page: sp, slugExists } = staticResult
     const jsonLd = sp ? {
@@ -222,6 +361,7 @@ export default async function BlogPostPage({ params }: PageProps) {
 
   if (!post) notFound()
 
+  // ── 3. Blog post ───────────────────────────────────────────────────────────
   const title = lang === "fi" ? post.title_fi
     : lang === "en" ? (post.title_en ?? post.title_fi)
     : (post.title_uk ?? post.title_fi)
@@ -265,7 +405,6 @@ export default async function BlogPostPage({ params }: PageProps) {
             <span className="text-[#2D1783] font-semibold truncate max-w-[200px]">{title}</span>
           </nav>
 
-          {/* Featured image — constrained height, no aspect-ratio forcing */}
           {post.featured_image_url && (
             <div className="rounded-2xl overflow-hidden mb-6 border border-[#E5E8F0]
                             max-h-[240px] md:max-h-[420px]">
@@ -342,23 +481,18 @@ export default async function BlogPostPage({ params }: PageProps) {
                     const bonus = getBonusLabel(casino)
                     return (
                       <div key={casino.id} className="flex items-center gap-3 px-4 py-3.5">
-                        {/* Logo */}
                         <CasinoLogo
                           src={casino.logo_url}
                           name={casino.name}
                           size={44}
                           className="w-11 h-11 rounded-xl border border-[#E5E7EB] bg-white flex-shrink-0"
                         />
-
-                        {/* Name + bonus */}
                         <div className="flex-1 min-w-0">
                           <p className="font-bold text-[#1b1b1c] text-sm leading-tight truncate">{casino.name}</p>
                           {bonus && (
                             <p className="text-[10px] text-[#787585] leading-snug mt-0.5 line-clamp-2">{bonus}</p>
                           )}
                         </div>
-
-                        {/* CTA buttons */}
                         <div className="flex flex-col gap-1 flex-shrink-0">
                           <a
                             href={`/${lang}/mene/${casino.mene_slug}`}

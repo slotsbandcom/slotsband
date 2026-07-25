@@ -19,30 +19,41 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const urls: MetadataRoute.Sitemap = []
   const now = new Date()
 
-  // ─── Static pages ──────────────────────────────────────────────────────────
-  const staticPaths = [
-    "",
-    "/nettikasinot",
-    "/kasinobonukset",
-    "/kasinopelit",
-    "/kasinot",
-    "/talletustavat",
-    "/kotiutustavat",
-    "/ohjelmistot",
-    "/valmistaja",
-    "/lisenssi",
-    "/about",
-    "/contact",
-    "/responsible-gambling",
-  ]
+  // ─── Homepage ──────────────────────────────────────────────────────────────
+  for (const lang of LANGS) {
+    urls.push({ url: `${SITE_URL}/${lang}`, lastModified: now, changeFrequency: "daily", priority: 1.0 })
+  }
+
+  // ─── Code route hub pages (slugs from DB, per lang) ───────────────────────
+  const { data: codeRoutes } = await db
+    .from("pages")
+    .select("lang, slug, route_key")
+    .eq("is_code_route", true)
+    .eq("is_published", true)
+    .not("route_key", "is", null)
+
+  const codeRoutePriority: Record<string, number> = {
+    nettikasinot: 0.9,
+    kasinobonukset: 0.8,
+    kasinopelit: 0.8,
+    blogi: 0.7,
+  }
+
+  for (const row of codeRoutes ?? []) {
+    if (row.route_key === "home") continue // homepage already added above
+    urls.push({
+      url: `${SITE_URL}/${row.lang}/${row.slug}`,
+      lastModified: now,
+      changeFrequency: "weekly",
+      priority: codeRoutePriority[row.route_key as string] ?? 0.7,
+    })
+  }
+
+  // ─── Static (non-code) pages ───────────────────────────────────────────────
+  const staticPaths = ["/about", "/contact", "/responsible-gambling"]
   for (const lang of LANGS) {
     for (const path of staticPaths) {
-      urls.push({
-        url: `${SITE_URL}/${lang}${path}`,
-        lastModified: now,
-        changeFrequency: path === "" ? "daily" : "weekly",
-        priority: path === "" ? 1.0 : path === "/nettikasinot" ? 0.9 : 0.7,
-      })
+      urls.push({ url: `${SITE_URL}/${lang}${path}`, lastModified: now, changeFrequency: "weekly", priority: 0.5 })
     }
   }
 
@@ -51,25 +62,23 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     .from("casinos")
     .select("slug, updated_at")
     .eq("is_active", true)
+
+  // Build per-lang casino slug from code route slugs
+  const casinoSlugByLang: Record<string, string> = {}
+  for (const row of codeRoutes ?? []) {
+    if (row.route_key === "nettikasinot") casinoSlugByLang[row.lang as string] = row.slug as string
+  }
+
   for (const casino of casinos ?? []) {
     for (const lang of LANGS) {
+      const casinoBase = casinoSlugByLang[lang] || "nettikasinot"
       urls.push({
-        url: `${SITE_URL}/${lang}/nettikasinot/${casino.slug}`,
+        url: `${SITE_URL}/${lang}/${casinoBase}/${casino.slug}`,
         lastModified: casino.updated_at ? new Date(casino.updated_at) : now,
         changeFrequency: "monthly",
         priority: 0.8,
       })
     }
-  }
-
-  // ─── Blog index ────────────────────────────────────────────────────────────
-  for (const lang of LANGS) {
-    urls.push({
-      url: `${SITE_URL}/${lang}/blogi`,
-      lastModified: now,
-      changeFrequency: "weekly",
-      priority: 0.7,
-    })
   }
 
   // ─── Blog posts ────────────────────────────────────────────────────────────
@@ -102,6 +111,26 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     .in("taxonomy", ACTIVE_TAXONOMIES)
     .eq("is_active", true)
 
+  // Build per-lang taxonomy index slugs from code routes
+  const taxRouteKeyMap: Record<string, string> = {
+    "casino-category": "kasinot",
+    "deposit-method": "talletustavat",
+    "withdrawal-method": "kotiutustavat",
+    "software": "ohjelmistot",
+    "vendor": "valmistaja",
+    "licence": "lisenssi",
+  }
+  const taxSlugByLangAndTax: Record<string, Record<string, string>> = {}
+  for (const row of codeRoutes ?? []) {
+    const routeKey = row.route_key as string
+    for (const [tax, rk] of Object.entries(taxRouteKeyMap)) {
+      if (rk === routeKey) {
+        if (!taxSlugByLangAndTax[tax]) taxSlugByLangAndTax[tax] = {}
+        taxSlugByLangAndTax[tax][row.lang as string] = row.slug as string
+      }
+    }
+  }
+
   const LANG_SLUG: Record<string, "slug_fi" | "slug_en" | "slug_uk"> = {
     fi: "slug_fi",
     en: "slug_en",
@@ -113,8 +142,9 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     if (!config) continue
     for (const lang of LANGS) {
       const slug = term[LANG_SLUG[lang]]
+      const indexSlug = taxSlugByLangAndTax[term.taxonomy]?.[lang] || config.path
       urls.push({
-        url: `${SITE_URL}/${lang}/${config.path}/${slug}`,
+        url: `${SITE_URL}/${lang}/${indexSlug}/${slug}`,
         lastModified: now,
         changeFrequency: "weekly",
         priority: 0.6,

@@ -1,15 +1,18 @@
 import Link from "next/link"
 import type { Lang } from "@/lib/types"
+import type { RouteSlugMap } from "@/lib/supabase/route-slugs"
 import { TRANSLATIONS } from "@/lib/data"
 import { SlotsbandLogo } from "@/components/slotsband-logo"
 
 interface SiteFooterProps {
   lang: Lang
+  navSlugs?: RouteSlugMap
 }
 
-export function SiteFooter({ lang }: SiteFooterProps) {
+export function SiteFooter({ lang, navSlugs = {} }: SiteFooterProps) {
   const t = TRANSLATIONS[lang].footer
   const base = `/${lang}`
+  const ns = (key: string) => navSlugs[key] || key
 
   return (
     <footer className="w-full bg-[#2D1783]">
@@ -73,11 +76,11 @@ export function SiteFooter({ lang }: SiteFooterProps) {
               {t.quicklinks}
             </h5>
             <ul className="space-y-2.5 text-sm text-white/70">
-              <li><Link href={`${base}/nettikasinot`} className="hover:text-white transition-colors">{t.bestCasinos}</Link></li>
-              <li><Link href={`${base}/nettikasinot?filter=pikakasino`} className="hover:text-white transition-colors">{t.quickCasinos}</Link></li>
-              <li><Link href={`${base}/kasinobonukset`} className="hover:text-white transition-colors">{lang === "fi" ? "Kasinobonukset" : "Casino Bonuses"}</Link></li>
-              <li><Link href={`${base}/kasinopelit`} className="hover:text-white transition-colors">{lang === "fi" ? "Kasinopelit" : "Casino Games"}</Link></li>
-              <li><Link href={`${base}/rafflet`} className="hover:text-white transition-colors">{lang === "fi" ? "Rafflet" : "Raffles"}</Link></li>
+              <li><Link href={`${base}/${ns("nettikasinot")}`} className="hover:text-white transition-colors">{t.bestCasinos}</Link></li>
+              <li><Link href={`${base}/${ns("nettikasinot")}?filter=pikakasino`} className="hover:text-white transition-colors">{t.quickCasinos}</Link></li>
+              <li><Link href={`${base}/${ns("kasinobonukset")}`} className="hover:text-white transition-colors">{lang === "fi" ? "Kasinobonukset" : "Casino Bonuses"}</Link></li>
+              <li><Link href={`${base}/${ns("kasinopelit")}`} className="hover:text-white transition-colors">{lang === "fi" ? "Kasinopelit" : "Casino Games"}</Link></li>
+              <li><Link href={`${base}/${ns("rafflet")}`} className="hover:text-white transition-colors">{lang === "fi" ? "Rafflet" : "Raffles"}</Link></li>
             </ul>
           </div>
 

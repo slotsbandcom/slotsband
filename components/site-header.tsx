@@ -6,6 +6,7 @@ import { CasinoLogo } from "@/components/casino-logo"
 import { createPortal } from "react-dom"
 import { useRouter, usePathname } from "next/navigation"
 import type { Lang } from "@/lib/types"
+import type { RouteSlugMap } from "@/lib/supabase/route-slugs"
 import { TRANSLATIONS } from "@/lib/data"
 import { SlotsbandLogo } from "@/components/slotsband-logo"
 import { StreamDot } from "@/components/stream-status-badge"
@@ -32,6 +33,7 @@ interface Suggestion {
 
 interface SiteHeaderProps {
   lang: Lang
+  navSlugs?: RouteSlugMap
 }
 
 // Rendered via portal into document.body so z-index is never clipped by a parent stacking context.
@@ -89,7 +91,7 @@ function SuggestionsDropdown({ sugs, query, lang, activeIdx, onSelect, onViewAll
   )
 }
 
-export function SiteHeader({ lang }: SiteHeaderProps) {
+export function SiteHeader({ lang, navSlugs = {} }: SiteHeaderProps) {
   const t = TRANSLATIONS[lang]
   const router = useRouter()
   const pathname = usePathname()
@@ -169,12 +171,13 @@ export function SiteHeader({ lang }: SiteHeaderProps) {
   }, [query]) // eslint-disable-line react-hooks/exhaustive-deps
 
   const basePath = `/${lang}`
+  const ns = (key: string) => navSlugs[key] || key
   const navLinks = [
-    { label: t.nav.casinos, href: `${basePath}/nettikasinot` },
-    { label: t.nav.bonuses, href: `${basePath}/kasinobonukset` },
-    { label: t.nav.games, href: `${basePath}/kasinopelit` },
-    { label: t.nav.raffles, href: `${basePath}/rafflet` },
-    { label: t.nav.bonushunt, href: `${basePath}/bonushunt` },
+    { label: t.nav.casinos, href: `${basePath}/${ns("nettikasinot")}` },
+    { label: t.nav.bonuses, href: `${basePath}/${ns("kasinobonukset")}` },
+    { label: t.nav.games, href: `${basePath}/${ns("kasinopelit")}` },
+    { label: t.nav.raffles, href: `${basePath}/${ns("rafflet")}` },
+    { label: t.nav.bonushunt, href: `${basePath}/${ns("bonushunt")}` },
   ]
 
   // Replace the /[lang] prefix in the current URL to switch languages.
@@ -215,8 +218,8 @@ export function SiteHeader({ lang }: SiteHeaderProps) {
     } else if (e.key === "Enter") {
       e.preventDefault()
       if (activeIdx >= 0 && activeIdx < suggestions.length) {
-        const s = suggestions[activeIdx]
-        router.push(`/${lang}/nettikasinot/${s.slug}`)
+        const sel = suggestions[activeIdx]
+        router.push(`/${lang}/${navSlugs["nettikasinot"] || "nettikasinot"}/${sel.slug}`)
         setQuery(""); closeSugs()
       } else {
         handleSearch()
@@ -242,7 +245,7 @@ export function SiteHeader({ lang }: SiteHeaderProps) {
   }
 
   const handleSelectSuggestion = (slug: string) => {
-    router.push(`/${lang}/nettikasinot/${slug}`)
+    router.push(`/${lang}/${navSlugs["nettikasinot"] || "nettikasinot"}/${slug}`)
     setQuery("")
     closeSugs()
   }
@@ -367,7 +370,7 @@ export function SiteHeader({ lang }: SiteHeaderProps) {
           </div>
 
           <Link
-            href={`/${lang}/nettikasinot`}
+            href={`/${lang}/${navSlugs["nettikasinot"] || "nettikasinot"}`}
             className="hidden sm:inline-flex items-center bg-[#FFD700] text-[#2D1783] font-bold text-xs px-4 py-2 rounded-full hover:bg-[#ffe033] active:scale-95 transition-all whitespace-nowrap"
           >
             {t.hero.cta}
@@ -436,7 +439,7 @@ export function SiteHeader({ lang }: SiteHeaderProps) {
           </ul>
           <div className="px-4 pb-4 pt-1">
             <Link
-              href={`/${lang}/nettikasinot`}
+              href={`/${lang}/${navSlugs["nettikasinot"] || "nettikasinot"}`}
               onClick={() => setMobileOpen(false)}
               className="block w-full bg-[#FFD700] text-[#2D1783] font-bold text-sm py-3.5 rounded-xl text-center hover:bg-[#ffe033] active:scale-95 transition-all"
             >

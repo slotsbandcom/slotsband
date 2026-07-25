@@ -1,40 +1,6 @@
 import Link from "next/link"
-import type { Metadata } from "next"
 import { createClient } from "@/lib/supabase/server"
 import type { Lang } from "@/lib/types"
-import { getPageMeta } from "@/lib/supabase/page-meta"
-
-const VALID_LANGS: Lang[] = ["fi", "en", "uk"]
-const SITE_URL = "https://slotsband.com"
-
-interface PageProps {
-  params: Promise<{ lang: string }>
-}
-
-export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
-  const { lang: rawLang } = await params
-  const lang = (VALID_LANGS.includes(rawLang as Lang) ? rawLang : "fi") as Lang
-
-  const defaultTitle = lang === "fi" ? "Blogi | SlotsBand" : "Blog | SlotsBand"
-  const defaultDesc = lang === "fi"
-    ? "Lue SlotsBand kasinoblogia — vinkkejä, uutisia ja oppaita online kasinoista."
-    : "Read the SlotsBand casino blog — tips, news and guides about online casinos."
-
-  const { meta_title, meta_description } = await getPageMeta("blogi", lang)
-  return {
-    title: meta_title || defaultTitle,
-    description: meta_description || defaultDesc,
-    alternates: {
-      canonical: `${SITE_URL}/${lang}/blogi`,
-      languages: {
-        fi:      `${SITE_URL}/fi/blogi`,
-        en:      `${SITE_URL}/en/blogi`,
-        "en-GB": `${SITE_URL}/uk/blogi`,
-        "x-default": `${SITE_URL}/fi/blogi`,
-      },
-    },
-  }
-}
 
 function formatDate(iso: string | null, lang: Lang) {
   if (!iso) return null
@@ -44,10 +10,7 @@ function formatDate(iso: string | null, lang: Lang) {
   )
 }
 
-export default async function BlogIndexPage({ params }: PageProps) {
-  const { lang: rawLang } = await params
-  const lang = (VALID_LANGS.includes(rawLang as Lang) ? rawLang : "fi") as Lang
-
+export async function BlogiHub({ lang }: { lang: Lang }) {
   const supabase = await createClient()
   const { data: posts } = await supabase
     .from("blog_posts")
@@ -65,7 +28,6 @@ export default async function BlogIndexPage({ params }: PageProps) {
 
   return (
     <div className="min-h-screen bg-[#F8F9FD]">
-      {/* Header */}
       <div className="bg-white border-b border-[#E5E8F0]">
         <div className="max-w-[1100px] mx-auto px-4 md:px-8 py-10">
           <nav aria-label="Breadcrumb" className="flex items-center gap-1.5 text-xs text-[#787585] mb-4">
@@ -80,7 +42,6 @@ export default async function BlogIndexPage({ params }: PageProps) {
         </div>
       </div>
 
-      {/* Posts grid */}
       <div className="max-w-[1100px] mx-auto px-4 md:px-8 py-10">
         {!posts || posts.length === 0 ? (
           <div className="text-center py-20 text-[#787585]">
