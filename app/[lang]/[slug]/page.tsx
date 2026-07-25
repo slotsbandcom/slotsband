@@ -169,7 +169,7 @@ export default async function BlogPostPage({ params }: PageProps) {
         ) : (
           <div className="bg-white rounded-2xl border border-[#E5E8F0] p-6 md:p-10">
             <div
-              className="blog-content prose max-w-none"
+              className="casino-review"
               dangerouslySetInnerHTML={{ __html: content! }}
             />
           </div>
