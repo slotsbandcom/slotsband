@@ -6,6 +6,7 @@ import Link from "next/link"
 import { RichTextEditor } from "@/components/admin/RichTextEditor"
 
 type Lang = "fi" | "en" | "uk"
+type FaqItem = { q: string; a: string }
 const LANG_FLAGS: Record<Lang, string> = { fi: "🇫🇮", en: "🇬🇧", uk: "🇺🇦" }
 const LANG_LABEL: Record<Lang, string> = { fi: "FI", en: "EN", uk: "UK" }
 
@@ -78,6 +79,11 @@ export function TermFormPage({ termId, defaultTaxonomy }: TermFormPageProps) {
   const [imageUrl, setImageUrl] = useState("")
   const [sortOrder, setSortOrder] = useState("0")
   const [isActive, setIsActive] = useState(true)
+  // FAQ
+  const [faqFi, setFaqFi] = useState<FaqItem[]>([])
+  const [faqEn, setFaqEn] = useState<FaqItem[]>([])
+  const [faqUk, setFaqUk] = useState<FaqItem[]>([])
+
   const [loading, setLoading] = useState(isEdit)
   const [saving, setSaving] = useState<"idle" | "saving" | "ok" | "error">("idle")
   const [saveError, setSaveError] = useState<string | null>(null)
@@ -104,6 +110,9 @@ export function TermFormPage({ termId, defaultTaxonomy }: TermFormPageProps) {
         setImageUrl((term.image_url as string) ?? "")
         setSortOrder(String(term.sort_order ?? 0))
         setIsActive((term.is_active as boolean) ?? true)
+        setFaqFi(Array.isArray(term.faq_fi) ? (term.faq_fi as FaqItem[]) : [])
+        setFaqEn(Array.isArray(term.faq_en) ? (term.faq_en as FaqItem[]) : [])
+        setFaqUk(Array.isArray(term.faq_uk) ? (term.faq_uk as FaqItem[]) : [])
       })
       .finally(() => setLoading(false))
   }, [termId])
@@ -125,6 +134,9 @@ export function TermFormPage({ termId, defaultTaxonomy }: TermFormPageProps) {
         description_fi: descFi || null,
         description_en: descEn || null,
         description_uk: descUk || null,
+        faq_fi: faqFi.filter(f => f.q.trim() || f.a.trim()),
+        faq_en: faqEn.filter(f => f.q.trim() || f.a.trim()),
+        faq_uk: faqUk.filter(f => f.q.trim() || f.a.trim()),
         icon: icon || null,
         image_url: imageUrl.trim() || null,
         is_active: isActive,
@@ -411,6 +423,110 @@ export function TermFormPage({ termId, defaultTaxonomy }: TermFormPageProps) {
               )}
             </div>
           </div>
+
+          {/* FAQ section */}
+          {(() => {
+            const currentFaq = activeLang === "fi" ? faqFi : activeLang === "en" ? faqEn : faqUk
+            const setCurrentFaq = activeLang === "fi" ? setFaqFi : activeLang === "en" ? setFaqEn : setFaqUk
+
+            const addQuestion = () => setCurrentFaq(prev => [...prev, { q: "", a: "" }])
+            const deleteQuestion = (i: number) => setCurrentFaq(prev => prev.filter((_, j) => j !== i))
+            const updateQuestion = (i: number, field: "q" | "a", val: string) =>
+              setCurrentFaq(prev => { const copy = [...prev]; copy[i] = { ...copy[i], [field]: val }; return copy })
+            const copyFromFi = () => setCurrentFaq(faqFi.map(f => ({ q: f.q, a: f.a })))
+
+            const faqCount = (l: Lang) => (l === "fi" ? faqFi : l === "en" ? faqEn : faqUk).length
+
+            return (
+              <div className="bg-white rounded-2xl border border-[#E5E8F0] overflow-hidden">
+                <div className="flex items-center gap-2 px-5 py-3.5 border-b border-[#E5E8F0] bg-[#F8F9FD]">
+                  <span className="material-symbols-outlined text-[#2D1783] text-[18px]">help</span>
+                  <h3 className="text-sm font-bold text-[#1b1b1c]">FAQ</h3>
+                  <div className="flex items-center gap-2 ml-2">
+                    {(["fi", "en", "uk"] as Lang[]).map(l => faqCount(l) > 0 && (
+                      <span key={l} className="text-[10px] font-bold text-[#787585]">
+                        {LANG_LABEL[l]}: {faqCount(l)}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Tabs — shared with Content activeLang */}
+                <div className="flex border-b border-[#E5E8F0] px-5">
+                  {(["fi", "en", "uk"] as Lang[]).map(l => (
+                    <button key={l} type="button" onClick={() => setActiveLang(l)}
+                      className={`flex items-center gap-1.5 px-4 py-3 text-sm font-semibold border-b-2 -mb-px transition-colors ${
+                        activeLang === l ? "border-[#2D1783] text-[#2D1783]" : "border-transparent text-[#787585] hover:text-[#1b1b1c]"
+                      }`}>
+                      <span>{LANG_FLAGS[l]}</span> {LANG_LABEL[l]}
+                      {faqCount(l) > 0 && (
+                        <span className="ml-1 text-[10px] font-bold bg-[#2D1783]/10 text-[#2D1783] px-1.5 py-0.5 rounded-full">
+                          {faqCount(l)}
+                        </span>
+                      )}
+                    </button>
+                  ))}
+                </div>
+
+                <div className="p-5 space-y-3">
+                  {/* Copy from Finnish (EN/UK only, only when empty and FI has content) */}
+                  {activeLang !== "fi" && faqFi.length > 0 && currentFaq.length === 0 && (
+                    <button type="button" onClick={copyFromFi}
+                      className="w-full flex items-center justify-center gap-2 border border-dashed border-[#2D1783]/40 text-[#2D1783] text-sm font-semibold py-3 rounded-xl hover:bg-[#2D1783]/5 transition-colors">
+                      <span className="material-symbols-outlined text-[18px]">file_copy</span>
+                      Copy from Finnish ({faqFi.length} questions — ready to translate)
+                    </button>
+                  )}
+
+                  {/* FAQ items */}
+                  {currentFaq.map((faq, i) => (
+                    <div key={i} className="bg-[#F8F9FD] border border-[#E5E8F0] rounded-xl p-4 space-y-3">
+                      <div className="flex items-center justify-between">
+                        <span className="text-xs font-bold text-[#787585]">#{i + 1}</span>
+                        <button type="button" onClick={() => deleteQuestion(i)}
+                          className="w-6 h-6 flex items-center justify-center rounded-lg text-[#787585] hover:text-red-500 hover:bg-red-50 transition-colors">
+                          <span className="material-symbols-outlined text-[16px]">delete</span>
+                        </button>
+                      </div>
+                      <div>
+                        <label className="block text-[10px] font-bold text-[#474554] uppercase tracking-wider mb-1">Question</label>
+                        <input
+                          type="text"
+                          value={faq.q}
+                          onChange={e => updateQuestion(i, "q", e.target.value)}
+                          placeholder="Enter question..."
+                          className="w-full bg-white border border-[#E5E8F0] focus:border-[#2D1783] focus:outline-none rounded-lg px-3 py-2 text-sm"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-[10px] font-bold text-[#474554] uppercase tracking-wider mb-1">Answer</label>
+                        <textarea
+                          value={faq.a}
+                          onChange={e => updateQuestion(i, "a", e.target.value)}
+                          placeholder="Enter answer (HTML allowed)..."
+                          rows={3}
+                          className="w-full bg-white border border-[#E5E8F0] focus:border-[#2D1783] focus:outline-none rounded-lg px-3 py-2 text-sm resize-y"
+                        />
+                      </div>
+                    </div>
+                  ))}
+
+                  <button type="button" onClick={addQuestion}
+                    className="flex items-center gap-1.5 text-sm font-bold text-[#2D1783] hover:text-[#3e2db2] transition-colors mt-1">
+                    <span className="material-symbols-outlined text-[18px]">add_circle</span>
+                    Add Question
+                  </button>
+
+                  {currentFaq.length === 0 && activeLang === "fi" && (
+                    <p className="text-xs text-[#787585] text-center py-4">No FAQ questions yet. Click &quot;Add Question&quot; to start.</p>
+                  )}
+                  {currentFaq.length === 0 && activeLang !== "fi" && faqFi.length === 0 && (
+                    <p className="text-xs text-[#787585] text-center py-4">No FAQ questions yet. Add FI questions first.</p>
+                  )}
+                </div>
+              </div>
+            )
+          })()}
         </div>
 
         {/* Right sidebar */}

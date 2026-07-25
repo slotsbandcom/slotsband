@@ -13,6 +13,7 @@ const ALLOWED = [
   "slug_fi", "slug_en", "slug_uk",
   "name_fi", "name_en", "name_uk",
   "description_fi", "description_en", "description_uk",
+  "faq_fi", "faq_en", "faq_uk",
   "icon", "image_url", "is_active", "sort_order",
 ]
 
