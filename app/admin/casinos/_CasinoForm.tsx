@@ -914,6 +914,13 @@ export function CasinoForm({ slug, createMode = false }: { slug?: string; create
   const [saveError, setSaveError] = useState<string | null>(null)
   const [slugManual, setSlugManual] = useState(false)
 
+  type AffiliateStats = {
+    total: number; this_month: number; last_click: string
+    by_lang: Record<string, number>; by_lang_count: Record<string, number>
+  }
+  const [affiliateStats, setAffiliateStats] = useState<AffiliateStats | null>(null)
+  const [statsLoading, setStatsLoading] = useState(false)
+
   useEffect(() => {
     if (createMode || !slug) return
     fetch(`/api/admin/casinos/${slug}`)
@@ -921,6 +928,15 @@ export function CasinoForm({ slug, createMode = false }: { slug?: string; create
       .then(data => { if (data) setForm(data) })
       .finally(() => setLoading(false))
   }, [slug, createMode])
+
+  useEffect(() => {
+    if (activeTab !== "affiliate" || createMode || !slug) return
+    setStatsLoading(true)
+    fetch(`/api/admin/casinos/${slug}/affiliate-stats`)
+      .then(r => r.ok ? r.json() : null)
+      .then(data => { if (data) setAffiliateStats(data) })
+      .finally(() => setStatsLoading(false))
+  }, [activeTab, slug, createMode])
 
   const patch = useCallback((p: Partial<Casino>) => {
     setForm(prev => ({ ...prev, ...p }))
@@ -992,7 +1008,7 @@ export function CasinoForm({ slug, createMode = false }: { slug?: string; create
   const relAttr = [nofollow && "nofollow", sponsored && "sponsored", noopener && "noopener"].filter(Boolean).join(" ")
   const aTag = `<a href="/fi/mene/${form.mene_slug}"\n   ${newTab ? 'target="_blank"\n   ' : ""}${relAttr ? `rel="${relAttr}"\n   ` : ""}>\n  Pelaa nyt\n</a>`
 
-  const MOCK_STATS = { total: 0, month: 0, last: "—", by_lang: { fi: 68, en: 22, uk: 10 } }
+  const stats = affiliateStats ?? { total: 0, this_month: 0, last_click: "—", by_lang: {} as Record<string, number> }
 
   if (loading) {
     return (
@@ -1178,9 +1194,9 @@ export function CasinoForm({ slug, createMode = false }: { slug?: string; create
               <SectionCard title="Link Stats" icon="bar_chart">
                 <div className="grid grid-cols-3 gap-4 mb-4">
                   {[
-                    { label: "Total Clicks", value: MOCK_STATS.total.toLocaleString(), icon: "click" },
-                    { label: "This Month", value: MOCK_STATS.month.toLocaleString(), icon: "calendar_month" },
-                    { label: "Last Click", value: MOCK_STATS.last, icon: "schedule" },
+                    { label: "Total Clicks", value: statsLoading ? "…" : stats.total.toLocaleString(), icon: "click" },
+                    { label: "This Month",   value: statsLoading ? "…" : stats.this_month.toLocaleString(), icon: "calendar_month" },
+                    { label: "Last Click",   value: statsLoading ? "…" : stats.last_click, icon: "schedule" },
                   ].map(s => (
                     <div key={s.label} className="bg-[#F8F9FD] border border-[#E5E8F0] rounded-xl p-3 text-center">
                       <span className="material-symbols-outlined text-[#2D1783] text-[20px] block mb-1">{s.icon}</span>
@@ -1190,18 +1206,39 @@ export function CasinoForm({ slug, createMode = false }: { slug?: string; create
                   ))}
                 </div>
                 <div>
-                  <Label>Clicks by Language</Label>
-                  <div className="space-y-2 mt-1">
-                    {Object.entries(MOCK_STATS.by_lang).map(([lang, pct]) => (
-                      <div key={lang} className="flex items-center gap-3">
-                        <span className="text-xs font-bold uppercase text-[#787585] w-5">{lang}</span>
-                        <div className="flex-1 bg-[#E5E8F0] rounded-full h-2">
-                          <div className="h-2 rounded-full bg-[#2D1783] transition-all" style={{ width: `${pct}%` }} />
-                        </div>
-                        <span className="text-xs font-bold text-[#474554]">{pct}%</span>
-                      </div>
-                    ))}
+                  <div className="flex items-center justify-between mb-1">
+                    <Label>Clicks by Language</Label>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        if (!slug || createMode) return
+                        setStatsLoading(true)
+                        fetch(`/api/admin/casinos/${slug}/affiliate-stats`)
+                          .then(r => r.ok ? r.json() : null)
+                          .then(data => { if (data) setAffiliateStats(data) })
+                          .finally(() => setStatsLoading(false))
+                      }}
+                      className="flex items-center gap-1 text-[10px] text-[#787585] hover:text-[#2D1783] transition-colors"
+                    >
+                      <span className={`material-symbols-outlined text-[13px] ${statsLoading ? "animate-spin" : ""}`}>refresh</span>
+                      Refresh
+                    </button>
                   </div>
+                  {Object.keys(stats.by_lang).length === 0 && !statsLoading ? (
+                    <p className="text-xs text-[#787585] py-2">No clicks recorded yet.</p>
+                  ) : (
+                    <div className="space-y-2 mt-1">
+                      {Object.entries(stats.by_lang).map(([lang, pct]) => (
+                        <div key={lang} className="flex items-center gap-3">
+                          <span className="text-xs font-bold uppercase text-[#787585] w-5">{lang}</span>
+                          <div className="flex-1 bg-[#E5E8F0] rounded-full h-2">
+                            <div className="h-2 rounded-full bg-[#2D1783] transition-all" style={{ width: `${pct}%` }} />
+                          </div>
+                          <span className="text-xs font-bold text-[#474554]">{pct}%</span>
+                        </div>
+                      ))}
+                    </div>
+                  )}
                 </div>
               </SectionCard>
               <SectionCard title="Link Settings & Code Generator" icon="code">

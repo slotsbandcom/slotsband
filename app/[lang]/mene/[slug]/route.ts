@@ -20,7 +20,6 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
     return NextResponse.redirect(new URL(`/${lang}/nettikasinot`, request.url))
   }
 
-  // Log affiliate click
   await supabase.from("affiliate_clicks").insert({
     casino_id: casino.id,
     casino_slug: casino.slug,
