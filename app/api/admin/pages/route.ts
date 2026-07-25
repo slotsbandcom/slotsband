@@ -14,7 +14,7 @@ export async function GET() {
   const db = adminDb()
   const { data, error } = await db
     .from("pages")
-    .select("id, slug, lang, title, is_published, created_at, updated_at")
+    .select("id, slug, lang, title, is_published, is_code_route, created_at, updated_at")
     .order("slug", { ascending: true })
     .order("lang", { ascending: true })
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })

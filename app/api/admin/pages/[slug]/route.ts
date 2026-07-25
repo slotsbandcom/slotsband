@@ -29,7 +29,7 @@ export async function GET(_req: NextRequest, { params }: Params) {
 }
 
 // PATCH — upsert rows for provided langs
-// Body: { fi?: LangData, en?: LangData, uk?: LangData }
+// Body: { is_code_route?: boolean, fi?: LangData, en?: LangData, uk?: LangData }
 export async function PATCH(req: NextRequest, { params }: Params) {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
@@ -38,6 +38,7 @@ export async function PATCH(req: NextRequest, { params }: Params) {
   const { slug } = await params
   const body = await req.json()
   const db = adminDb()
+  const isCodeRoute = body.is_code_route ?? false
   const rows = []
 
   for (const lang of ["fi", "en", "uk"] as const) {
@@ -52,6 +53,7 @@ export async function PATCH(req: NextRequest, { params }: Params) {
       meta_title: d.meta_title?.trim() || null,
       meta_description: d.meta_description?.trim() || null,
       is_published: d.is_published ?? false,
+      is_code_route: isCodeRoute,
     })
   }
 
@@ -69,7 +71,7 @@ export async function PATCH(req: NextRequest, { params }: Params) {
   return NextResponse.json(result)
 }
 
-// DELETE — remove all lang rows for this slug
+// DELETE — remove all lang rows for this slug (blocked for code routes)
 export async function DELETE(_req: NextRequest, { params }: Params) {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
@@ -77,6 +79,13 @@ export async function DELETE(_req: NextRequest, { params }: Params) {
 
   const { slug } = await params
   const db = adminDb()
+
+  // Prevent deleting built-in code routes
+  const { data: existing } = await db.from("pages").select("is_code_route").eq("slug", slug).limit(1).single()
+  if (existing?.is_code_route) {
+    return NextResponse.json({ error: "Cannot delete a built-in code route" }, { status: 403 })
+  }
+
   const { error } = await db.from("pages").delete().eq("slug", slug)
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
   return NextResponse.json({ ok: true })

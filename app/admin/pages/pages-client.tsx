@@ -12,6 +12,7 @@ interface PageRow {
   lang: string
   title: string
   is_published: boolean
+  is_code_route: boolean
   created_at: string
   updated_at: string
 }
@@ -19,6 +20,7 @@ interface PageRow {
 interface GroupedPage {
   slug: string
   langs: { lang: Lang; title: string; is_published: boolean }[]
+  is_code_route: boolean
   created_at: string
 }
 
@@ -26,9 +28,11 @@ function groupPages(rows: PageRow[]): GroupedPage[] {
   const map = new Map<string, GroupedPage>()
   for (const row of rows) {
     if (!map.has(row.slug)) {
-      map.set(row.slug, { slug: row.slug, langs: [], created_at: row.created_at })
+      map.set(row.slug, { slug: row.slug, langs: [], is_code_route: false, created_at: row.created_at })
     }
-    map.get(row.slug)!.langs.push({
+    const group = map.get(row.slug)!
+    if (row.is_code_route) group.is_code_route = true
+    group.langs.push({
       lang: row.lang as Lang,
       title: row.title,
       is_published: row.is_published,
@@ -113,7 +117,12 @@ export function PagesClient() {
                           <span className="material-symbols-outlined text-[#2D1783] text-[15px]">description</span>
                         </div>
                         <div>
-                          <p className="font-semibold text-[#1b1b1c]">{title}</p>
+                          <div className="flex items-center gap-2">
+                            <p className="font-semibold text-[#1b1b1c]">{title}</p>
+                            {page.is_code_route && (
+                              <span className="text-[9px] font-bold uppercase tracking-wider text-[#2D1783] bg-[#2D1783]/10 px-1.5 py-0.5 rounded-md">Route</span>
+                            )}
+                          </div>
                           <span className={`text-[10px] font-bold ${anyPublished ? "text-[#27AE60]" : "text-[#787585]"}`}>
                             {anyPublished ? "● Published" : "○ Draft"}
                           </span>

@@ -35,26 +35,30 @@ function Label({ children }: { children: React.ReactNode }) {
   return <label className="block text-xs font-bold text-[#474554] uppercase tracking-wider mb-1.5">{children}</label>
 }
 
-function LangCard({ lang, data, onChange }: {
-  lang: Lang; data: LangData; onChange: (d: Partial<LangData>) => void
+function LangCard({ lang, data, onChange, seoOnly = false }: {
+  lang: Lang; data: LangData; onChange: (d: Partial<LangData>) => void; seoOnly?: boolean
 }) {
   return (
     <div className="space-y-5">
-      <div>
-        <Label>Title ({lang.toUpperCase()}) {lang === "fi" && <span className="text-[#E74C3C]">*</span>}</Label>
-        <input type="text" value={data.title}
-          onChange={e => onChange({ title: e.target.value })}
-          placeholder={lang === "fi" ? "Finnish title..." : lang === "en" ? "English title..." : "UK English title..."}
-          className="w-full bg-[#F8F9FD] border border-[#E5E8F0] rounded-xl px-4 py-2.5 text-sm focus:border-[#2D1783] focus:outline-none" />
-      </div>
-      <div>
-        <Label>Content ({lang.toUpperCase()})</Label>
-        <RichTextEditor
-          value={data.content}
-          onChange={v => onChange({ content: v })}
-          placeholder={`Write ${lang === "fi" ? "Finnish" : lang === "en" ? "English" : "UK English"} content...`}
-        />
-      </div>
+      {!seoOnly && (
+        <div>
+          <Label>Title ({lang.toUpperCase()}) {lang === "fi" && <span className="text-[#E74C3C]">*</span>}</Label>
+          <input type="text" value={data.title}
+            onChange={e => onChange({ title: e.target.value })}
+            placeholder={lang === "fi" ? "Finnish title..." : lang === "en" ? "English title..." : "UK English title..."}
+            className="w-full bg-[#F8F9FD] border border-[#E5E8F0] rounded-xl px-4 py-2.5 text-sm focus:border-[#2D1783] focus:outline-none" />
+        </div>
+      )}
+      {!seoOnly && (
+        <div>
+          <Label>Content ({lang.toUpperCase()})</Label>
+          <RichTextEditor
+            value={data.content}
+            onChange={v => onChange({ content: v })}
+            placeholder={`Write ${lang === "fi" ? "Finnish" : lang === "en" ? "English" : "UK English"} content...`}
+          />
+        </div>
+      )}
       <div className="bg-[#F8F9FD] rounded-xl p-4 space-y-3">
         <p className="text-xs font-bold text-[#474554] uppercase tracking-wider">SEO ({lang.toUpperCase()})</p>
         <div>
@@ -100,6 +104,7 @@ export function PageForm({ pageSlug, createMode = false }: { pageSlug?: string; 
   const [form, setForm] = useState<FormState>({
     slug: "", fi: { ...EMPTY_LANG }, en: { ...EMPTY_LANG }, uk: { ...EMPTY_LANG },
   })
+  const [isCodeRoute, setIsCodeRoute] = useState(false)
   const [loading, setLoading] = useState(!createMode)
   const [activeLang, setActiveLang] = useState<Lang>("fi")
   const [saved, setSaved] = useState<"idle" | "saving" | "ok" | "error">("idle")
@@ -120,6 +125,8 @@ export function PageForm({ pageSlug, createMode = false }: { pageSlug?: string; 
           meta_description: (row?.meta_description as string) || "",
           is_published: (row?.is_published as boolean) ?? false,
         })
+        const anyCodeRoute = [data.fi, data.en, data.uk].some(r => r?.is_code_route)
+        setIsCodeRoute(!!anyCodeRoute)
         setForm({
           slug: data.slug || pageSlug,
           fi: toLangData(data.fi),
@@ -142,19 +149,19 @@ export function PageForm({ pageSlug, createMode = false }: { pageSlug?: string; 
   }
 
   const save = async () => {
-    if (!form.fi.title.trim()) { setSaveError("Finnish title is required"); return }
+    if (!isCodeRoute && !form.fi.title.trim()) { setSaveError("Finnish title is required"); return }
     if (!form.slug.trim()) { setSaveError("Slug is required"); return }
     setSaved("saving"); setSaveError(null)
     try {
       const endpoint = createMode ? "/api/admin/pages" : `/api/admin/pages/${encodeURIComponent(pageSlug!)}`
       const method = createMode ? "POST" : "PATCH"
-      const body: Record<string, unknown> = { slug: form.slug.trim() }
+      const body: Record<string, unknown> = { slug: form.slug.trim(), is_code_route: isCodeRoute }
       for (const lang of ["fi", "en", "uk"] as Lang[]) {
         const d = form[lang]
-        if (lang !== "fi" && !d.title.trim()) continue
+        if (!isCodeRoute && lang !== "fi" && !d.title.trim()) continue
         body[lang] = {
           title: d.title.trim(),
-          content: d.content || null,
+          content: isCodeRoute ? null : (d.content || null),
           meta_title: d.meta_title.trim() || null,
           meta_description: d.meta_description.trim() || null,
           is_published: d.is_published,
@@ -208,12 +215,17 @@ export function PageForm({ pageSlug, createMode = false }: { pageSlug?: string; 
               <span className="material-symbols-outlined text-[16px] text-[#474554]">arrow_back</span>
             </Link>
             <div className="w-9 h-9 rounded-xl bg-[#2D1783]/10 flex items-center justify-center">
-              <span className="material-symbols-outlined text-[#2D1783] text-[18px]">description</span>
+              <span className="material-symbols-outlined text-[#2D1783] text-[18px]">{isCodeRoute ? "code" : "description"}</span>
             </div>
             <div>
-              <h1 className="font-display font-bold text-lg text-[#1b1b1c]">
-                {createMode ? "New Page" : (form.fi.title || "Edit Page")}
-              </h1>
+              <div className="flex items-center gap-2">
+                <h1 className="font-display font-bold text-lg text-[#1b1b1c]">
+                  {createMode ? "New Page" : (form.fi.title || "Edit Page")}
+                </h1>
+                {isCodeRoute && (
+                  <span className="text-[9px] font-bold uppercase tracking-wider text-[#2D1783] bg-[#2D1783]/10 px-1.5 py-0.5 rounded-md">Route</span>
+                )}
+              </div>
               <p className="text-xs text-[#787585] font-mono">/{form.slug || "..."}</p>
             </div>
           </div>
@@ -251,18 +263,31 @@ export function PageForm({ pageSlug, createMode = false }: { pageSlug?: string; 
         </div>
       )}
 
+      {/* Code route notice */}
+      {isCodeRoute && (
+        <div className="mb-5 flex items-start gap-3 bg-[#2D1783]/5 border border-[#2D1783]/20 rounded-xl px-4 py-3.5">
+          <span className="material-symbols-outlined text-[#2D1783] text-[18px] flex-shrink-0 mt-0.5">info</span>
+          <div>
+            <p className="text-sm font-bold text-[#2D1783]">Built-in code route</p>
+            <p className="text-xs text-[#474554] mt-0.5">This page is rendered by hardcoded Next.js routes. Only the meta title and meta description can be edited here — the page content and layout are controlled by the code.</p>
+          </div>
+        </div>
+      )}
+
       {/* Slug (shared across all langs) */}
       <div className="bg-white rounded-2xl border border-[#E5E8F0] p-5 mb-5">
         <div className="flex items-center gap-4">
           <div className="flex-1">
             <div className="flex items-center justify-between mb-1.5">
               <Label>Slug <span className="text-[#E74C3C]">*</span></Label>
-              {createMode && <span className="text-[10px] text-[#787585]">{slugManual ? "manual" : "auto from FI title"}</span>}
+              {createMode && !isCodeRoute && <span className="text-[10px] text-[#787585]">{slugManual ? "manual" : "auto from FI title"}</span>}
+              {isCodeRoute && <span className="text-[10px] text-[#787585]">read-only</span>}
             </div>
             <input type="text" value={form.slug}
-              onChange={e => { setSlugManual(true); setForm(prev => ({ ...prev, slug: e.target.value })) }}
+              readOnly={isCodeRoute}
+              onChange={e => { if (!isCodeRoute) { setSlugManual(true); setForm(prev => ({ ...prev, slug: e.target.value })) } }}
               placeholder="page-slug"
-              className="w-full bg-[#F8F9FD] border border-[#E5E8F0] rounded-xl px-4 py-2.5 text-sm font-mono focus:border-[#2D1783] focus:outline-none" />
+              className={`w-full bg-[#F8F9FD] border border-[#E5E8F0] rounded-xl px-4 py-2.5 text-sm font-mono focus:border-[#2D1783] focus:outline-none ${isCodeRoute ? "opacity-60 cursor-default" : ""}`} />
           </div>
           <div className="text-xs text-[#787585] space-y-0.5 flex-shrink-0 pt-6">
             <p>slotsband.com/fi/{form.slug || "..."}</p>
@@ -294,19 +319,19 @@ export function PageForm({ pageSlug, createMode = false }: { pageSlug?: string; 
         </div>
         <div className="p-5">
           {activeLang === "fi" && (
-            <LangCard lang="fi" data={form.fi}
+            <LangCard lang="fi" data={form.fi} seoOnly={isCodeRoute}
               onChange={p => {
-                if ("title" in p && typeof p.title === "string") handleTitleFiChange(p.title)
+                if (!isCodeRoute && "title" in p && typeof p.title === "string") handleTitleFiChange(p.title)
                 else patchLang("fi", p)
               }} />
           )}
-          {activeLang === "en" && <LangCard lang="en" data={form.en} onChange={p => patchLang("en", p)} />}
-          {activeLang === "uk" && <LangCard lang="uk" data={form.uk} onChange={p => patchLang("uk", p)} />}
+          {activeLang === "en" && <LangCard lang="en" data={form.en} seoOnly={isCodeRoute} onChange={p => patchLang("en", p)} />}
+          {activeLang === "uk" && <LangCard lang="uk" data={form.uk} seoOnly={isCodeRoute} onChange={p => patchLang("uk", p)} />}
         </div>
       </div>
 
       {/* Delete */}
-      {!createMode && (
+      {!createMode && !isCodeRoute && (
         <div className="mt-5 bg-white rounded-2xl border border-red-100 overflow-hidden">
           <div className="flex items-center gap-2 px-5 py-3.5 border-b border-red-100 bg-red-50/50">
             <span className="material-symbols-outlined text-red-500 text-[18px]">delete_forever</span>

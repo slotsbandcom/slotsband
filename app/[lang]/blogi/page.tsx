@@ -2,6 +2,7 @@ import Link from "next/link"
 import type { Metadata } from "next"
 import { createClient } from "@/lib/supabase/server"
 import type { Lang } from "@/lib/types"
+import { getPageMeta } from "@/lib/supabase/page-meta"
 
 const VALID_LANGS: Lang[] = ["fi", "en", "uk"]
 const SITE_URL = "https://slotsband.com"
@@ -14,14 +15,15 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
   const { lang: rawLang } = await params
   const lang = (VALID_LANGS.includes(rawLang as Lang) ? rawLang : "fi") as Lang
 
-  const title = lang === "fi" ? "Blogi | SlotsBand" : "Blog | SlotsBand"
-  const desc = lang === "fi"
+  const defaultTitle = lang === "fi" ? "Blogi | SlotsBand" : "Blog | SlotsBand"
+  const defaultDesc = lang === "fi"
     ? "Lue SlotsBand kasinoblogia — vinkkejä, uutisia ja oppaita online kasinoista."
     : "Read the SlotsBand casino blog — tips, news and guides about online casinos."
 
+  const { meta_title, meta_description } = await getPageMeta("blogi", lang)
   return {
-    title,
-    description: desc,
+    title: meta_title || defaultTitle,
+    description: meta_description || defaultDesc,
     alternates: {
       canonical: `${SITE_URL}/${lang}/blogi`,
       languages: {

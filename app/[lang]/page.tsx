@@ -2,6 +2,7 @@ import type { Metadata } from "next"
 import type { Lang } from "@/lib/types"
 import { TRANSLATIONS } from "@/lib/data"
 import { getCasinos } from "@/lib/supabase/queries"
+import { getPageMeta } from "@/lib/supabase/page-meta"
 import { HeroSlider } from "@/components/hero-slider"
 import { StreamStatusBadge } from "@/components/stream-status-badge"
 import { CasinoListExpandable } from "@/components/casino-list-expandable"
@@ -32,9 +33,10 @@ export async function generateMetadata({ params }: HomePageProps): Promise<Metad
     en: "Find the best online casinos 2026. Exclusive bonuses, fast payouts, expert reviews. Trusted casino guide.",
   }
 
+  const { meta_title, meta_description } = await getPageMeta("home", safeLang)
   return {
-    title: titles[safeLang],
-    description: descs[safeLang],
+    title: meta_title || titles[safeLang],
+    description: meta_description || descs[safeLang],
   }
 }
 

@@ -10,6 +10,7 @@ import {
   getTermDescription,
 } from "@/lib/supabase/taxonomy-queries"
 import { TAXONOMY_CONFIG_BY_TAXONOMY } from "@/lib/taxonomy-config"
+import { getPageMeta } from "@/lib/supabase/page-meta"
 
 export const VALID_LANGS: Lang[] = ["fi", "uk", "en"]
 export const SITE_URL = "https://slotsband.com"
@@ -24,8 +25,9 @@ export async function buildIndexMetadata(taxonomy: string, lang: Lang): Promise<
   const config = TAXONOMY_CONFIG_BY_TAXONOMY[taxonomy]
   if (!config) return {}
   const l = config.labels[lang]
-  const title = `${l.title} 2026 | SlotsBand`
-  const desc = l.subtitle
+  const { meta_title, meta_description } = await getPageMeta(config.path, lang)
+  const title = meta_title || `${l.title} 2026 | SlotsBand`
+  const desc = meta_description || l.subtitle
   return {
     title,
     description: desc,
