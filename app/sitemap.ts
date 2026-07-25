@@ -62,6 +62,38 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     }
   }
 
+  // ─── Blog index ────────────────────────────────────────────────────────────
+  for (const lang of LANGS) {
+    urls.push({
+      url: `${SITE_URL}/${lang}/blogi`,
+      lastModified: now,
+      changeFrequency: "weekly",
+      priority: 0.7,
+    })
+  }
+
+  // ─── Blog posts ────────────────────────────────────────────────────────────
+  const { data: blogPosts } = await db
+    .from("blog_posts")
+    .select("slug_fi, slug_en, slug_uk, published_at")
+    .eq("is_active", true)
+
+  for (const post of blogPosts ?? []) {
+    const slugs: Record<string, string> = {
+      fi: post.slug_fi,
+      en: post.slug_en ?? post.slug_fi,
+      uk: post.slug_uk ?? post.slug_fi,
+    }
+    for (const lang of LANGS) {
+      urls.push({
+        url: `${SITE_URL}/${lang}/${slugs[lang]}`,
+        lastModified: post.published_at ? new Date(post.published_at) : now,
+        changeFrequency: "monthly",
+        priority: 0.6,
+      })
+    }
+  }
+
   // ─── Taxonomy term pages ───────────────────────────────────────────────────
   const ACTIVE_TAXONOMIES = TAXONOMY_CONFIGS.map((c) => c.taxonomy)
   const { data: terms } = await db
