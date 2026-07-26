@@ -155,37 +155,19 @@ export default function NettikasinotPage({
   const FilterPanel = ({ mobile }: { mobile: boolean }) => (
     <div className={mobile ? "p-4 space-y-5" : "p-5 space-y-6"}>
       {/* Quick toggles */}
-      <div className={mobile ? "space-y-3" : "space-y-2.5"}>
+      <div className={mobile ? "space-y-2" : "space-y-2"}>
         {quickToggles.map((item) => (
-          <div
-            key={item.label}
-            className={`flex items-center ${mobile ? "justify-between" : "gap-3"} cursor-pointer ${mobile ? "" : "group"}`}
-            onClick={() => item.setter(!item.value)}
-          >
-            {!mobile && (
-              <button
-                role="switch"
-                aria-checked={item.value}
-                onClick={(e) => { e.stopPropagation(); item.setter(!item.value) }}
-                className={`w-10 h-6 rounded-full relative transition-colors flex-shrink-0 ${item.value ? "bg-[#2D1783]" : "bg-[#E5E8F0]"}`}
-              >
-                <span className={`absolute top-1 w-4 h-4 bg-white rounded-full shadow transition-transform ${item.value ? "translate-x-5" : "translate-x-1"}`} />
-              </button>
-            )}
-            <span className={`text-sm text-[#474554] font-medium ${mobile ? "" : "group-hover:text-[#2D1783] transition-colors"}`}>
+          <label key={item.label} className="flex items-center gap-2.5 cursor-pointer group">
+            <input
+              type="checkbox"
+              checked={item.value}
+              onChange={() => item.setter(!item.value)}
+              className="w-4 h-4 rounded border-[#E5E8F0] accent-[#2D1783]"
+            />
+            <span className="text-sm text-[#474554] font-medium group-hover:text-[#2D1783] transition-colors flex-1">
               {item.label}
             </span>
-            {mobile && (
-              <button
-                role="switch"
-                aria-checked={item.value}
-                onClick={(e) => { e.stopPropagation(); item.setter(!item.value) }}
-                className={`w-10 h-6 rounded-full relative transition-colors ${item.value ? "bg-[#2D1783]" : "bg-[#E5E8F0]"}`}
-              >
-                <span className={`absolute top-1 w-4 h-4 bg-white rounded-full shadow transition-transform ${item.value ? "translate-x-5" : "translate-x-1"}`} />
-              </button>
-            )}
-          </div>
+          </label>
         ))}
       </div>
 
