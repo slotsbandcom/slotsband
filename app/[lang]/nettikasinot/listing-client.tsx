@@ -167,9 +167,9 @@ export default function NettikasinotPage({
                 role="switch"
                 aria-checked={item.value}
                 onClick={(e) => { e.stopPropagation(); item.setter(!item.value) }}
-                className={`w-9 h-5 rounded-full relative transition-colors flex-shrink-0 ${item.value ? "bg-[#2D1783]" : "bg-[#E5E8F0]"}`}
+                className={`w-10 h-6 rounded-full relative transition-colors flex-shrink-0 ${item.value ? "bg-[#2D1783]" : "bg-[#E5E8F0]"}`}
               >
-                <span className={`absolute top-0.5 w-4 h-4 bg-white rounded-full shadow transition-transform ${item.value ? "translate-x-4" : "translate-x-0.5"}`} />
+                <span className={`absolute top-1 w-4 h-4 bg-white rounded-full shadow transition-transform ${item.value ? "translate-x-5" : "translate-x-1"}`} />
               </button>
             )}
             <span className={`text-sm text-[#474554] font-medium ${mobile ? "" : "group-hover:text-[#2D1783] transition-colors"}`}>
