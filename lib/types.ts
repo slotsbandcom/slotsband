@@ -53,6 +53,9 @@ export interface Casino {
   loyalty_program?: boolean
   vip_program?: boolean
 
+  // Taxonomy term IDs from casino_taxonomy_terms join (populated by getCasinosWithTermIds)
+  term_ids?: string[]
+
   // Payments
   min_deposit?: number
   max_withdrawal_per_day?: number

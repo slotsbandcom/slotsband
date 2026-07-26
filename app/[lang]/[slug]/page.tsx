@@ -201,6 +201,7 @@ function getBonusLabel(casino: SidebarCasino): string {
 
 interface PageProps {
   params: Promise<{ lang: string; slug: string }>
+  searchParams?: Promise<{ [key: string]: string | string[] | undefined }>
 }
 
 export async function generateStaticParams() {
@@ -294,9 +295,11 @@ function formatDate(iso: string | null, lang: Lang) {
   )
 }
 
-export default async function CatchAllPage({ params }: PageProps) {
+export default async function CatchAllPage({ params, searchParams }: PageProps) {
   const { lang: rawLang, slug } = await params
   const lang = (VALID_LANGS.includes(rawLang as Lang) ? rawLang : "fi") as Lang
+  const sp = searchParams ? await searchParams : {}
+  const initialFilter = typeof sp.filter === "string" ? sp.filter : null
 
   // ── 1. Code route ──────────────────────────────────────────────────────────
   const codeRoute = await getCodeRoute(lang, slug)
@@ -315,7 +318,7 @@ export default async function CatchAllPage({ params }: PageProps) {
 
     switch (route_key) {
       case "nettikasinot":
-        return <NettikasinotHub lang={lang} />
+        return <NettikasinotHub lang={lang} initialFilter={initialFilter} />
       case "kasinopelit":
         return <KasinopelitHub lang={lang} />
       case "kasinobonukset":

@@ -3,13 +3,17 @@
 import { useState, use } from "react"
 import Link from "next/link"
 import type { Lang } from "@/lib/types"
-import { TRANSLATIONS, FILTER_OPTIONS } from "@/lib/data"
 import type { Casino } from "@/lib/types"
 import { CasinoCard } from "@/components/casino-card"
 
 const VALID_LANGS: Lang[] = ["fi", "uk", "en"]
+const TOP_PAYMENT_VISIBLE = 8
 
-const PAGE_LABELS: Record<Lang, { title: string; subtitle: string; filterTitle: string; allCasinos: string; results: string; sortBy: string; clearFilters: string; noResults: string }> = {
+const PAGE_LABELS: Record<Lang, {
+  title: string; subtitle: string; filterTitle: string; allCasinos: string
+  results: string; sortBy: string; clearFilters: string; noResults: string
+  license: string; payment: string; showMore: string; showLess: string
+}> = {
   fi: {
     title: "Kaikki Nettikasinot 2026",
     subtitle: "Vertaile kasinoita, bonuksia ja ominaisuuksia. Löydä sinulle sopivin kasino.",
@@ -19,6 +23,10 @@ const PAGE_LABELS: Record<Lang, { title: string; subtitle: string; filterTitle: 
     sortBy: "Järjestä:",
     clearFilters: "Tyhjennä suodattimet",
     noResults: "Ei kasinoita valituilla suodattimilla.",
+    license: "Lisenssi",
+    payment: "Maksutapa",
+    showMore: "Näytä lisää",
+    showLess: "Näytä vähemmän",
   },
   en: {
     title: "All Online Casinos 2026",
@@ -29,6 +37,10 @@ const PAGE_LABELS: Record<Lang, { title: string; subtitle: string; filterTitle: 
     sortBy: "Sort by:",
     clearFilters: "Clear filters",
     noResults: "No casinos match your filters.",
+    license: "License",
+    payment: "Payment Method",
+    showMore: "Show more",
+    showLess: "Show less",
   },
   uk: {
     title: "All UK Online Casinos 2026",
@@ -39,35 +51,71 @@ const PAGE_LABELS: Record<Lang, { title: string; subtitle: string; filterTitle: 
     sortBy: "Sort by:",
     clearFilters: "Clear filters",
     noResults: "No casinos match your filters.",
+    license: "License",
+    payment: "Payment Method",
+    showMore: "Show more",
+    showLess: "Show less",
   },
 }
 
 type SortKey = "rank" | "rating" | "min_deposit" | "withdrawal"
 
-interface ListingPageProps {
-  params: Promise<{ lang: string }>
+interface FilterTerm {
+  id: string
+  name_fi: string
+  name_en: string | null
+  name_uk: string | null
+  casino_count: number
 }
 
-export default function NettikasinotPage({ params, casinos = [] }: ListingPageProps & { casinos?: Casino[] }) {
+interface ListingPageProps {
+  params: Promise<{ lang: string }>
+  casinos?: Casino[]
+  licenceTerms?: FilterTerm[]
+  depositTerms?: FilterTerm[]
+  initialFilter?: string | null
+}
+
+export default function NettikasinotPage({
+  params,
+  casinos = [],
+  licenceTerms = [],
+  depositTerms = [],
+  initialFilter,
+}: ListingPageProps) {
   const { lang: rawLang } = use(params)
   const lang = (VALID_LANGS.includes(rawLang as Lang) ? rawLang : "fi") as Lang
   const labels = PAGE_LABELS[lang]
 
-  const [sortBy, setSortBy] = useState<SortKey>("rank")
+  // initialFilter from ?filter= URL param initializes the toggles on first render
+  const [filterPika, setFilterPika] = useState(initialFilter === "pikakasinot")
+  const [filterNew, setFilterNew] = useState(
+    initialFilter === "uudet" || initialFilter === "uudet-nettikasinot"
+  )
+  const [filterFeatured, setFilterFeatured] = useState(initialFilter === "suositeltu")
+
   const [filterLicense, setFilterLicense] = useState<string[]>([])
   const [filterPayment, setFilterPayment] = useState<string[]>([])
-  const [filterPika, setFilterPika] = useState(false)
-  const [filterNew, setFilterNew] = useState(false)
-  const [filterFeatured, setFilterFeatured] = useState(false)
+  const [sortBy, setSortBy] = useState<SortKey>("rank")
   const [showFilters, setShowFilters] = useState(false)
+  const [showAllPayments, setShowAllPayments] = useState(false)
+
+  const getTermName = (term: FilterTerm): string => {
+    if (lang === "fi") return term.name_fi
+    if (lang === "uk") return term.name_uk ?? term.name_en ?? term.name_fi
+    return term.name_en ?? term.name_fi
+  }
 
   const toggleFilter = (arr: string[], setArr: (a: string[]) => void, val: string) => {
     setArr(arr.includes(val) ? arr.filter((x) => x !== val) : [...arr, val])
   }
 
+  // Filtering — license/payment use term_ids from casino_taxonomy_terms join
   let filtered = casinos.filter((c) => c.is_active)
-  if (filterLicense.length > 0) filtered = filtered.filter((c) => filterLicense.includes(c.license_authority ?? ""))
-  if (filterPayment.length > 0) filtered = filtered.filter((c) => filterPayment.some((p) => (c.payment_methods ?? []).includes(p)))
+  if (filterLicense.length > 0)
+    filtered = filtered.filter((c) => filterLicense.some((id) => (c.term_ids ?? []).includes(id)))
+  if (filterPayment.length > 0)
+    filtered = filtered.filter((c) => filterPayment.some((id) => (c.term_ids ?? []).includes(id)))
   if (filterPika) filtered = filtered.filter((c) => c.is_pikakasino)
   if (filterNew) filtered = filtered.filter((c) => c.is_new)
   if (filterFeatured) filtered = filtered.filter((c) => c.is_featured)
@@ -92,9 +140,165 @@ export default function NettikasinotPage({ params, casinos = [] }: ListingPagePr
     setFilterFeatured(false)
   }
 
+  // Payment terms: top N visible, rest behind "show more"
+  const visiblePaymentTerms = showAllPayments ? depositTerms : depositTerms.slice(0, TOP_PAYMENT_VISIBLE)
+  const hiddenPaymentCount = depositTerms.length - TOP_PAYMENT_VISIBLE
+
+  // Quick toggles definition
+  const quickToggles = [
+    { label: lang === "fi" ? "Pikakasinot" : "Quick Casinos", value: filterPika, setter: setFilterPika },
+    { label: lang === "fi" ? "Uudet kasinot" : "New Casinos", value: filterNew, setter: setFilterNew },
+    { label: lang === "fi" ? "Suositeltu" : "Featured", value: filterFeatured, setter: setFilterFeatured },
+  ]
+
+  // ── Filter panel content (shared between mobile drawer + desktop sidebar) ──
+  const FilterPanel = ({ mobile }: { mobile: boolean }) => (
+    <div className={mobile ? "p-4 space-y-5" : "p-5 space-y-6"}>
+      {/* Quick toggles */}
+      <div className={mobile ? "space-y-3" : "space-y-2.5"}>
+        {quickToggles.map((item) => (
+          <div
+            key={item.label}
+            className={`flex items-center ${mobile ? "justify-between" : "gap-3"} cursor-pointer ${mobile ? "" : "group"}`}
+            onClick={() => item.setter(!item.value)}
+          >
+            {!mobile && (
+              <button
+                role="switch"
+                aria-checked={item.value}
+                onClick={(e) => { e.stopPropagation(); item.setter(!item.value) }}
+                className={`w-9 h-5 rounded-full relative transition-colors flex-shrink-0 ${item.value ? "bg-[#2D1783]" : "bg-[#E5E8F0]"}`}
+              >
+                <span className={`absolute top-0.5 w-4 h-4 bg-white rounded-full shadow transition-transform ${item.value ? "translate-x-4" : "translate-x-0.5"}`} />
+              </button>
+            )}
+            <span className={`text-sm text-[#474554] font-medium ${mobile ? "" : "group-hover:text-[#2D1783] transition-colors"}`}>
+              {item.label}
+            </span>
+            {mobile && (
+              <button
+                role="switch"
+                aria-checked={item.value}
+                onClick={(e) => { e.stopPropagation(); item.setter(!item.value) }}
+                className={`w-10 h-6 rounded-full relative transition-colors ${item.value ? "bg-[#2D1783]" : "bg-[#E5E8F0]"}`}
+              >
+                <span className={`absolute top-1 w-4 h-4 bg-white rounded-full shadow transition-transform ${item.value ? "translate-x-5" : "translate-x-1"}`} />
+              </button>
+            )}
+          </div>
+        ))}
+      </div>
+
+      {/* License filter — dynamic from taxonomy_terms */}
+      {licenceTerms.length > 0 && (
+        <div>
+          <p className={`${mobile ? "text-[10px]" : "text-xs"} font-bold text-[#1b1b1c] uppercase tracking-wider mb-${mobile ? "2" : "3"}`}>
+            {labels.license}
+          </p>
+          {mobile ? (
+            <div className="flex flex-wrap gap-1.5">
+              {licenceTerms.map((term) => (
+                <button
+                  key={term.id}
+                  onClick={() => toggleFilter(filterLicense, setFilterLicense, term.id)}
+                  className={`px-2.5 py-1 rounded-lg text-xs font-semibold border transition-colors ${
+                    filterLicense.includes(term.id)
+                      ? "bg-[#2D1783] text-white border-[#2D1783]"
+                      : "bg-[#F8F9FD] text-[#474554] border-[#E5E8F0] hover:border-[#2D1783]"
+                  }`}
+                >
+                  {getTermName(term)}
+                </button>
+              ))}
+            </div>
+          ) : (
+            <div className="space-y-2">
+              {licenceTerms.map((term) => (
+                <label key={term.id} className="flex items-center gap-2.5 cursor-pointer group">
+                  <input
+                    type="checkbox"
+                    checked={filterLicense.includes(term.id)}
+                    onChange={() => toggleFilter(filterLicense, setFilterLicense, term.id)}
+                    className="w-4 h-4 rounded border-[#E5E8F0] accent-[#2D1783]"
+                  />
+                  <span className="text-sm text-[#474554] group-hover:text-[#2D1783] transition-colors flex-1">
+                    {getTermName(term)}
+                  </span>
+                  <span className="text-xs text-[#B3B0BC]">{term.casino_count}</span>
+                </label>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Payment filter — dynamic from taxonomy_terms, top 8 + show more */}
+      {depositTerms.length > 0 && (
+        <div>
+          <p className={`${mobile ? "text-[10px]" : "text-xs"} font-bold text-[#1b1b1c] uppercase tracking-wider mb-${mobile ? "2" : "3"}`}>
+            {labels.payment}
+          </p>
+          {mobile ? (
+            <div className="flex flex-wrap gap-1.5">
+              {visiblePaymentTerms.map((term) => (
+                <button
+                  key={term.id}
+                  onClick={() => toggleFilter(filterPayment, setFilterPayment, term.id)}
+                  className={`px-2.5 py-1 rounded-lg text-xs font-semibold border transition-colors ${
+                    filterPayment.includes(term.id)
+                      ? "bg-[#2D1783] text-white border-[#2D1783]"
+                      : "bg-[#F8F9FD] text-[#474554] border-[#E5E8F0] hover:border-[#2D1783]"
+                  }`}
+                >
+                  {getTermName(term)}
+                </button>
+              ))}
+            </div>
+          ) : (
+            <div className="space-y-2">
+              {visiblePaymentTerms.map((term) => (
+                <label key={term.id} className="flex items-center gap-2.5 cursor-pointer group">
+                  <input
+                    type="checkbox"
+                    checked={filterPayment.includes(term.id)}
+                    onChange={() => toggleFilter(filterPayment, setFilterPayment, term.id)}
+                    className="w-4 h-4 rounded border-[#E5E8F0] accent-[#2D1783]"
+                  />
+                  <span className="text-sm text-[#474554] group-hover:text-[#2D1783] transition-colors flex-1">
+                    {getTermName(term)}
+                  </span>
+                  <span className="text-xs text-[#B3B0BC]">{term.casino_count}</span>
+                </label>
+              ))}
+            </div>
+          )}
+          {hiddenPaymentCount > 0 && (
+            <button
+              onClick={() => setShowAllPayments(!showAllPayments)}
+              className="mt-2 text-xs text-[#2D1783] font-semibold hover:underline"
+            >
+              {showAllPayments
+                ? labels.showLess
+                : `${labels.showMore} (${hiddenPaymentCount})`}
+            </button>
+          )}
+        </div>
+      )}
+
+      {hasFilters && (
+        <button
+          onClick={clearAllFilters}
+          className="w-full text-sm text-[#787585] border border-[#E5E8F0] rounded-xl py-2.5 hover:text-[#2D1783] hover:border-[#2D1783] transition-colors"
+        >
+          {labels.clearFilters}
+        </button>
+      )}
+    </div>
+  )
+
   return (
     <div className="min-h-screen bg-[#F8F9FD]">
-      {/* Page hero — compact on mobile */}
+      {/* Page hero */}
       <div className="bg-white border-b border-[#E5E8F0] py-6 md:py-10">
         <div className="max-w-[1280px] mx-auto px-4 md:px-12">
           <nav aria-label="Breadcrumb" className="flex items-center gap-1.5 text-xs text-[#787585] mb-3">
@@ -111,7 +315,7 @@ export default function NettikasinotPage({ params, casinos = [] }: ListingPagePr
 
       <div className="max-w-[1280px] mx-auto px-4 md:px-12 py-5 md:py-8">
 
-        {/* ── Mobile toolbar: filter toggle + sort in one row ── */}
+        {/* ── Mobile toolbar ── */}
         <div className="flex items-center gap-2 mb-4 lg:hidden">
           <button
             onClick={() => setShowFilters(!showFilters)}
@@ -132,7 +336,6 @@ export default function NettikasinotPage({ params, casinos = [] }: ListingPagePr
             )}
           </button>
 
-          {/* Sort — fills remaining space */}
           <div className="flex-1 flex items-center gap-2 bg-white border border-[#E5E8F0] rounded-xl px-3 py-2">
             <span className="material-symbols-outlined text-[#787585] text-[16px]" aria-hidden="true">sort</span>
             <select
@@ -148,7 +351,6 @@ export default function NettikasinotPage({ params, casinos = [] }: ListingPagePr
             </select>
           </div>
 
-          {/* Result count */}
           <span className="text-xs text-[#787585] whitespace-nowrap">
             <strong className="text-[#1b1b1c]">{sorted.length}</strong> {lang === "fi" ? "kpl" : "found"}
           </span>
@@ -157,91 +359,13 @@ export default function NettikasinotPage({ params, casinos = [] }: ListingPagePr
         {/* ── Mobile filter drawer ── */}
         {showFilters && (
           <div id="filter-panel" className="lg:hidden mb-4 bg-white rounded-2xl border border-[#E5E8F0] overflow-hidden">
-            <div className="p-4 space-y-5">
-              {/* Quick toggles */}
-              <div className="space-y-3">
-                {[
-                  { label: lang === "fi" ? "Pikakasinot" : "Quick Casinos", value: filterPika, setter: setFilterPika },
-                  { label: lang === "fi" ? "Uudet kasinot" : "New Casinos", value: filterNew, setter: setFilterNew },
-                  { label: lang === "fi" ? "Suositeltu" : "Featured", value: filterFeatured, setter: setFilterFeatured },
-                ].map((item) => (
-                  <div
-                    key={item.label}
-                    className="flex items-center justify-between cursor-pointer"
-                    onClick={() => item.setter(!item.value)}
-                  >
-                    <span className="text-sm text-[#474554] font-medium">{item.label}</span>
-                    <button
-                      role="switch"
-                      aria-checked={item.value}
-                      onClick={(e) => { e.stopPropagation(); item.setter(!item.value) }}
-                      className={`w-10 h-6 rounded-full relative transition-colors ${item.value ? "bg-[#2D1783]" : "bg-[#E5E8F0]"}`}
-                    >
-                      <span className={`absolute top-1 w-4 h-4 bg-white rounded-full shadow transition-transform ${item.value ? "translate-x-5" : "translate-x-1"}`} />
-                    </button>
-                  </div>
-                ))}
-              </div>
-
-              {/* License + Payment in 2-col grid */}
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <p className="text-[10px] font-bold text-[#1b1b1c] uppercase tracking-wider mb-2">
-                    {lang === "fi" ? "Lisenssi" : "License"}
-                  </p>
-                  <div className="flex flex-wrap gap-1.5">
-                    {FILTER_OPTIONS.licenses.map((lic) => (
-                      <button
-                        key={lic}
-                        onClick={() => toggleFilter(filterLicense, setFilterLicense, lic)}
-                        className={`px-2.5 py-1 rounded-lg text-xs font-semibold border transition-colors ${
-                          filterLicense.includes(lic)
-                            ? "bg-[#2D1783] text-white border-[#2D1783]"
-                            : "bg-[#F8F9FD] text-[#474554] border-[#E5E8F0] hover:border-[#2D1783]"
-                        }`}
-                      >
-                        {lic}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-                <div>
-                  <p className="text-[10px] font-bold text-[#1b1b1c] uppercase tracking-wider mb-2">
-                    {lang === "fi" ? "Maksutapa" : "Payment"}
-                  </p>
-                  <div className="flex flex-wrap gap-1.5">
-                    {FILTER_OPTIONS.payment_methods.map((pm) => (
-                      <button
-                        key={pm}
-                        onClick={() => toggleFilter(filterPayment, setFilterPayment, pm)}
-                        className={`px-2.5 py-1 rounded-lg text-xs font-semibold border transition-colors ${
-                          filterPayment.includes(pm)
-                            ? "bg-[#2D1783] text-white border-[#2D1783]"
-                            : "bg-[#F8F9FD] text-[#474554] border-[#E5E8F0] hover:border-[#2D1783]"
-                        }`}
-                      >
-                        {pm}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-              </div>
-
-              {hasFilters && (
-                <button
-                  onClick={clearAllFilters}
-                  className="w-full text-sm text-[#787585] border border-[#E5E8F0] rounded-xl py-2.5 hover:text-[#2D1783] hover:border-[#2D1783] transition-colors"
-                >
-                  {labels.clearFilters}
-                </button>
-              )}
-            </div>
+            <FilterPanel mobile />
           </div>
         )}
 
         <div className="flex flex-col lg:flex-row gap-8">
 
-          {/* ── Desktop sidebar filters ── */}
+          {/* ── Desktop sidebar ── */}
           <aside className="hidden lg:block lg:w-64 flex-shrink-0">
             <div className="bg-white rounded-2xl border border-[#E5E8F0] overflow-hidden sticky top-20">
               <div className="flex items-center gap-2 p-5 border-b border-[#E5E8F0] font-display font-bold text-[#1b1b1c]">
@@ -253,77 +377,7 @@ export default function NettikasinotPage({ params, casinos = [] }: ListingPagePr
                   </span>
                 )}
               </div>
-              <div className="p-5 space-y-6">
-                <div className="space-y-2.5">
-                  {[
-                    { label: lang === "fi" ? "Pikakasinot" : "Quick Casinos", value: filterPika, setter: setFilterPika },
-                    { label: lang === "fi" ? "Uudet kasinot" : "New Casinos", value: filterNew, setter: setFilterNew },
-                    { label: lang === "fi" ? "Suositeltu" : "Featured", value: filterFeatured, setter: setFilterFeatured },
-                  ].map((item) => (
-                    <div
-                      key={item.label}
-                      className="flex items-center gap-3 cursor-pointer group"
-                      onClick={() => item.setter(!item.value)}
-                    >
-                      <button
-                        role="switch"
-                        aria-checked={item.value}
-                        onClick={(e) => { e.stopPropagation(); item.setter(!item.value) }}
-                        className={`w-9 h-5 rounded-full relative transition-colors flex-shrink-0 ${item.value ? "bg-[#2D1783]" : "bg-[#E5E8F0]"}`}
-                      >
-                        <span className={`absolute top-0.5 w-4 h-4 bg-white rounded-full shadow transition-transform ${item.value ? "translate-x-4" : "translate-x-0.5"}`} />
-                      </button>
-                      <span className="text-sm text-[#474554] font-medium group-hover:text-[#2D1783] transition-colors">
-                        {item.label}
-                      </span>
-                    </div>
-                  ))}
-                </div>
-                <div>
-                  <p className="text-xs font-bold text-[#1b1b1c] uppercase tracking-wider mb-3">
-                    {lang === "fi" ? "Lisenssi" : "License"}
-                  </p>
-                  <div className="space-y-2">
-                    {FILTER_OPTIONS.licenses.map((lic) => (
-                      <label key={lic} className="flex items-center gap-2.5 cursor-pointer group">
-                        <input
-                          type="checkbox"
-                          checked={filterLicense.includes(lic)}
-                          onChange={() => toggleFilter(filterLicense, setFilterLicense, lic)}
-                          className="w-4 h-4 rounded border-[#E5E8F0] accent-[#2D1783]"
-                        />
-                        <span className="text-sm text-[#474554] group-hover:text-[#2D1783] transition-colors">{lic}</span>
-                      </label>
-                    ))}
-                  </div>
-                </div>
-                <div>
-                  <p className="text-xs font-bold text-[#1b1b1c] uppercase tracking-wider mb-3">
-                    {lang === "fi" ? "Maksutapa" : "Payment Method"}
-                  </p>
-                  <div className="space-y-2">
-                    {FILTER_OPTIONS.payment_methods.map((pm) => (
-                      <label key={pm} className="flex items-center gap-2.5 cursor-pointer group">
-                        <input
-                          type="checkbox"
-                          checked={filterPayment.includes(pm)}
-                          onChange={() => toggleFilter(filterPayment, setFilterPayment, pm)}
-                          className="w-4 h-4 rounded border-[#E5E8F0] accent-[#2D1783]"
-                        />
-                        <span className="text-sm text-[#474554] group-hover:text-[#2D1783] transition-colors">{pm}</span>
-                      </label>
-                    ))}
-                  </div>
-                </div>
-                {hasFilters && (
-                  <button
-                    onClick={clearAllFilters}
-                    className="w-full text-sm text-[#787585] border border-[#E5E8F0] rounded-xl py-2.5 hover:text-[#2D1783] hover:border-[#2D1783] transition-colors"
-                  >
-                    {labels.clearFilters}
-                  </button>
-                )}
-              </div>
+              <FilterPanel mobile={false} />
             </div>
           </aside>
 
@@ -370,7 +424,6 @@ export default function NettikasinotPage({ params, casinos = [] }: ListingPagePr
           </div>
         </div>
       </div>
-
     </div>
   )
 }

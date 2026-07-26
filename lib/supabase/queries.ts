@@ -35,6 +35,24 @@ export async function getCasinos(options?: {
   return (data ?? []) as Casino[]
 }
 
+export async function getCasinosWithTermIds(): Promise<Casino[]> {
+  const supabase = await createClient()
+  const { data, error } = await supabase
+    .from("casinos")
+    .select("*, casino_taxonomy_terms(term_id)")
+    .eq("is_active", true)
+    .order("rank", { ascending: true, nullsFirst: false })
+  if (error) {
+    console.error("[v0] getCasinosWithTermIds error:", error.message)
+    return []
+  }
+  return (data ?? []).map((c: any) => ({
+    ...c,
+    term_ids: (c.casino_taxonomy_terms ?? []).map((r: any) => r.term_id as string),
+    casino_taxonomy_terms: undefined,
+  })) as Casino[]
+}
+
 export async function getAdminCasinos(): Promise<Casino[]> {
   const supabase = await createClient()
   const { data, error } = await supabase
