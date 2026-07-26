@@ -34,6 +34,7 @@ interface Suggestion {
 interface SiteHeaderProps {
   lang: Lang
   navSlugs?: RouteSlugMap
+  allLangSlugs?: Record<Lang, RouteSlugMap>
 }
 
 // Rendered via portal into document.body so z-index is never clipped by a parent stacking context.
@@ -91,7 +92,7 @@ function SuggestionsDropdown({ sugs, query, lang, activeIdx, onSelect, onViewAll
   )
 }
 
-export function SiteHeader({ lang, navSlugs = {} }: SiteHeaderProps) {
+export function SiteHeader({ lang, navSlugs = {}, allLangSlugs }: SiteHeaderProps) {
   const t = TRANSLATIONS[lang]
   const router = useRouter()
   const pathname = usePathname()
@@ -181,9 +182,23 @@ export function SiteHeader({ lang, navSlugs = {} }: SiteHeaderProps) {
   ]
 
   // Replace the /[lang] prefix in the current URL to switch languages.
+  // For top-level code routes (e.g. /fi/nettikasinot → /en/online-casinos), translate via allLangSlugs.
+  // For sub-paths (e.g. /fi/nettikasinot/kanuuna-casino), keep only lang prefix swap.
   const getLangPath = (targetLang: Lang) => {
     if (!pathname || !/^\/(fi|uk|en)/.test(pathname)) return `/${targetLang}`
-    return pathname.replace(/^\/(fi|uk|en)/, `/${targetLang}`)
+    const cleanPath = pathname.endsWith("/") && pathname.length > 1 ? pathname.slice(0, -1) : pathname
+    const parts = cleanPath.split("/") // ["", "fi", "slug", ...]
+    const hubSlug = parts[2]
+    const isTopLevel = parts.length === 3 // exactly /lang/slug
+    if (isTopLevel && hubSlug && allLangSlugs) {
+      const srcMap = allLangSlugs[lang]
+      const tgtMap = allLangSlugs[targetLang]
+      const routeKey = Object.keys(srcMap).find(k => srcMap[k] === hubSlug)
+      if (routeKey && tgtMap[routeKey]) {
+        return `/${targetLang}/${tgtMap[routeKey]}`
+      }
+    }
+    return cleanPath.replace(/^\/(fi|uk|en)/, `/${targetLang}`)
   }
 
   // Use "click" (not "mousedown") so portal items aren't unmounted before their click fires.

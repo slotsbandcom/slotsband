@@ -2,7 +2,7 @@ import type { Metadata } from "next"
 import type { Lang } from "@/lib/types"
 import { SiteHeader } from "@/components/site-header"
 import { SiteFooter } from "@/components/site-footer"
-import { getRouteSlugsByLang } from "@/lib/supabase/route-slugs"
+import { getRouteSlugsByLang, type RouteSlugMap } from "@/lib/supabase/route-slugs"
 
 interface LangLayoutProps {
   children: React.ReactNode
@@ -37,10 +37,18 @@ export async function generateMetadata({ params }: { params: Promise<{ lang: str
 export default async function LangLayout({ children, params }: LangLayoutProps) {
   const { lang } = await params
   const safeLang = (["fi", "en", "uk"].includes(lang) ? lang : "fi") as Lang
-  const navSlugs = await getRouteSlugsByLang(safeLang)
+
+  const [fiSlugs, enSlugs, ukSlugs] = await Promise.all([
+    getRouteSlugsByLang("fi"),
+    getRouteSlugsByLang("en"),
+    getRouteSlugsByLang("uk"),
+  ])
+  const allLangSlugs: Record<Lang, RouteSlugMap> = { fi: fiSlugs, en: enSlugs, uk: ukSlugs }
+  const navSlugs = allLangSlugs[safeLang]
+
   return (
     <div lang={safeLang}>
-      <SiteHeader lang={safeLang} navSlugs={navSlugs} />
+      <SiteHeader lang={safeLang} navSlugs={navSlugs} allLangSlugs={allLangSlugs} />
       {children}
       <SiteFooter lang={safeLang} navSlugs={navSlugs} />
     </div>
