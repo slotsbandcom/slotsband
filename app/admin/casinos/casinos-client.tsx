@@ -5,8 +5,9 @@ import Link from "next/link"
 import { useRouter } from "next/navigation"
 import type { Casino } from "@/lib/types"
 import { CasinoLogo } from "@/components/casino-logo"
+import type { ClickStats } from "./page"
 
-type SortCol = "name" | "rank" | "rating" | "status"
+type SortCol = "name" | "rank" | "rating" | "status" | "clicks"
 type SortDir = "asc" | "desc"
 type Filter  = "all" | "active" | "inactive" | "featured"
 
@@ -22,9 +23,10 @@ const DEFAULT_SORT_DIR: Record<SortCol, SortDir> = {
   rank:   "asc",
   rating: "desc",
   status: "desc",
+  clicks: "desc",
 }
 
-export default function AdminCasinosClient({ casinos }: { casinos: Casino[] }) {
+export default function AdminCasinosClient({ casinos, clickStats }: { casinos: Casino[]; clickStats: ClickStats }) {
   const router = useRouter()
   const [search,   setSearch]   = useState("")
   const [filter,   setFilter]   = useState<Filter>("all")
@@ -72,6 +74,7 @@ export default function AdminCasinosClient({ casinos }: { casinos: Casino[] }) {
         if (sortCol === "rank")   cmp = (a.rank ?? 999) - (b.rank ?? 999)
         if (sortCol === "rating") cmp = (a.rating ?? 0) - (b.rating ?? 0)
         if (sortCol === "status") cmp = Number(a.is_active) - Number(b.is_active)
+        if (sortCol === "clicks") cmp = (clickStats[a.slug]?.total ?? 0) - (clickStats[b.slug]?.total ?? 0)
         return sortDir === "asc" ? cmp : -cmp
       })
     }
@@ -206,6 +209,7 @@ export default function AdminCasinosClient({ casinos }: { casinos: Casino[] }) {
                   {sortTh("rating", "Rating")}
                   <th className="px-4 py-3 text-left text-xs font-bold text-[#787585] uppercase tracking-wider">License</th>
                   {sortTh("status", "Status")}
+                  {sortTh("clicks", "Clicks")}
                   <th className="px-4 py-3 text-left text-xs font-bold text-[#787585] uppercase tracking-wider">Flags</th>
                   <th className="px-4 py-3 text-right text-xs font-bold text-[#787585] uppercase tracking-wider">Actions</th>
                 </tr>
@@ -213,7 +217,7 @@ export default function AdminCasinosClient({ casinos }: { casinos: Casino[] }) {
               <tbody className="divide-y divide-[#E5E8F0]">
                 {displayed.length === 0 ? (
                   <tr>
-                    <td colSpan={8} className="px-4 py-10 text-center text-sm text-[#787585]">
+                    <td colSpan={9} className="px-4 py-10 text-center text-sm text-[#787585]">
                       No casinos match your filter.
                     </td>
                   </tr>
@@ -270,6 +274,25 @@ export default function AdminCasinosClient({ casinos }: { casinos: Casino[] }) {
                       }`}>
                         {casino.is_active ? "Active" : "Inactive"}
                       </span>
+                    </td>
+                    <td className="px-4 py-3">
+                      {(() => {
+                        const cs = clickStats[casino.slug]
+                        const total = cs?.total ?? 0
+                        const month = cs?.this_month ?? 0
+                        return (
+                          <div className="flex flex-col gap-0.5">
+                            <span className={`text-sm font-bold ${total > 0 ? "text-[#1b1b1c]" : "text-[#C5C3CE]"}`}>
+                              {total.toLocaleString()}
+                            </span>
+                            {month > 0 && (
+                              <span className="text-[10px] text-[#27AE60] font-semibold leading-none">
+                                +{month.toLocaleString()} mo
+                              </span>
+                            )}
+                          </div>
+                        )
+                      })()}
                     </td>
                     <td className="px-4 py-3">
                       <div className="flex gap-1">
