@@ -26,14 +26,29 @@ const DEFAULT_SORT_DIR: Record<SortCol, SortDir> = {
   clicks: "desc",
 }
 
+type QuickEdit = {
+  id: string; slug: string; name: string
+  affiliateUrl: string; rank: string
+  saving: boolean; error: string | null
+}
+
+function isValidUrl(url: string) {
+  try {
+    const u = new URL(url)
+    return u.protocol === "http:" || u.protocol === "https:"
+  } catch { return false }
+}
+
 export default function AdminCasinosClient({ casinos, clickStats }: { casinos: Casino[]; clickStats: ClickStats }) {
   const router = useRouter()
-  const [search,   setSearch]   = useState("")
-  const [filter,   setFilter]   = useState<Filter>("all")
-  const [sortCol,  setSortCol]  = useState<SortCol | null>(null)
-  const [sortDir,  setSortDir]  = useState<SortDir>("desc")
-  const [selected, setSelected] = useState<string[]>([])
+  const [search,    setSearch]    = useState("")
+  const [filter,    setFilter]    = useState<Filter>("all")
+  const [sortCol,   setSortCol]   = useState<SortCol | null>(null)
+  const [sortDir,   setSortDir]   = useState<SortDir>("desc")
+  const [selected,  setSelected]  = useState<string[]>([])
   const [isPending, startTransition] = useTransition()
+  const [overrides, setOverrides] = useState<Record<string, { affiliate_url?: string; rank?: number }>>({})
+  const [quickEdit, setQuickEdit] = useState<QuickEdit | null>(null)
 
   function handleSort(col: SortCol) {
     if (sortCol === col) {
@@ -93,6 +108,50 @@ export default function AdminCasinosClient({ casinos, clickStats }: { casinos: C
   async function handleDelete(id: string) {
     if (!confirm("Delete this casino?")) return
     await fetch(`/api/admin/casinos/${id}`, { method: "DELETE" })
+    startTransition(() => router.refresh())
+  }
+
+  function openQuickEdit(casino: Casino) {
+    setQuickEdit({
+      id: casino.id,
+      slug: casino.slug,
+      name: casino.name,
+      affiliateUrl: overrides[casino.id]?.affiliate_url ?? casino.affiliate_url ?? "",
+      rank: String(overrides[casino.id]?.rank ?? casino.rank ?? ""),
+      saving: false,
+      error: null,
+    })
+  }
+
+  async function handleQuickSave() {
+    if (!quickEdit) return
+    if (!isValidUrl(quickEdit.affiliateUrl)) {
+      setQuickEdit(qe => qe ? { ...qe, error: "URL must start with http:// or https://" } : null)
+      return
+    }
+    setQuickEdit(qe => qe ? { ...qe, saving: true, error: null } : null)
+    const rankVal = parseInt(quickEdit.rank)
+    const body: Record<string, unknown> = { affiliate_url: quickEdit.affiliateUrl }
+    if (!isNaN(rankVal) && rankVal > 0) body.rank = rankVal
+    const res = await fetch(`/api/admin/casinos/${quickEdit.id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(body),
+    })
+    if (!res.ok) {
+      const json = await res.json().catch(() => ({}))
+      setQuickEdit(qe => qe ? { ...qe, saving: false, error: (json as { error?: string }).error ?? "Save failed" } : null)
+      return
+    }
+    setOverrides(prev => ({
+      ...prev,
+      [quickEdit.id]: {
+        ...prev[quickEdit.id],
+        affiliate_url: quickEdit.affiliateUrl,
+        ...((!isNaN(rankVal) && rankVal > 0) ? { rank: rankVal } : {}),
+      },
+    }))
+    setQuickEdit(null)
     startTransition(() => router.refresh())
   }
 
@@ -249,13 +308,13 @@ export default function AdminCasinosClient({ casinos, clickStats }: { casinos: C
                       </div>
                     </td>
                     <td className="px-4 py-3">
-                      {casino.rank && casino.rank < 999 ? (
+                      {(() => { const r = overrides[casino.id]?.rank ?? casino.rank; return r && r < 999 ? (
                         <span className="w-6 h-6 rounded-full bg-[#2D1783] text-white text-[10px] font-bold flex items-center justify-center">
-                          {casino.rank}
+                          {r}
                         </span>
                       ) : (
                         <span className="text-[#C5C3CE] text-sm">—</span>
-                      )}
+                      ); })()}
                     </td>
                     <td className="px-4 py-3">
                       <div className="flex items-center gap-1">
@@ -317,6 +376,13 @@ export default function AdminCasinosClient({ casinos, clickStats }: { casinos: C
                         >
                           <span className="material-symbols-outlined text-[13px] text-[#474554]">open_in_new</span>
                         </Link>
+                        <button
+                          onClick={() => openQuickEdit(casino)}
+                          className="w-7 h-7 rounded-lg bg-[#F8F9FD] border border-[#E5E8F0] flex items-center justify-center hover:border-[#F59E0B] transition-colors"
+                          title="Quick Edit"
+                        >
+                          <span className="material-symbols-outlined text-[13px]" style={{ color: "#F59E0B" }}>bolt</span>
+                        </button>
                         <Link
                           href={`/admin/casinos/${casino.slug}/edit`}
                           className="w-7 h-7 rounded-lg bg-[#F8F9FD] border border-[#E5E8F0] flex items-center justify-center hover:border-[#2D1783] transition-colors"
@@ -340,6 +406,86 @@ export default function AdminCasinosClient({ casinos, clickStats }: { casinos: C
           </div>
         )}
       </div>
+
+      {/* Quick Edit Modal */}
+      {quickEdit && (
+        <div
+          className="fixed inset-0 bg-black/40 backdrop-blur-sm z-50 flex items-center justify-center p-4"
+          onClick={e => { if (e.target === e.currentTarget && !quickEdit.saving) setQuickEdit(null) }}
+        >
+          <div className="bg-white rounded-2xl border border-[#E5E8F0] shadow-2xl w-full max-w-sm p-6 space-y-5">
+            <div className="flex items-start justify-between">
+              <div>
+                <div className="flex items-center gap-2">
+                  <span className="material-symbols-outlined text-[18px]" style={{ color: "#F59E0B" }}>bolt</span>
+                  <h2 className="font-bold text-[#1b1b1c] text-base">Quick Edit</h2>
+                </div>
+                <p className="text-xs text-[#787585] mt-0.5 ml-6">{quickEdit.name}</p>
+              </div>
+              <button
+                onClick={() => !quickEdit.saving && setQuickEdit(null)}
+                className="w-7 h-7 rounded-lg hover:bg-[#F8F9FD] flex items-center justify-center transition-colors"
+              >
+                <span className="material-symbols-outlined text-[18px] text-[#787585]">close</span>
+              </button>
+            </div>
+
+            {quickEdit.error && (
+              <p className="text-xs text-[#E74C3C] bg-[#E74C3C]/10 rounded-lg px-3 py-2">{quickEdit.error}</p>
+            )}
+
+            <div className="space-y-4">
+              <div>
+                <label className="block text-xs font-semibold text-[#787585] uppercase tracking-wider mb-1.5">
+                  Raw Affiliate URL
+                </label>
+                <input
+                  type="url"
+                  value={quickEdit.affiliateUrl}
+                  onChange={e => setQuickEdit(qe => qe ? { ...qe, affiliateUrl: e.target.value, error: null } : null)}
+                  className="w-full bg-[#F8F9FD] border border-[#E5E8F0] rounded-xl px-3 py-2 text-sm focus:border-[#2D1783] focus:outline-none transition-colors font-mono"
+                  placeholder="https://..."
+                  disabled={quickEdit.saving}
+                  autoFocus
+                />
+                <p className="text-[10px] text-[#787585] mt-1">Generated URL (with UTMs) updates automatically on the edit page.</p>
+              </div>
+              <div>
+                <label className="block text-xs font-semibold text-[#787585] uppercase tracking-wider mb-1.5">
+                  Rank
+                </label>
+                <input
+                  type="number"
+                  value={quickEdit.rank}
+                  onChange={e => setQuickEdit(qe => qe ? { ...qe, rank: e.target.value } : null)}
+                  className="w-full bg-[#F8F9FD] border border-[#E5E8F0] rounded-xl px-3 py-2 text-sm focus:border-[#2D1783] focus:outline-none transition-colors"
+                  placeholder="e.g. 1"
+                  min={1}
+                  disabled={quickEdit.saving}
+                  onKeyDown={e => { if (e.key === "Enter") handleQuickSave() }}
+                />
+              </div>
+            </div>
+
+            <div className="flex gap-2 justify-end pt-1">
+              <button
+                onClick={() => !quickEdit.saving && setQuickEdit(null)}
+                className="px-4 py-2 rounded-xl text-sm font-semibold text-[#787585] bg-[#F8F9FD] border border-[#E5E8F0] hover:border-[#787585] transition-colors disabled:opacity-50"
+                disabled={quickEdit.saving}
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleQuickSave}
+                className="px-4 py-2 rounded-xl text-sm font-semibold text-white bg-[#2D1783] hover:bg-[#3e2db2] transition-colors disabled:opacity-60"
+                disabled={quickEdit.saving}
+              >
+                {quickEdit.saving ? "Saving…" : "Save"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
