@@ -93,25 +93,42 @@ export async function getTaxonomyTermsWithCounts(
   taxonomy: string
 ): Promise<(TaxonomyTerm & { casino_count: number })[]> {
   const supabase = await createClient()
-  const [{ data: terms, error }, { data: cttRows }] = await Promise.all([
-    supabase
-      .from("taxonomy_terms")
-      .select("*")
-      .eq("taxonomy", taxonomy)
-      .eq("is_active", true)
-      .order("sort_order", { ascending: true })
-      .order("name_fi", { ascending: true }),
-    supabase.from("casino_taxonomy_terms").select("term_id"),
-  ])
+  const { data: terms, error } = await supabase
+    .from("taxonomy_terms")
+    .select("*")
+    .eq("taxonomy", taxonomy)
+    .eq("is_active", true)
+    .order("sort_order", { ascending: true })
+    .order("name_fi", { ascending: true })
+
   if (error) {
     console.error(`[taxonomy-queries] getTaxonomyTermsWithCounts(${taxonomy}):`, error.message)
     return []
   }
+  if (!terms?.length) return []
+
+  // Filter to only this taxonomy's term IDs so we don't fetch the entire
+  // casino_taxonomy_terms table (which can exceed Supabase's 1000-row default
+  // limit and produce silently wrong counts).  Paginate in case even the
+  // filtered set exceeds 1000 rows (e.g. deposit-method with many casinos).
+  const termIds = terms.map((t) => t.id)
   const counts: Record<string, number> = {}
-  for (const row of cttRows ?? []) {
-    counts[row.term_id] = (counts[row.term_id] ?? 0) + 1
+  let offset = 0
+  const PAGE = 1000
+  while (true) {
+    const { data: rows } = await supabase
+      .from("casino_taxonomy_terms")
+      .select("term_id")
+      .in("term_id", termIds)
+      .range(offset, offset + PAGE - 1)
+    for (const row of rows ?? []) {
+      counts[row.term_id] = (counts[row.term_id] ?? 0) + 1
+    }
+    if (!rows || rows.length < PAGE) break
+    offset += PAGE
   }
-  return (terms ?? []).map((t) => ({ ...t, casino_count: counts[t.id] ?? 0 })) as (TaxonomyTerm & {
+
+  return terms.map((t) => ({ ...t, casino_count: counts[t.id] ?? 0 })) as (TaxonomyTerm & {
     casino_count: number
   })[]
 }
