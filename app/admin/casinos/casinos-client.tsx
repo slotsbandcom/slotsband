@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useMemo, useTransition } from "react"
+import { useState, useMemo, useTransition, useEffect, Fragment } from "react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
 import type { Casino } from "@/lib/types"
@@ -50,6 +50,14 @@ export default function AdminCasinosClient({ casinos, clickStats }: { casinos: C
   const [overrides, setOverrides] = useState<Record<string, { affiliate_url?: string; rank?: number }>>({})
   const [quickEdit, setQuickEdit] = useState<QuickEdit | null>(null)
 
+  // Close on Escape
+  useEffect(() => {
+    if (!quickEdit) return
+    const handler = (e: KeyboardEvent) => { if (e.key === "Escape" && !quickEdit.saving) setQuickEdit(null) }
+    window.addEventListener("keydown", handler)
+    return () => window.removeEventListener("keydown", handler)
+  }, [quickEdit])
+
   function handleSort(col: SortCol) {
     if (sortCol === col) {
       setSortDir(d => d === "asc" ? "desc" : "asc")
@@ -81,7 +89,6 @@ export default function AdminCasinosClient({ casinos, clickStats }: { casinos: C
       if (filter === "featured") return c.is_featured
       return true
     })
-
     if (sortCol) {
       list = [...list].sort((a, b) => {
         let cmp = 0
@@ -93,9 +100,8 @@ export default function AdminCasinosClient({ casinos, clickStats }: { casinos: C
         return sortDir === "asc" ? cmp : -cmp
       })
     }
-
     return list
-  }, [casinos, search, filter, sortCol, sortDir])
+  }, [casinos, search, filter, sortCol, sortDir, clickStats])
 
   const toggleAll = () => {
     setSelected(selected.length === displayed.length ? [] : displayed.map(c => c.id))
@@ -112,6 +118,8 @@ export default function AdminCasinosClient({ casinos, clickStats }: { casinos: C
   }
 
   function openQuickEdit(casino: Casino) {
+    // Toggle: same casino = close it
+    if (quickEdit?.id === casino.id) { setQuickEdit(null); return }
     setQuickEdit({
       id: casino.id,
       slug: casino.slug,
@@ -218,8 +226,6 @@ export default function AdminCasinosClient({ casinos, clickStats }: { casinos: C
             </div>
           )}
         </div>
-
-        {/* Filter pills */}
         <div className="flex gap-2 flex-wrap">
           {(["all", "active", "inactive", "featured"] as Filter[]).map(f => (
             <button
@@ -273,219 +279,224 @@ export default function AdminCasinosClient({ casinos, clickStats }: { casinos: C
                   <th className="px-4 py-3 text-right text-xs font-bold text-[#787585] uppercase tracking-wider">Actions</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-[#E5E8F0]">
+              <tbody>
                 {displayed.length === 0 ? (
                   <tr>
                     <td colSpan={9} className="px-4 py-10 text-center text-sm text-[#787585]">
                       No casinos match your filter.
                     </td>
                   </tr>
-                ) : displayed.map(casino => (
-                  <tr
-                    key={casino.id}
-                    className={`hover:bg-[#F8F9FD] transition-colors ${isPending ? "opacity-60" : ""}`}
-                  >
-                    <td className="px-4 py-3">
-                      <input
-                        type="checkbox"
-                        checked={selected.includes(casino.id)}
-                        onChange={() => toggle(casino.id)}
-                        className="w-4 h-4 rounded accent-[#2D1783]"
-                      />
-                    </td>
-                    <td className="px-4 py-3">
-                      <div className="flex items-center gap-2.5">
-                        <CasinoLogo
-                          src={casino.logo_url}
-                          name={casino.name}
-                          size={32}
-                          className="w-8 h-8 rounded-lg bg-white border border-[#E5E7EB]"
-                        />
-                        <div>
-                          <p className="text-sm font-semibold text-[#1b1b1c]">{casino.name}</p>
-                          <p className="text-xs text-[#787585]">{casino.slug}</p>
-                        </div>
-                      </div>
-                    </td>
-                    <td className="px-4 py-3">
-                      {(() => { const r = overrides[casino.id]?.rank ?? casino.rank; return r && r < 999 ? (
-                        <span className="w-6 h-6 rounded-full bg-[#2D1783] text-white text-[10px] font-bold flex items-center justify-center">
-                          {r}
-                        </span>
-                      ) : (
-                        <span className="text-[#C5C3CE] text-sm">—</span>
-                      ); })()}
-                    </td>
-                    <td className="px-4 py-3">
-                      <div className="flex items-center gap-1">
-                        <span className="material-symbols-outlined text-[#FFD700] text-[14px]" style={{ fontVariationSettings: "'FILL' 1" }}>star</span>
-                        <span className="text-sm font-bold text-[#1b1b1c]">{Number(casino.rating).toFixed(1)}</span>
-                      </div>
-                    </td>
-                    <td className="px-4 py-3">
-                      <span className="text-sm text-[#474554]">{casino.license_authority ?? "—"}</span>
-                    </td>
-                    <td className="px-4 py-3">
-                      <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${
-                        casino.is_active
-                          ? "bg-[#27AE60]/10 text-[#27AE60]"
-                          : "bg-[#E5E8F0] text-[#787585]"
-                      }`}>
-                        {casino.is_active ? "Active" : "Inactive"}
-                      </span>
-                    </td>
-                    <td className="px-4 py-3">
-                      {(() => {
-                        const cs = clickStats[casino.slug]
-                        const total = cs?.total ?? 0
-                        const month = cs?.this_month ?? 0
-                        return (
-                          <div className="flex flex-col gap-0.5">
-                            <span className={`text-sm font-bold ${total > 0 ? "text-[#1b1b1c]" : "text-[#C5C3CE]"}`}>
-                              {total.toLocaleString()}
-                            </span>
-                            {month > 0 && (
-                              <span className="text-[10px] text-[#27AE60] font-semibold leading-none">
-                                +{month.toLocaleString()} mo
-                              </span>
+                ) : displayed.map(casino => {
+                  const isOpen = quickEdit?.id === casino.id
+                  return (
+                    <Fragment key={casino.id}>
+                      {/* Main row */}
+                      <tr className={`border-t border-[#E5E8F0] transition-colors ${isPending ? "opacity-60" : ""} ${isOpen ? "bg-amber-50/40" : "hover:bg-[#F8F9FD]"}`}>
+                        <td className="px-4 py-3">
+                          <input
+                            type="checkbox"
+                            checked={selected.includes(casino.id)}
+                            onChange={() => toggle(casino.id)}
+                            className="w-4 h-4 rounded accent-[#2D1783]"
+                          />
+                        </td>
+                        <td className="px-4 py-3">
+                          <div className="flex items-center gap-2.5">
+                            <CasinoLogo
+                              src={casino.logo_url}
+                              name={casino.name}
+                              size={32}
+                              className="w-8 h-8 rounded-lg bg-white border border-[#E5E7EB]"
+                            />
+                            <div>
+                              <p className="text-sm font-semibold text-[#1b1b1c]">{casino.name}</p>
+                              <p className="text-xs text-[#787585]">{casino.slug}</p>
+                            </div>
+                          </div>
+                        </td>
+                        <td className="px-4 py-3">
+                          {(() => { const r = overrides[casino.id]?.rank ?? casino.rank; return r && r < 999 ? (
+                            <span className="w-6 h-6 rounded-full bg-[#2D1783] text-white text-[10px] font-bold flex items-center justify-center">{r}</span>
+                          ) : (
+                            <span className="text-[#C5C3CE] text-sm">—</span>
+                          ); })()}
+                        </td>
+                        <td className="px-4 py-3">
+                          <div className="flex items-center gap-1">
+                            <span className="material-symbols-outlined text-[#FFD700] text-[14px]" style={{ fontVariationSettings: "'FILL' 1" }}>star</span>
+                            <span className="text-sm font-bold text-[#1b1b1c]">{Number(casino.rating).toFixed(1)}</span>
+                          </div>
+                        </td>
+                        <td className="px-4 py-3">
+                          <span className="text-sm text-[#474554]">{casino.license_authority ?? "—"}</span>
+                        </td>
+                        <td className="px-4 py-3">
+                          <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${
+                            casino.is_active ? "bg-[#27AE60]/10 text-[#27AE60]" : "bg-[#E5E8F0] text-[#787585]"
+                          }`}>
+                            {casino.is_active ? "Active" : "Inactive"}
+                          </span>
+                        </td>
+                        <td className="px-4 py-3">
+                          {(() => {
+                            const cs = clickStats[casino.slug]
+                            const total = cs?.total ?? 0
+                            const month = cs?.this_month ?? 0
+                            return (
+                              <div className="flex flex-col gap-0.5">
+                                <span className={`text-sm font-bold ${total > 0 ? "text-[#1b1b1c]" : "text-[#C5C3CE]"}`}>
+                                  {total.toLocaleString()}
+                                </span>
+                                {month > 0 && (
+                                  <span className="text-[10px] text-[#27AE60] font-semibold leading-none">+{month.toLocaleString()} mo</span>
+                                )}
+                              </div>
+                            )
+                          })()}
+                        </td>
+                        <td className="px-4 py-3">
+                          <div className="flex gap-1">
+                            {casino.is_featured && (
+                              <span className="material-symbols-outlined text-[#FFD700] text-[16px]" title="Featured" style={{ fontVariationSettings: "'FILL' 1" }}>star</span>
+                            )}
+                            {casino.is_new && (
+                              <span className="material-symbols-outlined text-[#27AE60] text-[16px]" title="New" style={{ fontVariationSettings: "'FILL' 1" }}>new_releases</span>
+                            )}
+                            {casino.is_pikakasino && (
+                              <span className="material-symbols-outlined text-[#2D1783] text-[16px]" title="Quick Casino" style={{ fontVariationSettings: "'FILL' 1" }}>bolt</span>
                             )}
                           </div>
-                        )
-                      })()}
-                    </td>
-                    <td className="px-4 py-3">
-                      <div className="flex gap-1">
-                        {casino.is_featured && (
-                          <span className="material-symbols-outlined text-[#FFD700] text-[16px]" title="Featured" style={{ fontVariationSettings: "'FILL' 1" }}>star</span>
-                        )}
-                        {casino.is_new && (
-                          <span className="material-symbols-outlined text-[#27AE60] text-[16px]" title="New" style={{ fontVariationSettings: "'FILL' 1" }}>new_releases</span>
-                        )}
-                        {casino.is_pikakasino && (
-                          <span className="material-symbols-outlined text-[#2D1783] text-[16px]" title="Quick Casino" style={{ fontVariationSettings: "'FILL' 1" }}>bolt</span>
-                        )}
-                      </div>
-                    </td>
-                    <td className="px-4 py-3">
-                      <div className="flex items-center justify-end gap-1.5">
-                        <Link
-                          href={`/fi/nettikasinot/${casino.slug}`}
-                          target="_blank"
-                          className="w-7 h-7 rounded-lg bg-[#F8F9FD] border border-[#E5E8F0] flex items-center justify-center hover:border-[#2D1783] transition-colors"
-                          title="View"
-                        >
-                          <span className="material-symbols-outlined text-[13px] text-[#474554]">open_in_new</span>
-                        </Link>
-                        <button
-                          onClick={() => openQuickEdit(casino)}
-                          className="w-7 h-7 rounded-lg bg-[#F8F9FD] border border-[#E5E8F0] flex items-center justify-center hover:border-[#F59E0B] transition-colors"
-                          title="Quick Edit"
-                        >
-                          <span className="material-symbols-outlined text-[13px]" style={{ color: "#F59E0B" }}>bolt</span>
-                        </button>
-                        <Link
-                          href={`/admin/casinos/${casino.slug}/edit`}
-                          className="w-7 h-7 rounded-lg bg-[#F8F9FD] border border-[#E5E8F0] flex items-center justify-center hover:border-[#2D1783] transition-colors"
-                          title="Edit"
-                        >
-                          <span className="material-symbols-outlined text-[13px] text-[#474554]">edit</span>
-                        </Link>
-                        <button
-                          onClick={() => handleDelete(casino.id)}
-                          className="w-7 h-7 rounded-lg bg-[#F8F9FD] border border-[#E5E8F0] flex items-center justify-center hover:border-[#E74C3C] transition-colors"
-                          title="Delete"
-                        >
-                          <span className="material-symbols-outlined text-[13px] text-[#787585]">delete</span>
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                ))}
+                        </td>
+                        <td className="px-4 py-3">
+                          <div className="flex items-center justify-end gap-1.5">
+                            <Link
+                              href={`/fi/nettikasinot/${casino.slug}`}
+                              target="_blank"
+                              className="w-7 h-7 rounded-lg bg-[#F8F9FD] border border-[#E5E8F0] flex items-center justify-center hover:border-[#2D1783] transition-colors"
+                              title="View"
+                            >
+                              <span className="material-symbols-outlined text-[13px] text-[#474554]">open_in_new</span>
+                            </Link>
+                            <button
+                              onClick={() => openQuickEdit(casino)}
+                              className={`w-7 h-7 rounded-lg border flex items-center justify-center transition-colors ${
+                                isOpen
+                                  ? "bg-[#F59E0B]/15 border-[#F59E0B]"
+                                  : "bg-[#F8F9FD] border-[#E5E8F0] hover:border-[#F59E0B]"
+                              }`}
+                              title="Quick Edit"
+                            >
+                              <span className="material-symbols-outlined text-[13px]" style={{ color: "#F59E0B" }}>bolt</span>
+                            </button>
+                            <Link
+                              href={`/admin/casinos/${casino.slug}/edit`}
+                              className="w-7 h-7 rounded-lg bg-[#F8F9FD] border border-[#E5E8F0] flex items-center justify-center hover:border-[#2D1783] transition-colors"
+                              title="Edit"
+                            >
+                              <span className="material-symbols-outlined text-[13px] text-[#474554]">edit</span>
+                            </Link>
+                            <button
+                              onClick={() => handleDelete(casino.id)}
+                              className="w-7 h-7 rounded-lg bg-[#F8F9FD] border border-[#E5E8F0] flex items-center justify-center hover:border-[#E74C3C] transition-colors"
+                              title="Delete"
+                            >
+                              <span className="material-symbols-outlined text-[13px] text-[#787585]">delete</span>
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+
+                      {/* Inline Quick Edit accordion row */}
+                      <tr className="border-t-0">
+                        <td colSpan={9} className="p-0">
+                          {/* CSS grid trick: grid-template-rows 0fr→1fr animates height smoothly */}
+                          <div
+                            style={{
+                              display: "grid",
+                              gridTemplateRows: isOpen ? "1fr" : "0fr",
+                              transition: "grid-template-rows 260ms cubic-bezier(0.4,0,0.2,1)",
+                            }}
+                          >
+                            <div className="overflow-hidden">
+                              <div className="px-6 py-4 bg-amber-50/60 border-t border-[#F59E0B]/25">
+                                <div className="flex items-center gap-2 mb-3">
+                                  <span className="material-symbols-outlined text-[15px]" style={{ color: "#F59E0B" }}>bolt</span>
+                                  <span className="text-xs font-bold text-[#474554] uppercase tracking-wider">Quick Edit</span>
+                                  <span className="text-xs text-[#787585]">— {casino.name}</span>
+                                </div>
+
+                                {isOpen && quickEdit?.error && (
+                                  <p className="text-xs text-[#E74C3C] bg-[#E74C3C]/10 rounded-lg px-3 py-2 mb-3">
+                                    {quickEdit.error}
+                                  </p>
+                                )}
+
+                                <div className="flex flex-wrap items-end gap-4">
+                                  <div className="flex-1 min-w-[260px]">
+                                    <label className="block text-[10px] font-bold text-[#787585] uppercase tracking-wider mb-1.5">
+                                      Raw Affiliate URL
+                                    </label>
+                                    <input
+                                      type="url"
+                                      value={isOpen ? quickEdit!.affiliateUrl : ""}
+                                      onChange={e => setQuickEdit(qe => qe ? { ...qe, affiliateUrl: e.target.value, error: null } : null)}
+                                      className="w-full bg-white border border-[#E5E8F0] rounded-xl px-3 py-2 text-sm focus:border-[#F59E0B] focus:outline-none transition-colors font-mono"
+                                      placeholder="https://..."
+                                      disabled={!isOpen || quickEdit?.saving}
+                                      tabIndex={isOpen ? 0 : -1}
+                                    />
+                                    <p className="text-[10px] text-[#A0A0B0] mt-1">
+                                      Generated URL (UTMs) auto-updates on the edit page.
+                                    </p>
+                                  </div>
+                                  <div className="w-28">
+                                    <label className="block text-[10px] font-bold text-[#787585] uppercase tracking-wider mb-1.5">
+                                      Rank
+                                    </label>
+                                    <input
+                                      type="number"
+                                      value={isOpen ? quickEdit!.rank : ""}
+                                      onChange={e => setQuickEdit(qe => qe ? { ...qe, rank: e.target.value } : null)}
+                                      className="w-full bg-white border border-[#E5E8F0] rounded-xl px-3 py-2 text-sm focus:border-[#F59E0B] focus:outline-none transition-colors"
+                                      placeholder="e.g. 1"
+                                      min={1}
+                                      disabled={!isOpen || quickEdit?.saving}
+                                      tabIndex={isOpen ? 0 : -1}
+                                      onKeyDown={e => { if (e.key === "Enter") handleQuickSave() }}
+                                    />
+                                  </div>
+                                  <div className="flex gap-2 pb-0.5">
+                                    <button
+                                      onClick={() => setQuickEdit(null)}
+                                      className="px-4 py-2 rounded-xl text-sm font-semibold text-[#787585] bg-white border border-[#E5E8F0] hover:border-[#787585] transition-colors disabled:opacity-50"
+                                      disabled={!isOpen || quickEdit?.saving}
+                                      tabIndex={isOpen ? 0 : -1}
+                                    >
+                                      Cancel
+                                    </button>
+                                    <button
+                                      onClick={handleQuickSave}
+                                      className="px-4 py-2 rounded-xl text-sm font-semibold text-white bg-[#2D1783] hover:bg-[#3e2db2] transition-colors disabled:opacity-60"
+                                      disabled={!isOpen || quickEdit?.saving}
+                                      tabIndex={isOpen ? 0 : -1}
+                                    >
+                                      {isOpen && quickEdit?.saving ? "Saving…" : "Save"}
+                                    </button>
+                                  </div>
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                        </td>
+                      </tr>
+                    </Fragment>
+                  )
+                })}
               </tbody>
             </table>
           </div>
         )}
       </div>
-
-      {/* Quick Edit Modal */}
-      {quickEdit && (
-        <div
-          className="fixed inset-0 bg-black/40 backdrop-blur-sm z-50 flex items-center justify-center p-4"
-          onClick={e => { if (e.target === e.currentTarget && !quickEdit.saving) setQuickEdit(null) }}
-        >
-          <div className="bg-white rounded-2xl border border-[#E5E8F0] shadow-2xl w-full max-w-sm p-6 space-y-5">
-            <div className="flex items-start justify-between">
-              <div>
-                <div className="flex items-center gap-2">
-                  <span className="material-symbols-outlined text-[18px]" style={{ color: "#F59E0B" }}>bolt</span>
-                  <h2 className="font-bold text-[#1b1b1c] text-base">Quick Edit</h2>
-                </div>
-                <p className="text-xs text-[#787585] mt-0.5 ml-6">{quickEdit.name}</p>
-              </div>
-              <button
-                onClick={() => !quickEdit.saving && setQuickEdit(null)}
-                className="w-7 h-7 rounded-lg hover:bg-[#F8F9FD] flex items-center justify-center transition-colors"
-              >
-                <span className="material-symbols-outlined text-[18px] text-[#787585]">close</span>
-              </button>
-            </div>
-
-            {quickEdit.error && (
-              <p className="text-xs text-[#E74C3C] bg-[#E74C3C]/10 rounded-lg px-3 py-2">{quickEdit.error}</p>
-            )}
-
-            <div className="space-y-4">
-              <div>
-                <label className="block text-xs font-semibold text-[#787585] uppercase tracking-wider mb-1.5">
-                  Raw Affiliate URL
-                </label>
-                <input
-                  type="url"
-                  value={quickEdit.affiliateUrl}
-                  onChange={e => setQuickEdit(qe => qe ? { ...qe, affiliateUrl: e.target.value, error: null } : null)}
-                  className="w-full bg-[#F8F9FD] border border-[#E5E8F0] rounded-xl px-3 py-2 text-sm focus:border-[#2D1783] focus:outline-none transition-colors font-mono"
-                  placeholder="https://..."
-                  disabled={quickEdit.saving}
-                  autoFocus
-                />
-                <p className="text-[10px] text-[#787585] mt-1">Generated URL (with UTMs) updates automatically on the edit page.</p>
-              </div>
-              <div>
-                <label className="block text-xs font-semibold text-[#787585] uppercase tracking-wider mb-1.5">
-                  Rank
-                </label>
-                <input
-                  type="number"
-                  value={quickEdit.rank}
-                  onChange={e => setQuickEdit(qe => qe ? { ...qe, rank: e.target.value } : null)}
-                  className="w-full bg-[#F8F9FD] border border-[#E5E8F0] rounded-xl px-3 py-2 text-sm focus:border-[#2D1783] focus:outline-none transition-colors"
-                  placeholder="e.g. 1"
-                  min={1}
-                  disabled={quickEdit.saving}
-                  onKeyDown={e => { if (e.key === "Enter") handleQuickSave() }}
-                />
-              </div>
-            </div>
-
-            <div className="flex gap-2 justify-end pt-1">
-              <button
-                onClick={() => !quickEdit.saving && setQuickEdit(null)}
-                className="px-4 py-2 rounded-xl text-sm font-semibold text-[#787585] bg-[#F8F9FD] border border-[#E5E8F0] hover:border-[#787585] transition-colors disabled:opacity-50"
-                disabled={quickEdit.saving}
-              >
-                Cancel
-              </button>
-              <button
-                onClick={handleQuickSave}
-                className="px-4 py-2 rounded-xl text-sm font-semibold text-white bg-[#2D1783] hover:bg-[#3e2db2] transition-colors disabled:opacity-60"
-                disabled={quickEdit.saving}
-              >
-                {quickEdit.saving ? "Saving…" : "Save"}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   )
 }
