@@ -1,6 +1,7 @@
 import { notFound, permanentRedirect } from "next/navigation"
 import { cache } from "react"
 import Link from "next/link"
+import Image from "next/image"
 import type { Metadata } from "next"
 import { createClient } from "@/lib/supabase/server"
 import { createBuildClient } from "@/lib/supabase/build-client"
@@ -444,12 +445,14 @@ export default async function CatchAllPage({ params, searchParams }: PageProps) 
           </nav>
 
           {post.featured_image_url && (
-            <div className="rounded-2xl overflow-hidden mb-6 border border-[#E5E8F0]
-                            max-h-[240px] md:max-h-[420px]">
-              <img
+            <div className="relative rounded-2xl overflow-hidden mb-6 border border-[#E5E8F0] aspect-video max-h-[420px]">
+              <Image
                 src={post.featured_image_url}
                 alt={title ?? ""}
-                className="w-full h-full object-cover max-h-[240px] md:max-h-[420px]"
+                fill
+                className="object-cover"
+                sizes="(max-width: 768px) 100vw, 900px"
+                priority
               />
             </div>
           )}

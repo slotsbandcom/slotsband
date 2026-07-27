@@ -49,9 +49,7 @@ const nextConfig = {
     ignoreBuildErrors: true,
   },
   images: {
-    // Allow images from Supabase Storage and the old WordPress site.
-    // `unoptimized` is NOT set globally — each CasinoLogo passes it per-image
-    // so Next.js doesn't proxy Supabase CDN URLs through its optimizer.
+    minimumCacheTTL: 2592000, // 30 days — Supabase images rarely change
     remotePatterns: [
       {
         protocol: "https",

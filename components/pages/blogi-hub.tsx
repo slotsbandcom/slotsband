@@ -1,3 +1,4 @@
+import Image from "next/image"
 import Link from "next/link"
 import { createClient } from "@/lib/supabase/server"
 import type { Lang } from "@/lib/types"
@@ -61,8 +62,15 @@ export async function BlogiHub({ lang }: { lang: Lang }) {
                 <article key={post.id} className="bg-white rounded-2xl border border-[#E5E8F0] overflow-hidden flex flex-col hover:border-[#2D1783]/30 hover:shadow-md transition-all">
                   {post.featured_image_url ? (
                     <Link href={`/${lang}/${slug}`}>
-                      <img src={post.featured_image_url} alt={title}
-                        className="w-full aspect-video object-cover" />
+                      <div className="relative w-full aspect-video overflow-hidden">
+                        <Image
+                          src={post.featured_image_url}
+                          alt={title}
+                          fill
+                          className="object-cover"
+                          sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
+                        />
+                      </div>
                     </Link>
                   ) : (
                     <div className="w-full aspect-video bg-gradient-to-br from-[#2D1783]/10 to-[#2D1783]/5 flex items-center justify-center">

@@ -1,6 +1,7 @@
 "use client"
 
 import { useState, useMemo, use } from "react"
+import Image from "next/image"
 import Link from "next/link"
 import type { Lang, Game } from "@/lib/types"
 
@@ -50,7 +51,7 @@ function GameCard({ game, lang }: { game: Game; lang: Lang }) {
     >
       <div className={`h-32 flex items-center justify-center relative ${gradients[game.type ?? "slot"] ?? gradients.slot}`}>
         {game.thumbnail ? (
-          <img src={game.thumbnail} alt={game.name} className="w-full h-full object-cover" />
+          <Image src={game.thumbnail} alt={game.name} fill className="object-cover" sizes="200px" />
         ) : (
           <span className="material-symbols-outlined text-white/30 text-5xl" aria-hidden="true">
             {icons[game.type ?? "slot"]}

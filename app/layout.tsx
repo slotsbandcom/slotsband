@@ -2,6 +2,7 @@ import { Analytics } from '@vercel/analytics/next'
 import type { Metadata, Viewport } from 'next'
 import { Inter, Hanken_Grotesk } from 'next/font/google'
 import { SWRProvider } from '@/components/swr-provider'
+import { MaterialSymbolsLoader } from '@/components/material-symbols-loader'
 import './globals.css'
 
 const inter = Inter({
@@ -66,18 +67,15 @@ export default function RootLayout({
   return (
     <html lang="fi" className={`${inter.variable} ${hankenGrotesk.variable} bg-background`}>
       <head>
-        {/* Preconnect for performance */}
+        {/* Preconnect for Material Symbols (loaded async below) */}
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
-        <link
-          rel="stylesheet"
-          href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200&display=swap"
-        />
       </head>
       <body className="antialiased font-sans">
         <SWRProvider>
           {children}
         </SWRProvider>
+        <MaterialSymbolsLoader />
         {process.env.NODE_ENV === 'production' && <Analytics />}
       </body>
     </html>
