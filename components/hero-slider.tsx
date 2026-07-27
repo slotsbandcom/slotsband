@@ -33,7 +33,7 @@ export function HeroSlider({ lang }: HeroSliderProps) {
             key={s.id}
             className={`slide ${s.bgColor} flex items-center justify-center`}
             aria-hidden={idx !== current}
-            {...(idx !== current ? { inert: "" } : {})}
+            {...(idx !== current ? { inert: true } : {})}
           >
             {/* Mobile layout: stacked centered */}
             <div className="md:hidden w-full px-4 flex flex-col items-center text-center gap-1.5">
