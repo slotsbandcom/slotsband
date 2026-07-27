@@ -16,7 +16,7 @@ export function SiteFooter({ lang, navSlugs = {} }: SiteFooterProps) {
 
   return (
     <footer className="w-full bg-[#2D1783]">
-      {/* Responsible gambling banner — slightly darker band for hierarchy */}
+      {/* Responsible gambling banner */}
       <div className="bg-black/20 py-3">
         <div className="max-w-[1280px] mx-auto px-4 md:px-12 flex flex-wrap items-center justify-center gap-4 text-xs font-medium text-white/80">
           <span className="material-symbols-outlined text-[#FFD700] text-[18px]" aria-hidden="true">warning</span>
@@ -39,16 +39,16 @@ export function SiteFooter({ lang, navSlugs = {} }: SiteFooterProps) {
 
       {/* Main footer */}
       <div className="max-w-[1280px] mx-auto px-4 md:px-12 py-12">
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-8 mb-10">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-8 mb-10">
+
           {/* Brand col */}
-          <div className="md:col-span-1">
+          <div className="md:col-span-2 lg:col-span-1">
             <Link href={`/${lang}`} className="inline-block mb-4">
               <SlotsbandLogo variant="light" height={30} />
             </Link>
             <p className="text-sm text-white/60 leading-relaxed">
               {t.description}
             </p>
-            {/* Social */}
             <div className="flex flex-wrap gap-2 mt-4">
               {[
                 { label: "Kick",    badge: "K",  bg: "#53FC18", text: "#000", href: "https://kick.com/slotsband" },
@@ -77,10 +77,26 @@ export function SiteFooter({ lang, navSlugs = {} }: SiteFooterProps) {
             </h5>
             <ul className="space-y-2.5 text-sm text-white/70">
               <li><Link href={`${base}/${ns("nettikasinot")}`} className="hover:text-white transition-colors">{t.bestCasinos}</Link></li>
-              <li><Link href={`${base}/${ns("nettikasinot")}?filter=pikakasino`} className="hover:text-white transition-colors">{t.quickCasinos}</Link></li>
-              <li><Link href={`${base}/${ns("kasinobonukset")}`} className="hover:text-white transition-colors">{lang === "fi" ? "Kasinobonukset" : "Casino Bonuses"}</Link></li>
-              <li><Link href={`${base}/${ns("kasinopelit")}`} className="hover:text-white transition-colors">{lang === "fi" ? "Kasinopelit" : "Casino Games"}</Link></li>
-              <li><Link href={`${base}/${ns("rafflet")}`} className="hover:text-white transition-colors">{lang === "fi" ? "Rafflet" : "Raffles"}</Link></li>
+              <li><Link href={`${base}/${ns("nettikasinot")}?filter=pikakasinot`} className="hover:text-white transition-colors">{t.quickCasinos}</Link></li>
+              <li><Link href={`${base}/${ns("kasinobonukset")}`} className="hover:text-white transition-colors">{t.bonuses}</Link></li>
+              <li><Link href={`${base}/${ns("kasinopelit")}`} className="hover:text-white transition-colors">{t.games}</Link></li>
+              <li><Link href={`${base}/${ns("rafflet")}`} className="hover:text-white transition-colors">{t.raffles}</Link></li>
+              <li><Link href={`${base}/${ns("blogi")}`} className="hover:text-white transition-colors">{t.blog}</Link></li>
+            </ul>
+          </div>
+
+          {/* Browse (taxonomy index pages) */}
+          <div>
+            <h5 className="text-xs font-bold text-[#FFD700] uppercase mb-4 border-l-2 border-[#FFD700] pl-3 tracking-wider">
+              {t.browseTitle}
+            </h5>
+            <ul className="space-y-2.5 text-sm text-white/70">
+              <li><Link href={`${base}/${ns("kasinot")}`} className="hover:text-white transition-colors">{t.casinoCategories}</Link></li>
+              <li><Link href={`${base}/${ns("talletustavat")}`} className="hover:text-white transition-colors">{t.depositMethods}</Link></li>
+              <li><Link href={`${base}/${ns("kotiutustavat")}`} className="hover:text-white transition-colors">{t.withdrawalMethods}</Link></li>
+              <li><Link href={`${base}/${ns("ohjelmistot")}`} className="hover:text-white transition-colors">{t.software}</Link></li>
+              <li><Link href={`${base}/${ns("valmistaja")}`} className="hover:text-white transition-colors">{t.vendors}</Link></li>
+              <li><Link href={`${base}/${ns("lisenssi")}`} className="hover:text-white transition-colors">{t.licences}</Link></li>
             </ul>
           </div>
 
@@ -90,9 +106,9 @@ export function SiteFooter({ lang, navSlugs = {} }: SiteFooterProps) {
               {t.about}
             </h5>
             <ul className="space-y-2.5 text-sm text-white/70">
-              <li><Link href={`${base}/about`} className="hover:text-white transition-colors">{lang === "fi" ? "Tietoa SlotsBandista" : "About SlotsBand"}</Link></li>
+              <li><Link href={`${base}/about`} className="hover:text-white transition-colors">{t.aboutSlotsband}</Link></li>
               <li><Link href={`${base}/contact`} className="hover:text-white transition-colors">{t.contact}</Link></li>
-              <li><Link href={`${base}/about#how-we-rate`} className="hover:text-white transition-colors">{lang === "fi" ? "Arviointikriteerit" : "How We Rate"}</Link></li>
+              <li><Link href={`${base}/about#how-we-rate`} className="hover:text-white transition-colors">{t.howWeRate}</Link></li>
             </ul>
           </div>
 
@@ -149,10 +165,10 @@ export function SiteFooter({ lang, navSlugs = {} }: SiteFooterProps) {
           <p className="text-xs text-white/50">{t.copyright}</p>
           <div className="flex gap-4 text-xs text-white/60">
             <Link href={`${base}/privacy`} className="hover:text-white transition-colors">
-              {lang === "fi" ? "Tietosuoja" : "Privacy Policy"}
+              {t.privacy}
             </Link>
             <Link href={`${base}/terms`} className="hover:text-white transition-colors">
-              {lang === "fi" ? "Käyttöehdot" : "Terms & Conditions"}
+              {t.terms}
             </Link>
           </div>
         </div>
