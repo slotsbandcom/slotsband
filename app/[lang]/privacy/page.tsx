@@ -331,8 +331,9 @@ const CONTENT: Record<Lang, { home: string; title: string; updated: string; sect
   },
 }
 
-export default function PrivacyPage({ params }: { params: { lang: string } }) {
-  const lang = (params.lang as Lang) || "fi"
+export default async function PrivacyPage({ params }: { params: Promise<{ lang: string }> }) {
+  const { lang: rawLang } = await params
+  const lang = (rawLang as Lang) || "fi"
   const c = CONTENT[lang] ?? CONTENT.fi
 
   return (
