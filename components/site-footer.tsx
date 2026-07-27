@@ -162,7 +162,7 @@ export function SiteFooter({ lang, navSlugs = {} }: SiteFooterProps) {
 
         {/* Bottom bar */}
         <div className="pt-6 border-t border-white/15 flex flex-col md:flex-row justify-between items-center gap-3">
-          <p className="text-xs text-white/50">{t.copyright}</p>
+          <p className="text-xs text-white/60">{t.copyright}</p>
           <div className="flex gap-4 text-xs text-white/60">
             <Link href={`${base}/privacy`} className="hover:text-white transition-colors">
               {t.privacy}

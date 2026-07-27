@@ -1,4 +1,4 @@
-import Link from "next/link"
+﻿import Link from "next/link"
 import type { Lang } from "@/lib/types"
 import type { TaxonomyTerm } from "@/lib/supabase/taxonomy-queries"
 import { getTermName, getTermSlug } from "@/lib/supabase/taxonomy-queries"
@@ -23,7 +23,7 @@ export function TaxonomyIndexPage({ taxonomy, lang, terms }: Props) {
       {/* Hero */}
       <div className="bg-white border-b border-[#E5E8F0] py-6 md:py-10">
         <div className="max-w-[1280px] mx-auto px-4 md:px-12">
-          <nav aria-label="Breadcrumb" className="flex items-center gap-1.5 text-xs text-[#787585] mb-3">
+          <nav aria-label="Breadcrumb" className="flex items-center gap-1.5 text-xs text-[#6B6879] mb-3">
             <Link href={`/${lang}`} className="hover:text-[#2D1783] transition-colors">
               {homeLabel}
             </Link>
@@ -38,7 +38,7 @@ export function TaxonomyIndexPage({ taxonomy, lang, terms }: Props) {
               {labels.title} 2026
             </h1>
           </div>
-          <p className="text-sm md:text-base text-[#787585] leading-relaxed">{labels.subtitle}</p>
+          <p className="text-sm md:text-base text-[#6B6879] leading-relaxed">{labels.subtitle}</p>
         </div>
       </div>
 
@@ -49,7 +49,7 @@ export function TaxonomyIndexPage({ taxonomy, lang, terms }: Props) {
             <span className="material-symbols-outlined text-[48px] text-[#E5E8F0] block mb-3" aria-hidden="true">
               {config.icon}
             </span>
-            <p className="text-[#787585] font-semibold">
+            <p className="text-[#6B6879] font-semibold">
               {lang === "fi" ? "Ei kategorioita saatavilla." : "No items available yet."}
             </p>
           </div>
@@ -79,7 +79,7 @@ export function TaxonomyIndexPage({ taxonomy, lang, terms }: Props) {
 
                   {/* Casino count */}
                   <div className="flex items-center justify-between mt-auto pt-2 border-t border-[#E5E8F0]">
-                    <span className="text-xs text-[#787585]">
+                    <span className="text-xs text-[#6B6879]">
                       <span className="font-bold text-[#1b1b1c]">{term.casino_count}</span>{" "}
                       {labels.countUnit}{term.casino_count !== 1 ? (lang === "fi" ? "a" : "s") : ""}
                     </span>

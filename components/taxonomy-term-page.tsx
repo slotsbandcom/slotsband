@@ -1,4 +1,4 @@
-import Link from "next/link"
+﻿import Link from "next/link"
 import type { Lang, Casino } from "@/lib/types"
 import type { TaxonomyTerm, FaqItem } from "@/lib/supabase/taxonomy-queries"
 import { getTermName, getTermDescription } from "@/lib/supabase/taxonomy-queries"
@@ -42,7 +42,7 @@ export function TaxonomyTermPage({ taxonomy, lang, term, casinos }: Props) {
       {/* Hero */}
       <div className="bg-white border-b border-[#E5E8F0] py-6 md:py-10">
         <div className="max-w-[1280px] mx-auto px-4 md:px-12">
-          <nav aria-label="Breadcrumb" className="flex items-center gap-1.5 text-xs text-[#787585] mb-3 flex-wrap">
+          <nav aria-label="Breadcrumb" className="flex items-center gap-1.5 text-xs text-[#6B6879] mb-3 flex-wrap">
             <Link href={`/${lang}`} className="hover:text-[#2D1783] transition-colors">
               {homeLabel}
             </Link>
@@ -64,7 +64,7 @@ export function TaxonomyTermPage({ taxonomy, lang, term, casinos }: Props) {
             </div>
             <div>
               <h1 className="font-display font-bold text-2xl md:text-4xl text-[#1b1b1c] text-balance">{name}</h1>
-              <p className="text-sm text-[#787585] mt-1">{countLabel}</p>
+              <p className="text-sm text-[#6B6879] mt-1">{countLabel}</p>
             </div>
           </div>
 
@@ -111,7 +111,7 @@ export function TaxonomyTermPage({ taxonomy, lang, term, casinos }: Props) {
             <h2 className="font-display font-bold text-lg text-[#1b1b1c] mb-2">
               {lang === "fi" ? "Tulossa pian" : "Coming Soon"}
             </h2>
-            <p className="text-[#787585] text-sm max-w-sm mx-auto">{labels.noCasinos}</p>
+            <p className="text-[#6B6879] text-sm max-w-sm mx-auto">{labels.noCasinos}</p>
             <Link
               href={`/${lang}/${config.path}`}
               className="inline-flex items-center gap-1.5 mt-6 text-sm font-semibold text-[#2D1783] hover:underline"

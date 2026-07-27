@@ -1,4 +1,4 @@
-import Link from "next/link"
+﻿import Link from "next/link"
 import type { Lang } from "@/lib/types"
 
 interface Section {
@@ -340,13 +340,13 @@ export default async function PrivacyPage({ params }: { params: Promise<{ lang: 
     <div className="min-h-screen bg-[#F8F9FD]">
       <div className="bg-white border-b border-[#E5E8F0]">
         <div className="max-w-[900px] mx-auto px-4 md:px-8 pt-6 pb-8">
-          <nav aria-label="Breadcrumb" className="flex items-center gap-1.5 text-xs text-[#787585] mb-5">
+          <nav aria-label="Breadcrumb" className="flex items-center gap-1.5 text-xs text-[#6B6879] mb-5">
             <Link href={`/${lang}`} className="hover:text-[#2D1783] transition-colors">{c.home}</Link>
             <span className="material-symbols-outlined text-[13px]" aria-hidden="true">chevron_right</span>
             <span className="text-[#2D1783] font-semibold">{c.title}</span>
           </nav>
           <h1 className="font-display font-bold text-2xl md:text-4xl text-[#1b1b1c] mb-2">{c.title}</h1>
-          <p className="text-xs text-[#787585]">{c.updated}</p>
+          <p className="text-xs text-[#6B6879]">{c.updated}</p>
         </div>
       </div>
 
@@ -369,7 +369,7 @@ export default async function PrivacyPage({ params }: { params: Promise<{ lang: 
                 </ul>
               )}
               {section.note && (
-                <p className="text-xs text-[#787585] bg-[#F8F9FD] rounded-xl px-4 py-3 border border-[#E5E8F0]">{section.note}</p>
+                <p className="text-xs text-[#6B6879] bg-[#F8F9FD] rounded-xl px-4 py-3 border border-[#E5E8F0]">{section.note}</p>
               )}
             </section>
           ))}

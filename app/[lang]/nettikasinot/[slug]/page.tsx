@@ -1,4 +1,4 @@
-import { notFound } from "next/navigation"
+﻿import { notFound } from "next/navigation"
 import Link from "next/link"
 import type { Metadata } from "next"
 import type { Casino, Lang } from "@/lib/types"
@@ -220,7 +220,7 @@ export default async function CasinoPage({ params }: CasinoPageProps) {
         <div className="max-w-[1280px] mx-auto px-4 md:px-12 pt-5 pb-6 md:pt-8 md:pb-8">
 
           {/* Breadcrumb */}
-          <nav aria-label="Breadcrumb" className="flex items-center gap-1.5 text-xs text-[#787585] mb-4">
+          <nav aria-label="Breadcrumb" className="flex items-center gap-1.5 text-xs text-[#6B6879] mb-4">
             <Link href={`/${lang}`} className="hover:text-[#2D1783] transition-colors">
               {c.home}
             </Link>
@@ -303,7 +303,7 @@ export default async function CasinoPage({ params }: CasinoPageProps) {
                 <div key={fact.icon} className="flex items-center gap-2 bg-[#F8F9FD] border border-[#E5E8F0] px-3 py-2 rounded-xl">
                   <span className="material-symbols-outlined text-[#2D1783] text-[16px]" aria-hidden="true">{fact.icon}</span>
                   <div className="min-w-0">
-                    <p className="text-[9px] font-semibold text-[#787585] uppercase tracking-wide leading-none">{fact.label}</p>
+                    <p className="text-[9px] font-semibold text-[#6B6879] uppercase tracking-wide leading-none">{fact.label}</p>
                     <p className="text-xs font-bold text-[#1b1b1c] mt-0.5 truncate">{fact.value}</p>
                   </div>
                 </div>
@@ -339,7 +339,7 @@ export default async function CasinoPage({ params }: CasinoPageProps) {
                 priority
                 className="w-[120px] h-[120px] bg-white border border-[#E5E7EB] rounded-xl shadow-[0_2px_8px_rgba(0,0,0,0.08)]"
               />
-              <span className="text-xs font-semibold text-[#787585] text-center">
+              <span className="text-xs font-semibold text-[#6B6879] text-center">
                 {c.established} {casino.established_year ?? "—"}
               </span>
             </div>
@@ -497,7 +497,7 @@ export default async function CasinoPage({ params }: CasinoPageProps) {
                       no_deposit: "bg-[#27AE60]/10 text-[#27AE60]",
                       free_spins: "bg-[#FFD700]/20 text-[#775900]",
                       cashback: "bg-[#3e2db2]/10 text-[#3e2db2]",
-                      reload: "bg-[#E5E8F0] text-[#787585]",
+                      reload: "bg-[#E5E8F0] text-[#6B6879]",
                     }
                     return (
                       <div key={bonus.id} className="bg-[#F8F9FD] rounded-xl p-4 border border-[#E5E8F0]">
@@ -517,7 +517,7 @@ export default async function CasinoPage({ params }: CasinoPageProps) {
                               <p className="font-display font-bold text-[#2D1783] text-base">{bonus.amount}</p>
                             )}
                             {bonus.description && (
-                              <p className="text-xs text-[#787585] mt-1 leading-relaxed">{bonus.description}</p>
+                              <p className="text-xs text-[#6B6879] mt-1 leading-relaxed">{bonus.description}</p>
                             )}
                             <div className="flex flex-wrap gap-2 mt-2">
                               {bonus.wagering != null && (
@@ -556,7 +556,7 @@ export default async function CasinoPage({ params }: CasinoPageProps) {
                         { label: c.currency, value: casino.welcome_bonus_currency ?? "EUR" },
                       ].map((item) => (
                         <div key={item.label}>
-                          <p className="text-[10px] font-bold text-[#787585] uppercase tracking-wide leading-none">{item.label}</p>
+                          <p className="text-[10px] font-bold text-[#6B6879] uppercase tracking-wide leading-none">{item.label}</p>
                           <p className="font-bold text-[#1b1b1c] text-sm mt-1">{item.value}</p>
                         </div>
                       ))}
@@ -597,7 +597,7 @@ export default async function CasinoPage({ params }: CasinoPageProps) {
                   const badge = getLicenseBadge(casino.license_authority, c)
                   return (
                     <div className="flex justify-between items-center py-2.5 text-sm gap-4">
-                      <span className="text-[#787585] font-medium flex-shrink-0">{c.license}</span>
+                      <span className="text-[#6B6879] font-medium flex-shrink-0">{c.license}</span>
                       <div className="flex items-center gap-2 flex-wrap justify-end">
                         <span className="font-semibold text-[#1b1b1c]">{casino.license_authority}</span>
                         {badge && (
@@ -627,7 +627,7 @@ export default async function CasinoPage({ params }: CasinoPageProps) {
                   (casino.languages_supported ?? []).length > 0 ? { label: c.supportedLanguages, value: `${casino.languages_supported!.length} ${c.languagesUnit}` } : null,
                 ].filter((r): r is { label: string; value: string } => !!r && !!r.value).map((row) => (
                   <div key={row.label} className="flex justify-between items-center py-2.5 text-sm gap-4">
-                    <span className="text-[#787585] font-medium flex-shrink-0">{row.label}</span>
+                    <span className="text-[#6B6879] font-medium flex-shrink-0">{row.label}</span>
                     <span className="font-semibold text-[#1b1b1c] text-right">{row.value}</span>
                   </div>
                 ))}
@@ -641,7 +641,7 @@ export default async function CasinoPage({ params }: CasinoPageProps) {
                 <div className="flex flex-wrap gap-2">
                   {(casino.kyc_documents ?? []).map(doc => (
                     <span key={doc} className="flex items-center gap-1.5 bg-[#F8F9FD] border border-[#E5E8F0] px-3 py-1.5 rounded-xl text-sm font-semibold text-[#474554]">
-                      <span className="material-symbols-outlined text-[#787585] text-[13px]" aria-hidden="true">description</span>
+                      <span className="material-symbols-outlined text-[#6B6879] text-[13px]" aria-hidden="true">description</span>
                       {doc}
                     </span>
                   ))}
@@ -663,7 +663,7 @@ export default async function CasinoPage({ params }: CasinoPageProps) {
                       <span className="text-xl">✅</span>
                       <div>
                         <p className="font-bold text-[#27AE60] text-sm">{c.availableInTitle}</p>
-                        <p className="text-xs text-[#787585] mt-0.5">{c.availableInDesc}</p>
+                        <p className="text-xs text-[#6B6879] mt-0.5">{c.availableInDesc}</p>
                       </div>
                     </div>
                   ) : (casino.restricted_in ?? []).includes(marketCountry) ? (
@@ -671,7 +671,7 @@ export default async function CasinoPage({ params }: CasinoPageProps) {
                       <span className="text-xl">❌</span>
                       <div>
                         <p className="font-bold text-[#E74C3C] text-sm">{c.notAvailableTitle}</p>
-                        <p className="text-xs text-[#787585] mt-0.5">{c.notAvailableDesc}</p>
+                        <p className="text-xs text-[#6B6879] mt-0.5">{c.notAvailableDesc}</p>
                       </div>
                     </div>
                   ) : (
@@ -872,7 +872,7 @@ export default async function CasinoPage({ params }: CasinoPageProps) {
                   .filter((f): f is { label: string; val: boolean | undefined } => f !== null)
                   .map((feat) => (
                   <div key={feat.label} className="flex items-center justify-between text-sm">
-                    <span className="text-[#787585]">{feat.label}</span>
+                    <span className="text-[#6B6879]">{feat.label}</span>
                     <span className={`material-symbols-outlined text-[18px] ${feat.val ? "text-[#27AE60]" : "text-[#E5E8F0]"}`} style={{ fontVariationSettings: "'FILL' 1" }} aria-hidden="true">
                       {feat.val ? "check_circle" : "cancel"}
                     </span>
@@ -899,7 +899,7 @@ export default async function CasinoPage({ params }: CasinoPageProps) {
       {/* ── Mobile sticky bottom CTA bar ── */}
       <div className="fixed bottom-0 left-0 right-0 z-40 md:hidden bg-white border-t border-[#E5E8F0] px-4 py-3 flex items-center gap-3 shadow-[0_-4px_20px_rgba(0,0,0,0.08)]">
         <div className="flex-1 min-w-0">
-          <p className="text-[10px] font-bold text-[#787585] uppercase tracking-wide leading-none">{c.bestBonus}</p>
+          <p className="text-[10px] font-bold text-[#6B6879] uppercase tracking-wide leading-none">{c.bestBonus}</p>
           <p className="text-xs font-bold text-[#2D1783] truncate mt-0.5">{getBonusDisplayText(casino, lang)}</p>
         </div>
         <a

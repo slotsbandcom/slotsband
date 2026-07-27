@@ -1,4 +1,4 @@
-"use client"
+﻿"use client"
 
 import { useState, use } from "react"
 import Link from "next/link"
@@ -270,7 +270,7 @@ export default function NettikasinotPage({
       {hasFilters && (
         <button
           onClick={clearAllFilters}
-          className="w-full text-sm text-[#787585] border border-[#E5E8F0] rounded-xl py-2.5 hover:text-[#2D1783] hover:border-[#2D1783] transition-colors"
+          className="w-full text-sm text-[#6B6879] border border-[#E5E8F0] rounded-xl py-2.5 hover:text-[#2D1783] hover:border-[#2D1783] transition-colors"
         >
           {labels.clearFilters}
         </button>
@@ -283,7 +283,7 @@ export default function NettikasinotPage({
       {/* Page hero */}
       <div className="bg-white border-b border-[#E5E8F0] py-6 md:py-10">
         <div className="max-w-[1280px] mx-auto px-4 md:px-12">
-          <nav aria-label="Breadcrumb" className="flex items-center gap-1.5 text-xs text-[#787585] mb-3">
+          <nav aria-label="Breadcrumb" className="flex items-center gap-1.5 text-xs text-[#6B6879] mb-3">
             <Link href={`/${lang}`} className="hover:text-[#2D1783] transition-colors">
               {lang === "fi" ? "Etusivu" : "Home"}
             </Link>
@@ -291,7 +291,7 @@ export default function NettikasinotPage({
             <span className="text-[#2D1783] font-semibold">{lang === "fi" ? "Nettikasinot" : "Casinos"}</span>
           </nav>
           <h1 className="font-display font-bold text-2xl md:text-4xl text-[#1b1b1c] mb-1.5 text-balance">{labels.title}</h1>
-          <p className="text-sm md:text-base text-[#787585] leading-relaxed">{labels.subtitle}</p>
+          <p className="text-sm md:text-base text-[#6B6879] leading-relaxed">{labels.subtitle}</p>
         </div>
       </div>
 
@@ -319,7 +319,7 @@ export default function NettikasinotPage({
           </button>
 
           <div className="flex-1 flex items-center gap-2 bg-white border border-[#E5E8F0] rounded-xl px-3 py-2">
-            <span className="material-symbols-outlined text-[#787585] text-[16px]" aria-hidden="true">sort</span>
+            <span className="material-symbols-outlined text-[#6B6879] text-[16px]" aria-hidden="true">sort</span>
             <select
               value={sortBy}
               onChange={(e) => setSortBy(e.target.value as SortKey)}
@@ -333,7 +333,7 @@ export default function NettikasinotPage({
             </select>
           </div>
 
-          <span className="text-xs text-[#787585] whitespace-nowrap">
+          <span className="text-xs text-[#6B6879] whitespace-nowrap">
             <strong className="text-[#1b1b1c]">{sorted.length}</strong> {lang === "fi" ? "kpl" : "found"}
           </span>
         </div>
@@ -367,11 +367,11 @@ export default function NettikasinotPage({
           <div className="flex-1 min-w-0">
             {/* Desktop toolbar */}
             <div className="hidden lg:flex items-center justify-between gap-3 mb-6">
-              <p className="text-sm text-[#787585]">
+              <p className="text-sm text-[#6B6879]">
                 <span className="font-bold text-[#1b1b1c]">{sorted.length}</span> {labels.results}
               </p>
               <div className="flex items-center gap-2">
-                <label className="text-xs font-semibold text-[#787585] whitespace-nowrap" htmlFor="desktop-sort">
+                <label className="text-xs font-semibold text-[#6B6879] whitespace-nowrap" htmlFor="desktop-sort">
                   {labels.sortBy}
                 </label>
                 <select
@@ -391,7 +391,7 @@ export default function NettikasinotPage({
             {sorted.length === 0 ? (
               <div className="bg-white rounded-2xl border border-[#E5E8F0] p-12 text-center">
                 <span className="material-symbols-outlined text-[#E5E8F0] text-6xl block mb-3" aria-hidden="true">search_off</span>
-                <p className="text-[#787585] font-semibold">{labels.noResults}</p>
+                <p className="text-[#6B6879] font-semibold">{labels.noResults}</p>
                 <button onClick={clearAllFilters} className="mt-4 text-sm text-[#2D1783] font-semibold underline">
                   {labels.clearFilters}
                 </button>

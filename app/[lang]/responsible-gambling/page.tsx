@@ -1,4 +1,4 @@
-import Link from "next/link"
+﻿import Link from "next/link"
 import type { Lang } from "@/lib/types"
 
 const HELP_ORGS = [
@@ -87,7 +87,7 @@ export default function ResponsibleGamblingPage({ params }: { params: { lang: st
         {/* Self-exclusion tools */}
         <section>
           <h2 className="font-display font-bold text-2xl text-[#1b1b1c] mb-2">Itsesäätelytyökalut</h2>
-          <p className="text-sm text-[#787585] mb-5">Kaikki luotettavat nettikasinot tarjoavat nämä työkalut. Löydät ne yleensä kasino-tilisi asetuksista.</p>
+          <p className="text-sm text-[#6B6879] mb-5">Kaikki luotettavat nettikasinot tarjoavat nämä työkalut. Löydät ne yleensä kasino-tilisi asetuksista.</p>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
             {TOOLS.map((tool) => (
               <div key={tool.title} className="bg-white rounded-2xl border border-[#E5E8F0] p-5">
@@ -95,7 +95,7 @@ export default function ResponsibleGamblingPage({ params }: { params: { lang: st
                   <span className="material-symbols-outlined text-[#27AE60] text-2xl" aria-hidden="true">{tool.icon}</span>
                 </div>
                 <h3 className="font-display font-bold text-sm text-[#1b1b1c] mb-1">{tool.title}</h3>
-                <p className="text-xs text-[#787585] leading-relaxed">{tool.desc}</p>
+                <p className="text-xs text-[#6B6879] leading-relaxed">{tool.desc}</p>
               </div>
             ))}
           </div>
@@ -109,7 +109,7 @@ export default function ResponsibleGamblingPage({ params }: { params: { lang: st
             </div>
             <div className="flex-1">
               <h2 className="font-display font-bold text-xl text-[#1b1b1c] mb-1">Ongelmapelaamisen merkit</h2>
-              <p className="text-sm text-[#787585] mb-4">Jos tunnistat itsessäsi useita alla olevista merkeistä, harkitse yhteydenottoa Peluuriin.</p>
+              <p className="text-sm text-[#6B6879] mb-4">Jos tunnistat itsessäsi useita alla olevista merkeistä, harkitse yhteydenottoa Peluuriin.</p>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                 {PROBLEM_SIGNS.map((sign, i) => (
                   <div key={i} className="flex items-start gap-2.5">
@@ -162,7 +162,7 @@ export default function ResponsibleGamblingPage({ params }: { params: { lang: st
                     <span className="material-symbols-outlined text-[#2D1783] text-[18px]" aria-hidden="true">calendar_month</span>
                   </div>
                   <p className="font-bold text-sm text-[#1b1b1c]">{r.period}</p>
-                  <p className="text-xs text-[#787585] mt-1 leading-relaxed">{r.desc}</p>
+                  <p className="text-xs text-[#6B6879] mt-1 leading-relaxed">{r.desc}</p>
                 </div>
               ))}
             </div>
@@ -189,7 +189,7 @@ export default function ResponsibleGamblingPage({ params }: { params: { lang: st
                     <p className="font-display font-bold text-sm text-[#1b1b1c]">{org.name}</p>
                     <span className={`text-[9px] font-bold uppercase px-1.5 py-0.5 rounded border ${org.tagColor}`}>{org.tag}</span>
                   </div>
-                  <p className="text-xs text-[#787585] leading-relaxed">{org.desc}</p>
+                  <p className="text-xs text-[#6B6879] leading-relaxed">{org.desc}</p>
                   {org.phone && (
                     <p className="text-xs font-bold text-[#27AE60] mt-1.5">
                       <span className="material-symbols-outlined text-[12px] align-middle mr-0.5" aria-hidden="true">call</span>
@@ -197,7 +197,7 @@ export default function ResponsibleGamblingPage({ params }: { params: { lang: st
                     </p>
                   )}
                 </div>
-                <span className="material-symbols-outlined text-[#787585] text-[18px] flex-shrink-0 mt-0.5" aria-hidden="true">open_in_new</span>
+                <span className="material-symbols-outlined text-[#6B6879] text-[18px] flex-shrink-0 mt-0.5" aria-hidden="true">open_in_new</span>
               </a>
             ))}
           </div>

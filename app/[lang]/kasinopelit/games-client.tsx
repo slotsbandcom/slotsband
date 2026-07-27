@@ -1,4 +1,4 @@
-"use client"
+﻿"use client"
 
 import { useState, useMemo, use } from "react"
 import Image from "next/image"
@@ -31,7 +31,7 @@ function VolatilityBadge({ v }: { v?: string }) {
 
 function GameTypeBadge({ type }: { type?: string }) {
   const labels: Record<string, string> = { slot: "Kolikko", live: "Live", table: "Pöytä", jackpot: "Jackpot" }
-  return <span className="text-[9px] font-bold text-[#787585] uppercase">{labels[type ?? "slot"]}</span>
+  return <span className="text-[9px] font-bold text-[#6B6879] uppercase">{labels[type ?? "slot"]}</span>
 }
 
 function GameCard({ game, lang }: { game: Game; lang: Lang }) {
@@ -70,7 +70,7 @@ function GameCard({ game, lang }: { game: Game; lang: Lang }) {
         <p className="font-display font-bold text-sm text-[#1b1b1c] leading-tight group-hover:text-[#2D1783] transition-colors line-clamp-1">
           {game.name}
         </p>
-        <p className="text-[10px] text-[#787585] mt-0.5">{game.provider}</p>
+        <p className="text-[10px] text-[#6B6879] mt-0.5">{game.provider}</p>
         <div className="flex items-center justify-between mt-2">
           <GameTypeBadge type={game.type} />
           {game.rtp && (
@@ -171,7 +171,7 @@ export default function GamesPage({
 
               {/* Provider */}
               <div>
-                <label className="text-[10px] font-bold text-[#787585] uppercase tracking-wide block mb-2">
+                <label className="text-[10px] font-bold text-[#6B6879] uppercase tracking-wide block mb-2">
                   Pelintarjoaja
                 </label>
                 <div className="space-y-0.5 max-h-48 overflow-y-auto">
@@ -191,7 +191,7 @@ export default function GamesPage({
 
               {/* Volatility */}
               <div>
-                <label className="text-[10px] font-bold text-[#787585] uppercase tracking-wide block mb-2">
+                <label className="text-[10px] font-bold text-[#6B6879] uppercase tracking-wide block mb-2">
                   Volatiliteetti
                 </label>
                 <div className="flex gap-1.5 flex-wrap">
@@ -213,7 +213,7 @@ export default function GamesPage({
 
               {/* Min RTP slider */}
               <div>
-                <label className="text-[10px] font-bold text-[#787585] uppercase tracking-wide block mb-2">
+                <label className="text-[10px] font-bold text-[#6B6879] uppercase tracking-wide block mb-2">
                   Min. RTP: {minRtp}%
                 </label>
                 <input
@@ -221,7 +221,7 @@ export default function GamesPage({
                   onChange={(e) => setMinRtp(Number(e.target.value))}
                   className="w-full accent-[#2D1783]"
                 />
-                <div className="flex justify-between text-[9px] text-[#787585] mt-0.5">
+                <div className="flex justify-between text-[9px] text-[#6B6879] mt-0.5">
                   <span>80%</span><span>99%</span>
                 </div>
               </div>
@@ -230,7 +230,7 @@ export default function GamesPage({
               {(provider !== "Kaikki" || volatility !== "Kaikki" || activeType !== "all" || minRtp !== 85) && (
                 <button
                   onClick={() => { setProvider("Kaikki"); setVolatility("Kaikki"); setActiveType("all"); setMinRtp(85) }}
-                  className="w-full text-[10px] font-bold text-[#787585] hover:text-[#2D1783] py-1 transition-colors"
+                  className="w-full text-[10px] font-bold text-[#6B6879] hover:text-[#2D1783] py-1 transition-colors"
                 >
                   Tyhjennä suodattimet
                 </button>
@@ -240,11 +240,11 @@ export default function GamesPage({
 
           {/* Game grid */}
           <div className="flex-1">
-            <p className="text-xs text-[#787585] font-medium mb-4">{filtered.length} peliä löydetty</p>
+            <p className="text-xs text-[#6B6879] font-medium mb-4">{filtered.length} peliä löydetty</p>
             {filtered.length === 0 ? (
               <div className="bg-white rounded-2xl border border-[#E5E8F0] p-12 text-center">
                 <span className="material-symbols-outlined text-[#E5E8F0] text-5xl block mb-3" aria-hidden="true">search_off</span>
-                <p className="text-[#787585] font-medium">Ei pelejä suodatusehdoilla</p>
+                <p className="text-[#6B6879] font-medium">Ei pelejä suodatusehdoilla</p>
               </div>
             ) : (
               <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">

@@ -1,4 +1,4 @@
-import type { Metadata } from "next"
+﻿import type { Metadata } from "next"
 import type { Lang } from "@/lib/types"
 import { TRANSLATIONS } from "@/lib/data"
 import { getCasinos } from "@/lib/supabase/queries"
@@ -93,7 +93,7 @@ export default async function HomePage({ params }: HomePageProps) {
                 </span>
                 {t.hero.titleSuffix ? ` ${t.hero.titleSuffix}` : ""}
               </h1>
-              <p className="text-sm md:text-base text-[#787585] leading-snug">
+              <p className="text-sm md:text-base text-[#6B6879] leading-snug">
                 {t.hero.subtitle}
               </p>
               <div className="flex flex-wrap gap-1.5 pt-0.5">
@@ -153,9 +153,9 @@ export default async function HomePage({ params }: HomePageProps) {
           <div className="flex flex-col md:flex-row justify-between items-start md:items-end mb-8 gap-4">
             <div>
               <h2 className="font-display font-bold text-3xl text-[#1b1b1c]">{t.listing.title}</h2>
-              <p className="text-[#787585] mt-1.5">{t.listing.subtitle}</p>
+              <p className="text-[#6B6879] mt-1.5">{t.listing.subtitle}</p>
             </div>
-            <div className="flex items-center gap-2 text-sm text-[#787585] font-semibold bg-white px-4 py-2.5 rounded-xl border border-[#E5E8F0] cursor-pointer hover:border-[#2D1783] transition-colors">
+            <div className="flex items-center gap-2 text-sm text-[#6B6879] font-semibold bg-white px-4 py-2.5 rounded-xl border border-[#E5E8F0] cursor-pointer hover:border-[#2D1783] transition-colors">
               <span className="material-symbols-outlined text-[#FFD700] text-[18px]">sort</span>
               <span>{t.listing.sortBy}</span>
             </div>
@@ -183,7 +183,7 @@ export default async function HomePage({ params }: HomePageProps) {
                   <>Player safety is our <span className="text-[#2D1783]">top priority</span></>
                 )}
               </h2>
-              <p className="text-lg text-[#787585] leading-relaxed">
+              <p className="text-lg text-[#6B6879] leading-relaxed">
                 {safeLang === "fi"
                   ? "SlotsBand on asiantuntijoiden ylläpitämä sivusto, joka on omistautunut rehellisyyteen ja läpinäkyvyyteen. Jokainen kasino listauksessamme on käynyt läpi tiukan laadunvalvontaprosessin."
                   : "SlotsBand is maintained by experts dedicated to honesty and transparency. Every casino in our listings has undergone a rigorous quality control process."}
@@ -208,8 +208,8 @@ export default async function HomePage({ params }: HomePageProps) {
                     <span className="material-symbols-outlined text-[#2D1783] text-3xl group-hover:scale-110 transition-transform inline-block">
                       {item.icon}
                     </span>
-                    <h4 className="font-display font-bold text-[#1b1b1c]">{item.title}</h4>
-                    <p className="text-sm text-[#787585] leading-relaxed">{item.desc}</p>
+                    <h3 className="font-display font-bold text-[#1b1b1c]">{item.title}</h3>
+                    <p className="text-sm text-[#6B6879] leading-relaxed">{item.desc}</p>
                   </div>
                 ))}
               </div>

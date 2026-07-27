@@ -1,4 +1,4 @@
-import Link from "next/link"
+﻿import Link from "next/link"
 import type { Casino, Lang } from "@/lib/types"
 import { TRANSLATIONS } from "@/lib/data"
 import { CasinoLogo } from "@/components/casino-logo"
@@ -40,7 +40,7 @@ function StarRating({ rating }: { rating: number }) {
 }
 
 function WithdrawalBadge({ hours }: { hours?: number | null }) {
-  if (hours === undefined || hours === null) return <span className="text-sm font-bold text-[#787585]">—</span>
+  if (hours === undefined || hours === null) return <span className="text-sm font-bold text-[#6B6879]">—</span>
   if (hours === 0) return <span className="text-xs font-bold text-[#27AE60]">Välitön</span>
   if (hours <= 1) return <span className="text-xs font-bold text-[#27AE60]">alle 1h</span>
   if (hours <= 6) return <span className="text-xs font-bold text-[#27AE60]">Nopea</span>
@@ -49,13 +49,13 @@ function WithdrawalBadge({ hours }: { hours?: number | null }) {
 }
 
 function WageringDisplay({ wagering }: { wagering?: number | null }) {
-  if (wagering === undefined || wagering === null) return <span className="text-sm font-bold text-[#787585]">—</span>
+  if (wagering === undefined || wagering === null) return <span className="text-sm font-bold text-[#6B6879]">—</span>
   if (wagering === 0) return <span className="text-sm font-bold text-[#27AE60]">Kierrätysvapaa</span>
   return <span className="text-sm font-bold text-[#1b1b1c]">{wagering}x</span>
 }
 
 function MinDepositDisplay({ amount }: { amount?: number | null }) {
-  if (!amount) return <span className="text-sm font-bold text-[#787585]">—</span>
+  if (!amount) return <span className="text-sm font-bold text-[#6B6879]">—</span>
   return <span className="text-sm font-bold text-[#1b1b1c]">{amount}€</span>
 }
 
@@ -136,19 +136,19 @@ export function CasinoCard({ casino, lang, rank }: CasinoCardProps) {
         {/* Row 3: Stats grid */}
         <div className="grid grid-cols-2 gap-px bg-[#E5E8F0] border-t border-b border-[#E5E8F0] mx-0">
           <div className="bg-white px-4 py-2.5">
-            <p className="text-[10px] font-semibold text-[#787585] uppercase tracking-wide">{t.minDeposit}</p>
+            <p className="text-[10px] font-semibold text-[#6B6879] uppercase tracking-wide">{t.minDeposit}</p>
             <div className="mt-0.5"><MinDepositDisplay amount={casino.min_deposit} /></div>
           </div>
           <div className="bg-white px-4 py-2.5">
-            <p className="text-[10px] font-semibold text-[#787585] uppercase tracking-wide">{t.withdrawalSpeed}</p>
+            <p className="text-[10px] font-semibold text-[#6B6879] uppercase tracking-wide">{t.withdrawalSpeed}</p>
             <div className="mt-0.5"><WithdrawalBadge hours={casino.withdrawal_time_max_hours} /></div>
           </div>
           <div className="bg-white px-4 py-2.5">
-            <p className="text-[10px] font-semibold text-[#787585] uppercase tracking-wide">{t.license}</p>
+            <p className="text-[10px] font-semibold text-[#6B6879] uppercase tracking-wide">{t.license}</p>
             <p className="text-sm font-bold text-[#1b1b1c] mt-0.5">{casino.license_authority ?? "—"}</p>
           </div>
           <div className="bg-white px-4 py-2.5">
-            <p className="text-[10px] font-semibold text-[#787585] uppercase tracking-wide">{t.bonusType}</p>
+            <p className="text-[10px] font-semibold text-[#6B6879] uppercase tracking-wide">{t.bonusType}</p>
             <div className="mt-0.5"><WageringDisplay wagering={casino.welcome_bonus_wagering} /></div>
           </div>
         </div>
@@ -172,7 +172,7 @@ export function CasinoCard({ casino, lang, rank }: CasinoCardProps) {
           </Link>
         </div>
 
-        <p className="text-[9px] text-[#787585] text-center pb-3">
+        <p className="text-[9px] text-[#6B6879] text-center pb-3">
           {lang === "fi" ? "18+ | Pelaa vastuullisesti" : "18+ | Gamble responsibly"}
         </p>
       </div>
@@ -226,19 +226,19 @@ export function CasinoCard({ casino, lang, rank }: CasinoCardProps) {
             {/* Stats row */}
             <div className="grid grid-cols-4 gap-3">
               <div>
-                <p className="text-[10px] font-bold text-[#787585] uppercase tracking-wide">{t.minDeposit}</p>
+                <p className="text-[10px] font-bold text-[#6B6879] uppercase tracking-wide">{t.minDeposit}</p>
                 <div className="mt-0.5"><MinDepositDisplay amount={casino.min_deposit} /></div>
               </div>
               <div>
-                <p className="text-[10px] font-bold text-[#787585] uppercase tracking-wide">{t.withdrawalSpeed}</p>
+                <p className="text-[10px] font-bold text-[#6B6879] uppercase tracking-wide">{t.withdrawalSpeed}</p>
                 <div className="mt-0.5"><WithdrawalBadge hours={casino.withdrawal_time_max_hours} /></div>
               </div>
               <div>
-                <p className="text-[10px] font-bold text-[#787585] uppercase tracking-wide">{t.license}</p>
+                <p className="text-[10px] font-bold text-[#6B6879] uppercase tracking-wide">{t.license}</p>
                 <p className="text-sm font-bold text-[#1b1b1c] mt-0.5">{casino.license_authority ?? "—"}</p>
               </div>
               <div>
-                <p className="text-[10px] font-bold text-[#787585] uppercase tracking-wide">{t.bonusType}</p>
+                <p className="text-[10px] font-bold text-[#6B6879] uppercase tracking-wide">{t.bonusType}</p>
                 <div className="mt-0.5"><WageringDisplay wagering={casino.welcome_bonus_wagering} /></div>
               </div>
             </div>
@@ -252,7 +252,7 @@ export function CasinoCard({ casino, lang, rank }: CasinoCardProps) {
                   </span>
                 ))}
                 {paymentMethods.length > 5 && (
-                  <span className="bg-[#F8F9FD] border border-[#E5E8F0] px-2 py-0.5 rounded text-[10px] font-semibold text-[#787585]">
+                  <span className="bg-[#F8F9FD] border border-[#E5E8F0] px-2 py-0.5 rounded text-[10px] font-semibold text-[#6B6879]">
                     +{paymentMethods.length - 5}
                   </span>
                 )}
@@ -277,7 +277,7 @@ export function CasinoCard({ casino, lang, rank }: CasinoCardProps) {
             >
               {t.readReview}
             </Link>
-            <p className="text-[10px] text-[#787585] text-center leading-tight">
+            <p className="text-[10px] text-[#6B6879] text-center leading-tight">
               {lang === "fi" ? "18+ | Pelaa vastuullisesti" : "18+ | Gamble responsibly"}
             </p>
           </div>

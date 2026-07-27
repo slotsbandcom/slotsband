@@ -1,4 +1,4 @@
-"use client"
+﻿"use client"
 
 import { useState, useEffect, use } from "react"
 import Link from "next/link"
@@ -60,7 +60,7 @@ export default function RafflesPage({
   if (!active) {
     return (
       <div className="min-h-screen bg-[#F8F9FD] flex items-center justify-center">
-        <p className="text-[#787585] text-sm font-medium">Ei aktiivisia arpajaisia juuri nyt.</p>
+        <p className="text-[#6B6879] text-sm font-medium">Ei aktiivisia arpajaisia juuri nyt.</p>
       </div>
     )
   }
@@ -172,10 +172,10 @@ export default function RafflesPage({
               <table className="w-full text-sm" aria-label="Voittajat">
                 <thead>
                   <tr className="bg-[#F8F9FD] border-b border-[#E5E8F0]">
-                    <th className="text-left px-4 py-3 text-[10px] font-bold text-[#787585] uppercase tracking-wide">Voittaja</th>
-                    <th className="text-left px-4 py-3 text-[10px] font-bold text-[#787585] uppercase tracking-wide">Palkinto</th>
-                    <th className="text-left px-4 py-3 text-[10px] font-bold text-[#787585] uppercase tracking-wide hidden sm:table-cell">Kasino</th>
-                    <th className="text-left px-4 py-3 text-[10px] font-bold text-[#787585] uppercase tracking-wide hidden sm:table-cell">Päivämäärä</th>
+                    <th className="text-left px-4 py-3 text-[10px] font-bold text-[#6B6879] uppercase tracking-wide">Voittaja</th>
+                    <th className="text-left px-4 py-3 text-[10px] font-bold text-[#6B6879] uppercase tracking-wide">Palkinto</th>
+                    <th className="text-left px-4 py-3 text-[10px] font-bold text-[#6B6879] uppercase tracking-wide hidden sm:table-cell">Kasino</th>
+                    <th className="text-left px-4 py-3 text-[10px] font-bold text-[#6B6879] uppercase tracking-wide hidden sm:table-cell">Päivämäärä</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -195,8 +195,8 @@ export default function RafflesPage({
                           {w.prize}
                         </span>
                       </td>
-                      <td className="px-4 py-3 hidden sm:table-cell text-xs text-[#787585]">{w.casino ?? ""}</td>
-                      <td className="px-4 py-3 hidden sm:table-cell text-xs text-[#787585]">{w.date}</td>
+                      <td className="px-4 py-3 hidden sm:table-cell text-xs text-[#6B6879]">{w.casino ?? ""}</td>
+                      <td className="px-4 py-3 hidden sm:table-cell text-xs text-[#6B6879]">{w.date}</td>
                     </tr>
                   ))}
                 </tbody>
@@ -213,16 +213,16 @@ export default function RafflesPage({
               {(active.upcoming ?? []).map((r) => (
                 <div key={r.id} className="bg-white rounded-2xl border border-[#E5E8F0] p-5 flex items-start justify-between gap-4">
                   <div>
-                    <span className="inline-block bg-[#F8F9FD] border border-[#E5E8F0] text-[10px] font-bold text-[#787585] uppercase px-2 py-0.5 rounded-full mb-2">
+                    <span className="inline-block bg-[#F8F9FD] border border-[#E5E8F0] text-[10px] font-bold text-[#6B6879] uppercase px-2 py-0.5 rounded-full mb-2">
                       Tulossa pian
                     </span>
                     <h3 className="font-display font-bold text-base text-[#1b1b1c]">{r.title}</h3>
-                    {r.casino_name && <p className="text-xs text-[#787585] mt-1">{r.casino_name}</p>}
-                    {r.starts_at   && <p className="text-xs text-[#787585] mt-0.5">Alkaa: {formatDate(r.starts_at)}</p>}
+                    {r.casino_name && <p className="text-xs text-[#6B6879] mt-1">{r.casino_name}</p>}
+                    {r.starts_at   && <p className="text-xs text-[#6B6879] mt-0.5">Alkaa: {formatDate(r.starts_at)}</p>}
                   </div>
                   <div className="flex-shrink-0 text-center">
                     <p className="font-display font-bold text-[#2D1783] text-lg">{r.prize}</p>
-                    <p className="text-[10px] text-[#787585]">Palkinto</p>
+                    <p className="text-[10px] text-[#6B6879]">Palkinto</p>
                   </div>
                 </div>
               ))}

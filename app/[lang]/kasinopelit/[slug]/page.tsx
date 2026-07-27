@@ -1,4 +1,4 @@
-import Link from "next/link"
+﻿import Link from "next/link"
 import { notFound } from "next/navigation"
 import { getGames, getCasinos } from "@/lib/supabase/queries"
 import { getGameSlugs } from "@/lib/supabase/build-client"
@@ -36,7 +36,7 @@ export default async function GamePage({ params }: { params: { lang: string; slu
     <div className="min-h-screen bg-[#F8F9FD]">
       {/* Breadcrumb */}
       <div className="bg-white border-b border-[#E5E8F0] py-3">
-        <div className="max-w-[1280px] mx-auto px-4 md:px-12 flex items-center gap-1.5 text-xs text-[#787585]">
+        <div className="max-w-[1280px] mx-auto px-4 md:px-12 flex items-center gap-1.5 text-xs text-[#6B6879]">
           <Link href={`/${lang}`} className="hover:text-[#2D1783]">Koti</Link>
           <span className="material-symbols-outlined text-[12px]">chevron_right</span>
           <Link href={`/${lang}/kasinopelit`} className="hover:text-[#2D1783]">Kasinopelit</Link>
@@ -72,7 +72,7 @@ export default async function GamePage({ params }: { params: { lang: string; slu
                 <div key={s.label} className="bg-white rounded-2xl border border-[#E5E8F0] p-4 text-center">
                   <span className="material-symbols-outlined text-[#2D1783] text-2xl block mb-1" aria-hidden="true">{s.icon}</span>
                   <p className="font-display font-bold text-sm text-[#1b1b1c]">{s.value}</p>
-                  <p className="text-[10px] text-[#787585] uppercase tracking-wide mt-0.5">{s.label}</p>
+                  <p className="text-[10px] text-[#6B6879] uppercase tracking-wide mt-0.5">{s.label}</p>
                 </div>
               ))}
             </div>
@@ -93,7 +93,7 @@ export default async function GamePage({ params }: { params: { lang: string; slu
                   { label: "Maks. voitto", value: game.type === "jackpot" ? "Progressiivinen" : "5 000x" },
                 ].map((item) => (
                   <div key={item.label} className="bg-[#F8F9FD] rounded-xl p-3">
-                    <p className="text-[10px] text-[#787585] uppercase tracking-wide">{item.label}</p>
+                    <p className="text-[10px] text-[#6B6879] uppercase tracking-wide">{item.label}</p>
                     <p className="font-bold text-sm text-[#1b1b1c] mt-0.5">{item.value}</p>
                   </div>
                 ))}
@@ -117,7 +117,7 @@ export default async function GamePage({ params }: { params: { lang: string; slu
                         <span className="material-symbols-outlined text-white/30 text-3xl" aria-hidden="true">casino</span>
                       </div>
                       <p className="font-bold text-xs text-[#1b1b1c] leading-snug">{g.name}</p>
-                      <p className="text-[10px] text-[#787585]">{g.provider}</p>
+                      <p className="text-[10px] text-[#6B6879]">{g.provider}</p>
                     </Link>
                   ))}
                 </div>
@@ -162,7 +162,7 @@ function CasinoRow({ casino, lang }: { casino: import("@/lib/types").Casino; lan
       <div className="flex-1 min-w-0">
         <p className="font-bold text-xs text-[#1b1b1c] truncate">{casino.name}</p>
         {casino.welcome_bonus_text && (
-          <p className="text-[9px] text-[#787585] truncate">{casino.welcome_bonus_text.slice(0, 40)}...</p>
+          <p className="text-[9px] text-[#6B6879] truncate">{casino.welcome_bonus_text.slice(0, 40)}...</p>
         )}
       </div>
       <a

@@ -1,4 +1,4 @@
-import Image from "next/image"
+﻿import Image from "next/image"
 import Link from "next/link"
 import { createClient } from "@/lib/supabase/server"
 import type { Lang } from "@/lib/types"
@@ -31,7 +31,7 @@ export async function BlogiHub({ lang }: { lang: Lang }) {
     <div className="min-h-screen bg-[#F8F9FD]">
       <div className="bg-white border-b border-[#E5E8F0]">
         <div className="max-w-[1100px] mx-auto px-4 md:px-8 py-10">
-          <nav aria-label="Breadcrumb" className="flex items-center gap-1.5 text-xs text-[#787585] mb-4">
+          <nav aria-label="Breadcrumb" className="flex items-center gap-1.5 text-xs text-[#6B6879] mb-4">
             <Link href={`/${lang}`} className="hover:text-[#2D1783] transition-colors">
               {lang === "fi" ? "Etusivu" : "Home"}
             </Link>
@@ -39,13 +39,13 @@ export async function BlogiHub({ lang }: { lang: Lang }) {
             <span className="text-[#2D1783] font-semibold">Blog</span>
           </nav>
           <h1 className="font-display font-bold text-4xl text-[#1b1b1c] mb-2">{heading}</h1>
-          <p className="text-[#787585] text-base">{subtext}</p>
+          <p className="text-[#6B6879] text-base">{subtext}</p>
         </div>
       </div>
 
       <div className="max-w-[1100px] mx-auto px-4 md:px-8 py-10">
         {!posts || posts.length === 0 ? (
-          <div className="text-center py-20 text-[#787585]">
+          <div className="text-center py-20 text-[#6B6879]">
             <span className="material-symbols-outlined text-[48px] text-[#E5E8F0] block mb-3">article</span>
             <p>{lang === "fi" ? "Ei artikkeleita vielä." : "No articles yet."}</p>
           </div>
@@ -79,7 +79,7 @@ export async function BlogiHub({ lang }: { lang: Lang }) {
                   )}
                   <div className="p-5 flex flex-col flex-1">
                     {pubDate && (
-                      <p className="text-[10px] font-bold text-[#787585] uppercase tracking-wider mb-2">{pubDate}</p>
+                      <p className="text-[10px] font-bold text-[#6B6879] uppercase tracking-wider mb-2">{pubDate}</p>
                     )}
                     <h2 className="font-display font-bold text-[#1b1b1c] text-base leading-snug mb-2">
                       <Link href={`/${lang}/${slug}`} className="hover:text-[#2D1783] transition-colors">
@@ -87,7 +87,7 @@ export async function BlogiHub({ lang }: { lang: Lang }) {
                       </Link>
                     </h2>
                     {excerpt && (
-                      <p className="text-sm text-[#787585] line-clamp-3 flex-1 mb-4">{excerpt}</p>
+                      <p className="text-sm text-[#6B6879] line-clamp-3 flex-1 mb-4">{excerpt}</p>
                     )}
                     <Link href={`/${lang}/${slug}`}
                       className="mt-auto inline-flex items-center gap-1 text-sm font-semibold text-[#2D1783] hover:underline">

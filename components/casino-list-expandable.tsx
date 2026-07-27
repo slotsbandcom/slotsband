@@ -1,4 +1,4 @@
-"use client"
+﻿"use client"
 
 import { useState } from "react"
 import { CasinoCard } from "@/components/casino-card"
@@ -33,7 +33,7 @@ export function CasinoListExpandable({ casinos, lang }: Props) {
             <span className="material-symbols-outlined text-[18px]" aria-hidden="true">expand_more</span>
             Näytä lisää kasinoita ({remaining} jäljellä)
           </button>
-          <p className="text-xs text-[#787585]">
+          <p className="text-xs text-[#6B6879]">
             Näytetään {shown.length}/{casinos.length} kasinoita
           </p>
         </div>

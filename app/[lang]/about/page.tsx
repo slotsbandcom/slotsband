@@ -1,4 +1,4 @@
-import Link from "next/link"
+﻿import Link from "next/link"
 import type { Lang } from "@/lib/types"
 
 const TEAM = [
@@ -62,7 +62,7 @@ export default function AboutPage({ params }: { params: { lang: string } }) {
                   <span className="text-white font-display font-bold text-2xl">{m.avatar}</span>
                 </div>
                 <p className="font-display font-bold text-sm text-[#1b1b1c]">{m.name}</p>
-                <p className="text-xs text-[#787585] mt-0.5 leading-snug">{m.role}</p>
+                <p className="text-xs text-[#6B6879] mt-0.5 leading-snug">{m.role}</p>
                 <p className="text-[10px] text-[#2D1783] font-bold mt-2 uppercase tracking-wide">{m.years} vuoden kokemus</p>
               </div>
             ))}
@@ -74,7 +74,7 @@ export default function AboutPage({ params }: { params: { lang: string } }) {
           <div className="flex flex-col md:flex-row md:items-end md:justify-between gap-3 mb-6">
             <div>
               <h2 className="font-display font-bold text-2xl text-[#1b1b1c]">Arviointimetodologia</h2>
-              <p className="text-sm text-[#787585] mt-1">Näin arvioimme kasinot — läpinäkyvästi ja rehellisesti.</p>
+              <p className="text-sm text-[#6B6879] mt-1">Näin arvioimme kasinot — läpinäkyvästi ja rehellisesti.</p>
             </div>
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -86,7 +86,7 @@ export default function AboutPage({ params }: { params: { lang: string } }) {
                   </div>
                   <h3 className="font-display font-bold text-sm text-[#1b1b1c]">{item.title}</h3>
                 </div>
-                <p className="text-sm text-[#787585] leading-relaxed">{item.desc}</p>
+                <p className="text-sm text-[#6B6879] leading-relaxed">{item.desc}</p>
               </div>
             ))}
           </div>

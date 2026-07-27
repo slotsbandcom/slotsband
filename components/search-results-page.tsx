@@ -1,4 +1,4 @@
-import Link from "next/link"
+﻿import Link from "next/link"
 import { createClient } from "@/lib/supabase/server"
 import { CasinoCard } from "@/components/casino-card"
 import type { Casino, Lang } from "@/lib/types"
@@ -61,7 +61,7 @@ export async function SearchResultsPage({ lang, query }: Props) {
       <div className="min-h-screen bg-[#F8F9FD]">
         <div className="max-w-[1280px] mx-auto px-4 md:px-12 py-16 text-center">
           <span className="material-symbols-outlined text-[64px] text-[#E5E8F0]" aria-hidden="true">search</span>
-          <p className="text-[#787585] mt-4">{labels.emptySearch}</p>
+          <p className="text-[#6B6879] mt-4">{labels.emptySearch}</p>
         </div>
       </div>
     )
@@ -118,7 +118,7 @@ export async function SearchResultsPage({ lang, query }: Props) {
             {labels.title} &ldquo;<span className="text-[#2D1783]">{q}</span>&rdquo;
           </h1>
           {totalCount > 0 && (
-            <p className="text-[#787585] mt-1 text-sm">
+            <p className="text-[#6B6879] mt-1 text-sm">
               {fi
                 ? `Löydettiin ${casinos.length > 0 ? `${casinos.length} ${labels.casinosFound}` : ""}${casinos.length > 0 && pages.length > 0 ? ` ${labels.and} ` : ""}${pages.length > 0 ? `${pages.length} ${labels.pagesFound}` : ""}`
                 : `Found ${casinos.length > 0 ? `${casinos.length} ${labels.casinosFound}` : ""}${casinos.length > 0 && pages.length > 0 ? ` ${labels.and} ` : ""}${pages.length > 0 ? `${pages.length} ${labels.pagesFound}` : ""}`
@@ -135,7 +135,7 @@ export async function SearchResultsPage({ lang, query }: Props) {
               <h2 className="font-display font-bold text-xl text-[#1b1b1c] mt-3">
                 {labels.noResults} &ldquo;{q}&rdquo;
               </h2>
-              <p className="text-[#787585] text-sm mt-2">{labels.noResultsHint}</p>
+              <p className="text-[#6B6879] text-sm mt-2">{labels.noResultsHint}</p>
               <div className="flex flex-wrap gap-2 justify-center mt-4">
                 {["Pikakasino", "MGA", "Bonus", "200€"].map(hint => (
                   <Link
@@ -166,7 +166,7 @@ export async function SearchResultsPage({ lang, query }: Props) {
             <h2 className="font-display font-bold text-lg text-[#1b1b1c] mb-4 flex items-center gap-2">
               <span className="material-symbols-outlined text-[#2D1783] text-[20px]" aria-hidden="true">casino</span>
               {labels.casinosSection}
-              <span className="text-sm font-normal text-[#787585]">({casinos.length})</span>
+              <span className="text-sm font-normal text-[#6B6879]">({casinos.length})</span>
             </h2>
             <div className="space-y-3">
               {casinos.map((casino, i) => (
@@ -190,7 +190,7 @@ export async function SearchResultsPage({ lang, query }: Props) {
             <h2 className="font-display font-bold text-lg text-[#1b1b1c] mb-4 flex items-center gap-2">
               <span className="material-symbols-outlined text-[#2D1783] text-[20px]" aria-hidden="true">article</span>
               {labels.pagesSection}
-              <span className="text-sm font-normal text-[#787585]">({pages.length})</span>
+              <span className="text-sm font-normal text-[#6B6879]">({pages.length})</span>
             </h2>
             <div className="space-y-2">
               {pages.map(page => (
@@ -203,7 +203,7 @@ export async function SearchResultsPage({ lang, query }: Props) {
                     <HighlightMatch text={page.title} query={q} />
                   </h3>
                   {page.excerpt && (
-                    <p className="text-sm text-[#787585] mt-1 line-clamp-2">{page.excerpt}</p>
+                    <p className="text-sm text-[#6B6879] mt-1 line-clamp-2">{page.excerpt}</p>
                   )}
                   <span className="text-xs text-[#2D1783] font-semibold mt-2 inline-flex items-center gap-1">
                     {labels.visitCasino}

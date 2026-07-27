@@ -1,4 +1,4 @@
-"use client"
+﻿"use client"
 
 import { useState } from "react"
 import Link from "next/link"
@@ -100,7 +100,7 @@ export default function BonusesPage({
                   <span className="bg-[#FFF4B0] text-[#775900] text-[9px] font-bold uppercase px-2 py-0.5 rounded-full tracking-wide">Eksklusiivinen</span>
                 </div>
                 <div>
-                  <p className="text-[10px] font-semibold text-[#787585] uppercase tracking-wide">{b.casino_name}</p>
+                  <p className="text-[10px] font-semibold text-[#6B6879] uppercase tracking-wide">{b.casino_name}</p>
                   <p className="font-display font-bold text-[#2D1783] text-sm leading-tight mt-0.5">{b.amount}</p>
                 </div>
                 <WageringBadge wagering={b.wagering} />
@@ -144,7 +144,7 @@ export default function BonusesPage({
             <div className="bg-white rounded-2xl border border-[#E5E8F0] p-4 space-y-5 sticky top-[120px]">
               <p className="font-display font-bold text-sm text-[#1b1b1c]">Suodattimet</p>
               <div>
-                <label className="text-[10px] font-bold text-[#787585] uppercase tracking-wide block mb-2">
+                <label className="text-[10px] font-bold text-[#6B6879] uppercase tracking-wide block mb-2">
                   Maks. kierrätys: {maxWagering === 50 ? "Kaikki" : `${maxWagering}x`}
                 </label>
                 <input
@@ -152,12 +152,12 @@ export default function BonusesPage({
                   onChange={(e) => setMaxWagering(Number(e.target.value))}
                   className="w-full accent-[#2D1783]"
                 />
-                <div className="flex justify-between text-[9px] text-[#787585] mt-0.5">
+                <div className="flex justify-between text-[9px] text-[#6B6879] mt-0.5">
                   <span>Kierrätysvapaa</span><span>50x</span>
                 </div>
               </div>
               <div>
-                <label className="text-[10px] font-bold text-[#787585] uppercase tracking-wide block mb-2">
+                <label className="text-[10px] font-bold text-[#6B6879] uppercase tracking-wide block mb-2">
                   Maks. minimitalletus: {maxMinDeposit}€
                 </label>
                 <input
@@ -165,7 +165,7 @@ export default function BonusesPage({
                   onChange={(e) => setMaxMinDeposit(Number(e.target.value))}
                   className="w-full accent-[#2D1783]"
                 />
-                <div className="flex justify-between text-[9px] text-[#787585] mt-0.5">
+                <div className="flex justify-between text-[9px] text-[#6B6879] mt-0.5">
                   <span>0€</span><span>50€</span>
                 </div>
               </div>
@@ -180,11 +180,11 @@ export default function BonusesPage({
 
           {/* Bonus cards */}
           <div className="flex-1 space-y-3">
-            <p className="text-xs text-[#787585] font-medium">{filtered.length} bonusta löydetty</p>
+            <p className="text-xs text-[#6B6879] font-medium">{filtered.length} bonusta löydetty</p>
             {filtered.length === 0 && (
               <div className="bg-white rounded-2xl border border-[#E5E8F0] p-10 text-center">
                 <span className="material-symbols-outlined text-[#E5E8F0] text-5xl block mb-3">search_off</span>
-                <p className="text-[#787585] font-medium">Ei bonuksia suodatusehdoilla</p>
+                <p className="text-[#6B6879] font-medium">Ei bonuksia suodatusehdoilla</p>
               </div>
             )}
             {filtered.map((bonus) => {
@@ -218,7 +218,7 @@ export default function BonusesPage({
                     <div className="flex-1 p-4">
                       <p className="font-display font-bold text-[#2D1783] text-base leading-snug">{bonus.amount}</p>
                       <p className="text-sm text-[#1b1b1c] font-semibold mt-0.5">{bonus.title}</p>
-                      <p className="text-xs text-[#787585] mt-1 leading-relaxed">{bonus.description}</p>
+                      <p className="text-xs text-[#6B6879] mt-1 leading-relaxed">{bonus.description}</p>
                       <div className="flex flex-wrap gap-2 mt-2">
                         <WageringBadge wagering={bonus.wagering} />
                         {(bonus.min_deposit ?? 0) > 0 && (
@@ -241,7 +241,7 @@ export default function BonusesPage({
                         Lunasta bonus
                         <span className="material-symbols-outlined text-[14px]" aria-hidden="true">arrow_forward</span>
                       </a>
-                      <p className="text-[9px] text-[#787585] text-center">18+ | Pelaa vastuullisesti</p>
+                      <p className="text-[9px] text-[#6B6879] text-center">18+ | Pelaa vastuullisesti</p>
                     </div>
                   </div>
                 </article>

@@ -57,9 +57,9 @@ export function HeroSlider({ lang }: HeroSliderProps) {
 
             {/* Desktop layout: centered vertical stack */}
             <div className="hidden md:flex px-14 flex-col items-center text-center space-y-3">
-              <h4 className={`font-display font-bold text-2xl tracking-tight ${s.accentColor ?? s.textColor}`}>
+              <p className={`font-display font-bold text-2xl tracking-tight ${s.accentColor ?? s.textColor}`}>
                 {s.casinoName}
-              </h4>
+              </p>
               <div className="space-y-1">
                 <p className={`font-display font-bold text-2xl ${s.bonusColor}`}>
                   {s.bonus}

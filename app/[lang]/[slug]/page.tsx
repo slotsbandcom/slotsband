@@ -1,4 +1,4 @@
-import { notFound, permanentRedirect } from "next/navigation"
+﻿import { notFound, permanentRedirect } from "next/navigation"
 import { cache } from "react"
 import Link from "next/link"
 import Image from "next/image"
@@ -361,7 +361,7 @@ export default async function CatchAllPage({ params, searchParams }: PageProps) 
         {jsonLd && <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }} />}
         <div className="bg-white border-b border-[#E5E8F0]">
           <div className="max-w-[900px] mx-auto px-4 md:px-8 pt-6 pb-8">
-            <nav aria-label="Breadcrumb" className="flex items-center gap-1.5 text-xs text-[#787585] mb-5">
+            <nav aria-label="Breadcrumb" className="flex items-center gap-1.5 text-xs text-[#6B6879] mb-5">
               <Link href={`/${lang}`} className="hover:text-[#2D1783] transition-colors">{lang === "fi" ? "Etusivu" : "Home"}</Link>
               <span className="material-symbols-outlined text-[13px]">chevron_right</span>
               <span className="text-[#2D1783] font-semibold truncate max-w-[240px]">{sp?.title ?? slug}</span>
@@ -376,7 +376,7 @@ export default async function CatchAllPage({ params, searchParams }: PageProps) 
                 <div className="casino-review" dangerouslySetInnerHTML={{ __html: sp.content }} />
               </div>
             ) : (
-              <div className="bg-white rounded-2xl border border-[#E5E8F0] p-10 text-center text-[#787585]">
+              <div className="bg-white rounded-2xl border border-[#E5E8F0] p-10 text-center text-[#6B6879]">
                 <span className="material-symbols-outlined text-[48px] text-[#E5E8F0] block mb-3">description</span>
                 <p>{lang === "fi" ? "Sisältö tulossa pian." : "Content coming soon."}</p>
               </div>
@@ -436,7 +436,7 @@ export default async function CatchAllPage({ params, searchParams }: PageProps) 
         <div className="max-w-[1280px] mx-auto px-4 md:px-12 pt-6 pb-8">
 
           {/* Breadcrumb */}
-          <nav aria-label="Breadcrumb" className="flex items-center gap-1.5 text-xs text-[#787585] mb-5">
+          <nav aria-label="Breadcrumb" className="flex items-center gap-1.5 text-xs text-[#6B6879] mb-5">
             <Link href={`/${lang}`} className="hover:text-[#2D1783] transition-colors">{homeLabel}</Link>
             <span className="material-symbols-outlined text-[13px]">chevron_right</span>
             <Link href={`/${lang}/blogi`} className="hover:text-[#2D1783] transition-colors">Blog</Link>
@@ -462,7 +462,7 @@ export default async function CatchAllPage({ params, searchParams }: PageProps) 
           </h1>
 
           {pubDate && (
-            <p className="text-sm text-[#787585] flex items-center gap-1.5">
+            <p className="text-sm text-[#6B6879] flex items-center gap-1.5">
               <span className="material-symbols-outlined text-[15px]">calendar_today</span>
               {pubDate}
             </p>
@@ -482,7 +482,7 @@ export default async function CatchAllPage({ params, searchParams }: PageProps) 
                 <h2 className="font-display font-bold text-xl text-[#1b1b1c] mb-2">
                   {lang === "fi" ? "Käännös tulossa pian" : "Translation coming soon"}
                 </h2>
-                <p className="text-sm text-[#787585] mb-5">
+                <p className="text-sm text-[#6B6879] mb-5">
                   {lang === "fi"
                     ? "Tämä artikkeli on parhaillaan käännettävänä. Palaa pian uudelleen."
                     : "This article is being translated. Please check back soon."}
@@ -531,7 +531,7 @@ export default async function CatchAllPage({ params, searchParams }: PageProps) 
                         <div className="flex-1 min-w-0">
                           <p className="font-bold text-[#1b1b1c] text-sm leading-tight truncate">{casino.name}</p>
                           {bonus && (
-                            <p className="text-[10px] text-[#787585] leading-snug mt-0.5 line-clamp-2">{bonus}</p>
+                            <p className="text-[10px] text-[#6B6879] leading-snug mt-0.5 line-clamp-2">{bonus}</p>
                           )}
                         </div>
                         <div className="flex flex-col gap-1 flex-shrink-0">

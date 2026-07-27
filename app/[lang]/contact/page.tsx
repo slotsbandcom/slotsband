@@ -1,4 +1,4 @@
-"use client"
+﻿"use client"
 
 import { useState } from "react"
 import type { Lang } from "@/lib/types"
@@ -51,7 +51,7 @@ export default function ContactPage({ params }: { params: { lang: string } }) {
                     <span className="material-symbols-outlined text-[#27AE60] text-4xl" aria-hidden="true">check_circle</span>
                   </div>
                   <h2 className="font-display font-bold text-xl text-[#1b1b1c] mb-2">Viesti lähetetty!</h2>
-                  <p className="text-sm text-[#787585]">Otamme sinuun yhteyttä mahdollisimman pian, viimeistään 24 tunnin kuluessa.</p>
+                  <p className="text-sm text-[#6B6879]">Otamme sinuun yhteyttä mahdollisimman pian, viimeistään 24 tunnin kuluessa.</p>
                   <button
                     onClick={() => { setSent(false); setForm({ name: "", email: "", subject: "", message: "" }) }}
                     className="mt-5 text-[#2D1783] text-sm font-bold hover:underline"
@@ -64,7 +64,7 @@ export default function ContactPage({ params }: { params: { lang: string } }) {
                   <h2 className="font-display font-bold text-lg text-[#1b1b1c] mb-2">Lähetä viesti</h2>
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div>
-                      <label htmlFor="name" className="text-[11px] font-bold text-[#787585] uppercase tracking-wide block mb-1.5">Nimi *</label>
+                      <label htmlFor="name" className="text-[11px] font-bold text-[#6B6879] uppercase tracking-wide block mb-1.5">Nimi *</label>
                       <input
                         id="name" type="text" required value={form.name}
                         onChange={(e) => setForm({ ...form, name: e.target.value })}
@@ -73,7 +73,7 @@ export default function ContactPage({ params }: { params: { lang: string } }) {
                       />
                     </div>
                     <div>
-                      <label htmlFor="email" className="text-[11px] font-bold text-[#787585] uppercase tracking-wide block mb-1.5">Sähköposti *</label>
+                      <label htmlFor="email" className="text-[11px] font-bold text-[#6B6879] uppercase tracking-wide block mb-1.5">Sähköposti *</label>
                       <input
                         id="email" type="email" required value={form.email}
                         onChange={(e) => setForm({ ...form, email: e.target.value })}
@@ -83,7 +83,7 @@ export default function ContactPage({ params }: { params: { lang: string } }) {
                     </div>
                   </div>
                   <div>
-                    <label htmlFor="subject" className="text-[11px] font-bold text-[#787585] uppercase tracking-wide block mb-1.5">Aihe *</label>
+                    <label htmlFor="subject" className="text-[11px] font-bold text-[#6B6879] uppercase tracking-wide block mb-1.5">Aihe *</label>
                     <select
                       id="subject" required value={form.subject}
                       onChange={(e) => setForm({ ...form, subject: e.target.value })}
@@ -94,7 +94,7 @@ export default function ContactPage({ params }: { params: { lang: string } }) {
                     </select>
                   </div>
                   <div>
-                    <label htmlFor="message" className="text-[11px] font-bold text-[#787585] uppercase tracking-wide block mb-1.5">Viesti *</label>
+                    <label htmlFor="message" className="text-[11px] font-bold text-[#6B6879] uppercase tracking-wide block mb-1.5">Viesti *</label>
                     <textarea
                       id="message" required rows={5} value={form.message}
                       onChange={(e) => setForm({ ...form, message: e.target.value })}
@@ -109,7 +109,7 @@ export default function ContactPage({ params }: { params: { lang: string } }) {
                     <span className="material-symbols-outlined text-[18px]" aria-hidden="true">send</span>
                     Lähetä viesti
                   </button>
-                  <p className="text-[10px] text-[#787585] text-center">Vastaamiseen menee yleensä 1–24 tuntia arkisin.</p>
+                  <p className="text-[10px] text-[#6B6879] text-center">Vastaamiseen menee yleensä 1–24 tuntia arkisin.</p>
                 </form>
               )}
             </div>
@@ -151,7 +151,7 @@ export default function ContactPage({ params }: { params: { lang: string } }) {
                       <span className="material-symbols-outlined text-[#2D1783] text-[16px]" aria-hidden="true">{s.icon}</span>
                     </div>
                     <span className="text-sm font-semibold text-[#1b1b1c]">{s.label}</span>
-                    <span className="material-symbols-outlined text-[#787585] text-[14px] ml-auto" aria-hidden="true">arrow_forward</span>
+                    <span className="material-symbols-outlined text-[#6B6879] text-[14px] ml-auto" aria-hidden="true">arrow_forward</span>
                   </a>
                 ))}
               </div>
