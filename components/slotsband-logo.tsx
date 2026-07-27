@@ -1,54 +1,42 @@
 import Image from "next/image"
 
 interface SlotsbandLogoProps {
-  /** "dark" = yellow text on dark bg (header/admin), "light" = yellow text shown directly (footer dark strip) */
   variant?: "dark" | "light"
   className?: string
   /** height in px – width is calculated automatically from the 900:134 aspect ratio */
   height?: number
+  /** Set true only for above-the-fold logos (header); footer/admin should leave false */
+  priority?: boolean
 }
 
-/**
- * Official Slotsband vector logo.
- * The SVG paths are yellow (#FCFF00) on transparent, so they need a dark
- * background to be legible on white surfaces.
- *
- * variant="dark"  → wraps the SVG in a #2D1783 pill (for white/light backgrounds)
- * variant="light" → renders the SVG directly (for use on dark backgrounds)
- */
-export function SlotsbandLogo({ variant = "dark", className = "", height = 32 }: SlotsbandLogoProps) {
-  // Maintain the 900:134 aspect ratio
+export function SlotsbandLogo({ variant = "dark", className = "", height = 32, priority = false }: SlotsbandLogoProps) {
   const width = Math.round((900 / 134) * height)
 
+  const img = (
+    <Image
+      src="/slotsband-logo.svg"
+      alt="Slotsband"
+      width={width}
+      height={height}
+      unoptimized
+      priority={priority}
+      className="object-contain"
+      style={{ width, height }}
+    />
+  )
+
   if (variant === "light") {
-    return (
-      <Image
-        src="/slotsband-logo.svg"
-        alt="Slotsband"
-        width={width}
-        height={height}
-        className={`w-auto object-contain ${className}`}
-        style={{ height }}
-        priority
-      />
-    )
+    return <span className={className} style={{ display: "inline-block", width, height }}>{img}</span>
   }
 
   // Dark pill wrapper so the yellow logo is visible on white backgrounds
+  // px-3 = 12px per side → total horizontal padding 24px
   return (
     <span
       className={`inline-flex items-center justify-center bg-[#2D1783] rounded-xl px-3 ${className}`}
-      style={{ height: height + 12 }}
+      style={{ width: width + 24, height: height + 12 }}
     >
-      <Image
-        src="/slotsband-logo.svg"
-        alt="Slotsband"
-        width={width}
-        height={height}
-        className="w-auto object-contain"
-        style={{ height }}
-        priority
-      />
+      {img}
     </span>
   )
 }

@@ -45,10 +45,10 @@
     "zod": "^4.4.3"
   },
   "browserslist": [
-    "chrome >= 87",
-    "edge >= 88",
-    "firefox >= 78",
-    "safari >= 14",
+    "chrome >= 94",
+    "edge >= 94",
+    "firefox >= 92",
+    "safari >= 15.4",
     "> 0.5%",
     "not dead"
   ],

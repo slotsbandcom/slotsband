@@ -270,7 +270,7 @@ export function SiteHeader({ lang, navSlugs = {}, allLangSlugs }: SiteHeaderProp
       {/* ── Row 1 ── */}
       <div className="max-w-[1280px] mx-auto px-4 md:px-12 h-14 flex items-center justify-between gap-3">
         <Link href={`/${lang}`} className="flex-shrink-0 flex items-center" aria-label="SlotsBand – etusivu">
-          <SlotsbandLogo variant="light" height={28} />
+          <SlotsbandLogo variant="light" height={28} priority />
         </Link>
 
         {/* Desktop nav */}
@@ -292,7 +292,7 @@ export function SiteHeader({ lang, navSlugs = {}, allLangSlugs }: SiteHeaderProp
 
         {/* Desktop search — ref'd so portal knows where to anchor */}
         <div ref={desktopSearchRef} className="relative hidden lg:block group" style={{ zIndex: 1001 }}>
-          <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-white/50 group-focus-within:text-white transition-colors text-[20px]" aria-hidden="true">
+          <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-white/60 group-focus-within:text-white transition-colors text-[20px]" aria-hidden="true">
             search
           </span>
           <input
@@ -301,7 +301,7 @@ export function SiteHeader({ lang, navSlugs = {}, allLangSlugs }: SiteHeaderProp
               setActiveFocus("desktop")
               if (suggestions.length > 0) setShowSugs(true)
             }}
-            className="bg-white/10 border border-white/20 focus:border-white/60 focus:bg-white/15 rounded-xl pl-9 pr-4 py-2 w-[200px] focus:w-[260px] transition-all duration-300 text-sm text-white placeholder:text-white/50 outline-none"
+            className="bg-white/10 border border-white/20 focus:border-white/60 focus:bg-white/15 rounded-xl pl-9 pr-4 py-2 w-[200px] focus:w-[260px] transition-all duration-300 text-sm text-white placeholder:text-white/60 outline-none"
           />
         </div>
 
@@ -407,7 +407,7 @@ export function SiteHeader({ lang, navSlugs = {}, allLangSlugs }: SiteHeaderProp
       {/* ── Row 2: Mobile search ── */}
       <div className="lg:hidden border-t border-white/15 px-4 py-2.5">
         <div ref={mobileSearchRef} className="relative">
-          <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-white/50 text-[20px]" aria-hidden="true">
+          <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-white/60 text-[20px]" aria-hidden="true">
             search
           </span>
           <input
@@ -416,7 +416,7 @@ export function SiteHeader({ lang, navSlugs = {}, allLangSlugs }: SiteHeaderProp
               setActiveFocus("mobile")
               if (suggestions.length > 0) setShowSugs(true)
             }}
-            className="w-full bg-white/10 border border-white/20 focus:border-white/60 rounded-xl pl-9 pr-12 py-2.5 text-sm text-white placeholder:text-white/50 outline-none"
+            className="w-full bg-white/10 border border-white/20 focus:border-white/60 rounded-xl pl-9 pr-12 py-2.5 text-sm text-white placeholder:text-white/60 outline-none"
           />
           <button
             type="button"

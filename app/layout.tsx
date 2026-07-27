@@ -8,13 +8,15 @@ import './globals.css'
 const inter = Inter({
   subsets: ['latin'],
   variable: '--font-sans',
-  display: 'swap',
+  display: 'optional',
+  adjustFontFallback: true,
 })
 
 const hankenGrotesk = Hanken_Grotesk({
   subsets: ['latin'],
   variable: '--font-display',
-  display: 'swap',
+  display: 'optional',
+  adjustFontFallback: true,
 })
 
 export const metadata: Metadata = {
@@ -58,7 +60,6 @@ export const viewport: Viewport = {
   themeColor: '#2D1783',
   width: 'device-width',
   initialScale: 1,
-  maximumScale: 1,
 }
 
 export default function RootLayout({
