@@ -50,7 +50,7 @@ export function CasinoLogo({
           unoptimized={unoptimized}
           onLoad={() => setLoaded(true)}
           onError={() => setError(true)}
-          className={`transition-opacity duration-300 object-contain p-[8%] ${loaded ? "opacity-100" : "opacity-0"}`}
+          className={`transition-opacity duration-300 object-contain ${loaded ? "opacity-100" : "opacity-0"}`}
         />
       )}
 
