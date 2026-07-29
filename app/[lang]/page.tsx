@@ -4,6 +4,7 @@ import { TRANSLATIONS } from "@/lib/data"
 import { getCasinos } from "@/lib/supabase/queries"
 import { getPageMeta } from "@/lib/supabase/page-meta"
 import { HeroSlider } from "@/components/hero-slider"
+import { getCasinoListUrl } from "@/lib/casino-url"
 import { StreamStatusBadge } from "@/components/stream-status-badge"
 import { CasinoListExpandable } from "@/components/casino-list-expandable"
 
@@ -134,7 +135,7 @@ export default async function HomePage({ params }: HomePageProps) {
             ].map((item) => (
               <a
                 key={item.filter}
-                href={`/${safeLang}/nettikasinot?filter=${item.filter}`}
+                href={`${getCasinoListUrl(safeLang)}?filter=${item.filter}`}
                 className="flex-shrink-0 bg-white border border-[#E5E8F0] px-3.5 py-2 rounded-xl flex items-center gap-2 hover:border-[#FFD700] hover:shadow-md transition-all group"
               >
                 <span className="material-symbols-outlined text-[#2D1783] group-hover:text-[#FFD700] transition-colors text-[16px]" aria-hidden="true">

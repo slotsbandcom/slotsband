@@ -557,6 +557,8 @@ export const TRANSLATIONS = {
       games: "Pelit",
       raffles: "Rafflet",
       bonushunt: "Bonushunt",
+      casinosUrl: "/fi/nettikasinot/",
+      casinosSlug: "nettikasinot",
     },
     hero: {
       badge: "Päivitetty Tammikuu 2026",
@@ -625,6 +627,8 @@ export const TRANSLATIONS = {
       games: "Games",
       raffles: "Raffles",
       bonushunt: "Bonus Hunt",
+      casinosUrl: "/en/online-casinos/",
+      casinosSlug: "online-casinos",
     },
     hero: {
       badge: "Updated January 2026",
@@ -693,6 +697,8 @@ export const TRANSLATIONS = {
       games: "Games",
       raffles: "Raffles",
       bonushunt: "Bonus Hunt",
+      casinosUrl: "/uk/online-casinos/",
+      casinosSlug: "online-casinos",
     },
     hero: {
       badge: "Updated January 2026",

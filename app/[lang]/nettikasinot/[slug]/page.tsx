@@ -5,6 +5,7 @@ import type { Casino, Lang } from "@/lib/types"
 import { getCasinos, getCasinoBySlug, getBonusesByCasino } from "@/lib/supabase/queries"
 import type { Bonus } from "@/lib/types"
 import { getCasinoSlugs } from "@/lib/supabase/build-client"
+import { getCasinoUrl, getCasinoListUrl } from "@/lib/casino-url"
 import { CasinoCard } from "@/components/casino-card"
 import { CasinoLogo } from "@/components/casino-logo"
 import { CT, MARKET_COUNTRY } from "@/lib/i18n"
@@ -47,12 +48,12 @@ export async function generateMetadata({ params }: CasinoPageProps): Promise<Met
     description: desc,
     openGraph: { title, description: desc },
     alternates: {
-      canonical: `${SITE_URL}/${lang}/nettikasinot/${slug}`,
+      canonical: `${SITE_URL}${getCasinoUrl(lang, slug)}`,
       languages: {
-        "fi":      `${SITE_URL}/fi/nettikasinot/${slug}`,
-        "en":      `${SITE_URL}/en/nettikasinot/${slug}`,
-        "en-GB":   `${SITE_URL}/uk/nettikasinot/${slug}`,
-        "x-default": `${SITE_URL}/fi/nettikasinot/${slug}`,
+        "fi":        `${SITE_URL}${getCasinoUrl("fi", slug)}`,
+        "en":        `${SITE_URL}${getCasinoUrl("en", slug)}`,
+        "en-GB":     `${SITE_URL}${getCasinoUrl("uk", slug)}`,
+        "x-default": `${SITE_URL}${getCasinoUrl("fi", slug)}`,
       },
     },
   }
@@ -225,7 +226,7 @@ export default async function CasinoPage({ params }: CasinoPageProps) {
               {c.home}
             </Link>
             <span className="material-symbols-outlined text-[13px]" aria-hidden="true">chevron_right</span>
-            <Link href={`/${lang}/nettikasinot`} className="hover:text-[#2D1783] transition-colors">
+            <Link href={getCasinoListUrl(lang)} className="hover:text-[#2D1783] transition-colors">
               {c.casinos}
             </Link>
             <span className="material-symbols-outlined text-[13px]" aria-hidden="true">chevron_right</span>

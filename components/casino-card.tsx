@@ -2,6 +2,7 @@
 import type { Casino, Lang } from "@/lib/types"
 import { TRANSLATIONS } from "@/lib/data"
 import { CasinoLogo } from "@/components/casino-logo"
+import { getCasinoUrl } from "@/lib/casino-url"
 
 interface CasinoCardProps {
   casino: Casino
@@ -165,7 +166,7 @@ export function CasinoCard({ casino, lang, rank }: CasinoCardProps) {
             <span className="material-symbols-outlined text-[16px]" aria-hidden="true">arrow_forward</span>
           </a>
           <Link
-            href={`/${lang}/nettikasinot/${casino.slug}`}
+            href={getCasinoUrl(lang, casino.slug)}
             className="px-4 py-3.5 rounded-xl border border-[#E5E8F0] text-[#474554] font-semibold text-sm hover:text-[#2D1783] hover:border-[#2D1783] transition-all text-center whitespace-nowrap"
           >
             {t.readReview}
@@ -272,7 +273,7 @@ export function CasinoCard({ casino, lang, rank }: CasinoCardProps) {
               <span className="material-symbols-outlined text-[16px]" aria-hidden="true">arrow_forward</span>
             </a>
             <Link
-              href={`/${lang}/nettikasinot/${casino.slug}`}
+              href={getCasinoUrl(lang, casino.slug)}
               className="border border-[#E5E8F0] text-[#474554] font-semibold text-sm w-full py-3.5 rounded-xl hover:text-[#2D1783] hover:border-[#2D1783] transition-all text-center"
             >
               {t.readReview}

@@ -10,6 +10,7 @@ import { TaxonomyIndexPage } from "@/components/taxonomy-index-page"
 import { TAXONOMY_CONFIG_BY_TAXONOMY } from "@/lib/taxonomy-config"
 import { getTaxonomyTermsWithCounts } from "@/lib/supabase/taxonomy-queries"
 import { NettikasinotHub } from "@/components/pages/nettikasinot-hub"
+import { getCasinoUrl, getCasinoListUrl } from "@/lib/casino-url"
 import { KasinopelitHub } from "@/components/pages/kasinopelit-hub"
 import { KasinobonuksetHub } from "@/components/pages/kasinobonukset-hub"
 import { RaffletHub } from "@/components/pages/rafflet-hub"
@@ -544,7 +545,7 @@ export default async function CatchAllPage({ params, searchParams }: PageProps) 
                             {playNow}
                           </a>
                           <Link
-                            href={`/${lang}/nettikasinot/${casino.slug}`}
+                            href={getCasinoUrl(lang, casino.slug)}
                             className="block text-[10px] font-semibold text-[#474554] border border-[#E5E8F0] hover:border-[#2D1783] hover:text-[#2D1783] px-2.5 py-1.5 rounded-lg text-center transition-colors whitespace-nowrap"
                           >
                             {reviewText}
@@ -556,7 +557,7 @@ export default async function CatchAllPage({ params, searchParams }: PageProps) 
                 </div>
 
                 <div className="px-5 py-3 border-t border-[#E5E8F0]">
-                  <Link href={`/${lang}/nettikasinot`}
+                  <Link href={getCasinoListUrl(lang)}
                     className="flex items-center justify-center gap-1.5 text-xs font-semibold text-[#2D1783] hover:underline">
                     {lang === "fi" ? "Kaikki kasinot" : "All Casinos"}
                     <span className="material-symbols-outlined text-[14px]">arrow_forward</span>

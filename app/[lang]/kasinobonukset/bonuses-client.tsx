@@ -5,6 +5,7 @@ import Link from "next/link"
 import { TRANSLATIONS } from "@/lib/data"
 import { CasinoLogo } from "@/components/casino-logo"
 import type { Lang, Bonus } from "@/lib/types"
+import { getCasinoUrl } from "@/lib/casino-url"
 
 const BONUS_TABS = [
   { id: "all",         label_fi: "Kaikki bonukset",     icon: "redeem" },
@@ -206,7 +207,7 @@ export default function BonusesPage({
                       <div>
                         <p className="font-bold text-sm text-[#1b1b1c]">{bonus.casino_name}</p>
                         <Link
-                          href={`/${lang}/nettikasinot/${bonus.casino_slug}`}
+                          href={getCasinoUrl(lang, bonus.casino_slug ?? "")}
                           className="text-[10px] text-[#2D1783] hover:underline"
                         >
                           Lue arvostelu
