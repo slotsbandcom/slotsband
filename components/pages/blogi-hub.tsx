@@ -1,6 +1,6 @@
-﻿import Image from "next/image"
-import Link from "next/link"
+﻿import Link from "next/link"
 import { createClient } from "@/lib/supabase/server"
+import { BlogPostImage } from "@/components/blog-post-image"
 import type { Lang } from "@/lib/types"
 
 function formatDate(iso: string | null, lang: Lang) {
@@ -60,23 +60,14 @@ export async function BlogiHub({ lang }: { lang: Lang }) {
               const pubDate = formatDate(post.published_at, lang)
               return (
                 <article key={post.id} className="bg-white rounded-2xl border border-[#E5E8F0] overflow-hidden flex flex-col hover:border-[#2D1783]/30 hover:shadow-md transition-all">
-                  {post.featured_image_url ? (
-                    <Link href={`/${lang}/${slug}`}>
-                      <div className="relative w-full aspect-video overflow-hidden">
-                        <Image
-                          src={post.featured_image_url}
-                          alt={title}
-                          fill
-                          className="object-cover"
-                          sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
-                        />
-                      </div>
-                    </Link>
-                  ) : (
-                    <div className="w-full aspect-video bg-gradient-to-br from-[#2D1783]/10 to-[#2D1783]/5 flex items-center justify-center">
-                      <span className="material-symbols-outlined text-[#2D1783]/30 text-[48px]">article</span>
-                    </div>
-                  )}
+                  <Link href={`/${lang}/${slug}`}>
+                    <BlogPostImage
+                      src={post.featured_image_url}
+                      alt={title}
+                      className="aspect-video"
+                      sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
+                    />
+                  </Link>
                   <div className="p-5 flex flex-col flex-1">
                     {pubDate && (
                       <p className="text-[10px] font-bold text-[#6B6879] uppercase tracking-wider mb-2">{pubDate}</p>

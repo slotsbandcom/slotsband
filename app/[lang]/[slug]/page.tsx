@@ -1,9 +1,9 @@
 ﻿import { notFound, permanentRedirect } from "next/navigation"
 import { cache } from "react"
 import Link from "next/link"
-import Image from "next/image"
 import type { Metadata } from "next"
 import { createClient } from "@/lib/supabase/server"
+import { BlogPostImage } from "@/components/blog-post-image"
 import { createBuildClient } from "@/lib/supabase/build-client"
 import { CasinoLogo } from "@/components/casino-logo"
 import { TaxonomyIndexPage } from "@/components/taxonomy-index-page"
@@ -445,18 +445,13 @@ export default async function CatchAllPage({ params, searchParams }: PageProps) 
             <span className="text-[#2D1783] font-semibold truncate max-w-[200px]">{title}</span>
           </nav>
 
-          {post.featured_image_url && (
-            <div className="relative rounded-2xl overflow-hidden mb-6 border border-[#E5E8F0] aspect-video max-h-[420px]">
-              <Image
-                src={post.featured_image_url}
-                alt={title ?? ""}
-                fill
-                className="object-cover"
-                sizes="(max-width: 768px) 100vw, 900px"
-                priority
-              />
-            </div>
-          )}
+          <BlogPostImage
+            src={post.featured_image_url}
+            alt={title ?? ""}
+            className="rounded-2xl mb-6 border border-[#E5E8F0] aspect-video max-h-[420px]"
+            sizes="(max-width: 768px) 100vw, 900px"
+            priority
+          />
 
           <h1 className="font-display font-bold text-2xl md:text-4xl text-[#1b1b1c] mb-3 leading-tight">
             {title}
