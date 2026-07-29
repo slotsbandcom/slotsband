@@ -1,6 +1,7 @@
 "use client"
 
 import { use, useState } from "react"
+import { TRANSLATIONS } from "@/lib/data"
 import type { Lang } from "@/lib/types"
 
 function KickIcon() {
@@ -39,48 +40,21 @@ function TelegramIcon() {
   )
 }
 
-const CHANNELS = [
-  {
-    label: "Telegram",
-    desc: "Nopein tapa tavoittaa meidät — vastaamme yleensä 1–4 tunnissa.",
-    href: "https://t.me/slotsband",
-    icon: <TelegramIcon />,
-    bg: "#229ED9",
-  },
-  {
-    label: "Discord",
-    desc: "Liity yhteisöömme, kysy ja jututa muita pelaajia.",
-    href: "https://discord.com/invite/VhcAnYcDMd",
-    icon: <DiscordIcon />,
-    bg: "#5865F2",
-  },
-  {
-    label: "Kick",
-    desc: "Seuraa livelähetyksiä ja bonushunttejamme.",
-    href: "https://kick.com/slotsband",
-    icon: <KickIcon />,
-    bg: "#53FC18",
-    text: "#000",
-  },
-  {
-    label: "Twitch",
-    desc: "Katso striimejä ja arvontoja livenä.",
-    href: "https://twitch.tv/slotsband",
-    icon: <TwitchIcon />,
-    bg: "#9146FF",
-  },
-  {
-    label: "YouTube",
-    desc: "Videokatsaukset, oppaat ja striimien parhaat hetket.",
-    href: "https://youtube.com/@slotsband",
-    icon: <YouTubeIcon />,
-    bg: "#FF0000",
-  },
-]
+type ContactT = (typeof TRANSLATIONS)["fi"]["contact"]
+
+function getChannels(t: ContactT) {
+  return [
+    { label: "Telegram", desc: t.telegramDesc, href: "https://t.me/slotsband", icon: <TelegramIcon />, bg: "#229ED9" },
+    { label: "Discord", desc: t.discordDesc, href: "https://discord.com/invite/VhcAnYcDMd", icon: <DiscordIcon />, bg: "#5865F2" },
+    { label: "Kick", desc: t.kickDesc, href: "https://kick.com/slotsband", icon: <KickIcon />, bg: "#53FC18", text: "#000" },
+    { label: "Twitch", desc: t.twitchDesc, href: "https://twitch.tv/slotsband", icon: <TwitchIcon />, bg: "#9146FF" },
+    { label: "YouTube", desc: t.youtubeDesc, href: "https://youtube.com/@slotsband", icon: <YouTubeIcon />, bg: "#FF0000" },
+  ]
+}
 
 /** Only assembled client-side after an explicit click, so it never
  * appears in the server-rendered HTML for scrapers to harvest. */
-function EmailCard() {
+function EmailCard({ t }: { t: ContactT }) {
   const [email, setEmail] = useState<string | null>(null)
 
   const reveal = () => {
@@ -98,17 +72,17 @@ function EmailCard() {
         <span className="material-symbols-outlined text-[#FFD700] text-[20px]" aria-hidden="true">mail</span>
       </div>
       <div className="min-w-0">
-        <p className="font-display font-bold text-sm text-[#1b1b1c]">Sähköposti</p>
+        <p className="font-display font-bold text-sm text-[#1b1b1c]">{t.emailLabel}</p>
         {email ? (
           <a href={`mailto:${email}`} className="text-sm text-[#2D1783] font-semibold hover:underline break-all">
             {email}
           </a>
         ) : (
           <button onClick={reveal} className="text-sm text-[#2D1783] font-semibold hover:underline">
-            Näytä osoite
+            {t.emailReveal}
           </button>
         )}
-        <p className="text-xs text-[#6B6879] mt-0.5">Vastausaika 1–24 tuntia arkisin.</p>
+        <p className="text-xs text-[#6B6879] mt-0.5">{t.emailResponseTime}</p>
       </div>
     </div>
   )
@@ -116,24 +90,24 @@ function EmailCard() {
 
 export default function ContactPage({ params }: { params: Promise<{ lang: string }> }) {
   const { lang: langParam } = use(params)
-  const lang = (langParam as Lang) || "fi"
+  const lang = (["fi", "en", "uk"].includes(langParam) ? langParam : "fi") as Lang
+  const t = TRANSLATIONS[lang].contact
+  const channels = getChannels(t)
 
   return (
     <div className="min-h-screen bg-[#F8F9FD]">
       {/* Header */}
       <header className="bg-[#2D1783] text-white pt-10 pb-14">
         <div className="max-w-[1280px] mx-auto px-4 md:px-12">
-          <p className="text-[#FFD700] text-xs font-bold uppercase tracking-widest mb-2">Ota yhteyttä</p>
-          <h1 className="font-display font-bold text-3xl md:text-4xl text-white text-balance">Tavoitat meidät näistä kanavista</h1>
-          <p className="text-white/70 text-sm mt-2 max-w-lg leading-relaxed">
-            Emme käytä yhteydenottolomaketta — tavoitat meidät suoraan alla olevien kanavien kautta. Telegram ja Discord ovat nopeimmat.
-          </p>
+          <p className="text-[#FFD700] text-xs font-bold uppercase tracking-widest mb-2">{t.eyebrow}</p>
+          <h1 className="font-display font-bold text-3xl md:text-4xl text-white text-balance">{t.title}</h1>
+          <p className="text-white/70 text-sm mt-2 max-w-lg leading-relaxed">{t.subtitle}</p>
         </div>
       </header>
 
       <div className="max-w-[1280px] mx-auto px-4 md:px-12 py-10">
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
-          {CHANNELS.map((c) => (
+          {channels.map((c) => (
             <a
               key={c.label}
               href={c.href}
@@ -153,7 +127,7 @@ export default function ContactPage({ params }: { params: Promise<{ lang: string
               </div>
             </a>
           ))}
-          <EmailCard />
+          <EmailCard t={t} />
         </div>
       </div>
       <div className="pb-12" />
