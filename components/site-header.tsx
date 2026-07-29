@@ -10,7 +10,6 @@ import type { RouteSlugMap } from "@/lib/supabase/route-slugs"
 import { TRANSLATIONS } from "@/lib/data"
 import { SlotsbandLogo } from "@/components/slotsband-logo"
 import { StreamDot } from "@/components/stream-status-badge"
-import { startNavigationProgress } from "@/components/navigation-progress"
 
 const LANG_INFO: Record<Lang, { flag: string; code: string; name: string }> = {
   fi: { flag: "🇫🇮", code: "FI",  name: "Suomi" },
@@ -104,6 +103,11 @@ export function SiteHeader({ lang, navSlugs = {}, allLangSlugs }: SiteHeaderProp
   const langRef = useRef<HTMLDivElement>(null)
   const langDropdownRef = useRef<HTMLUListElement>(null)
   const [mounted, setMounted] = useState(false)
+  const [switching, setSwitching] = useState(false)
+
+  useEffect(() => {
+    setSwitching(false)
+  }, [pathname])
 
   // Search state
   const [query, setQuery] = useState("")
@@ -269,6 +273,28 @@ export function SiteHeader({ lang, navSlugs = {}, allLangSlugs }: SiteHeaderProp
 
   return (
     <header className="sticky top-0 bg-[#2D1783] shadow-lg" style={{ zIndex: 1000 }}>
+      {switching && (
+        <>
+          <style>{`
+            @keyframes language-switch-progress {
+              0%   { width: 0%; }
+              50%  { width: 70%; }
+              90%  { width: 90%; }
+              100% { width: 90%; }
+            }
+            .language-switch-bar {
+              position: fixed;
+              top: 0;
+              left: 0;
+              height: 3px;
+              background: #2D1783;
+              z-index: 99999;
+              animation: language-switch-progress 1s ease-in-out infinite;
+            }
+          `}</style>
+          <div className="language-switch-bar" aria-hidden="true" />
+        </>
+      )}
       {/* ── Row 1 ── */}
       <div className="max-w-[1280px] mx-auto px-4 md:px-12 h-14 flex items-center justify-between gap-3">
         <Link href={`/${lang}`} className="flex-shrink-0 flex items-center" aria-label="SlotsBand – etusivu">
@@ -368,7 +394,7 @@ export function SiteHeader({ lang, navSlugs = {}, allLangSlugs }: SiteHeaderProp
                             if (isActive) { setLangOpen(false); return }
                             saveLangPref(l)
                             setLangOpen(false)
-                            startNavigationProgress()
+                            setSwitching(true)
                             startTransition(() => { router.push(targetPath) })
                           }}
                           className={`w-full flex items-center gap-2.5 px-3.5 py-2.5 rounded-lg text-sm transition-colors ${

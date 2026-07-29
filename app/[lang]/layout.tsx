@@ -2,7 +2,6 @@ import type { Metadata } from "next"
 import type { Lang } from "@/lib/types"
 import { SiteHeader } from "@/components/site-header"
 import { SiteFooter } from "@/components/site-footer"
-import { NavigationProgress } from "@/components/navigation-progress"
 import { getRouteSlugsByLang, type RouteSlugMap } from "@/lib/supabase/route-slugs"
 
 interface LangLayoutProps {
@@ -49,7 +48,6 @@ export default async function LangLayout({ children, params }: LangLayoutProps) 
 
   return (
     <div lang={safeLang}>
-      <NavigationProgress />
       <SiteHeader lang={safeLang} navSlugs={navSlugs} allLangSlugs={allLangSlugs} />
       {children}
       <SiteFooter lang={safeLang} navSlugs={navSlugs} />
