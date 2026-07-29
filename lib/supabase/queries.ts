@@ -3,7 +3,18 @@
  * Always call createClient() from the server client inside each function.
  */
 import { createClient } from "@/lib/supabase/server"
+import { createClient as createServiceClient } from "@supabase/supabase-js"
 import type { Casino, Bonus, Game, Raffle, BonusHunt } from "@/lib/types"
+
+// Service-role client for admin-only reads (newsletter subscribers, dashboard
+// stats) that must bypass RLS — these tables have no anon/authenticated
+// SELECT policy once RLS is enabled.
+function adminDb() {
+  return createServiceClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.SUPABASE_SERVICE_ROLE_KEY!
+  )
+}
 
 // ─── Casinos ──────────────────────────────────────────────────────────────────
 
@@ -197,7 +208,7 @@ export async function getGames(options?: { activeOnly?: boolean; featuredOnly?: 
 // ─── Newsletter ───────────────────────────────────────────────────────────────
 
 export async function getNewsletterSubscribers() {
-  const supabase = await createClient()
+  const supabase = adminDb()
   const { data, error } = await supabase
     .from("newsletter_subscribers")
     .select("*")
@@ -348,7 +359,7 @@ export async function getBonusHunts(): Promise<BonusHunt[]> {
 // ─── Dashboard stats ──────────────────────────────────────────────────────────
 
 export async function getDashboardStats() {
-  const supabase = await createClient()
+  const supabase = adminDb()
 
   const [casinos, bonuses, games, subscribers, clicks] = await Promise.all([
     supabase.from("casinos").select("id, is_active, is_featured", { count: "exact" }),
