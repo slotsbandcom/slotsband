@@ -621,7 +621,7 @@ export const TRANSLATIONS = {
     contact: {
       eyebrow: "Ota yhteyttä",
       title: "Tavoitat meidät näistä kanavista",
-      subtitle: "Emme käytä yhteydenottolomaketta — tavoitat meidät suoraan alla olevien kanavien kautta. Telegram ja Discord ovat nopeimmat.",
+      subtitle: "Emme käytä yhteydenottolomaketta — tavoitat meidät suoraan alla olevien kanavien kautta.",
       telegramDesc: "Nopein tapa tavoittaa meidät — vastaamme yleensä 1–4 tunnissa.",
       discordDesc: "Liity yhteisöömme, kysy ja jututa muita pelaajia.",
       kickDesc: "Seuraa livelähetyksiä ja bonushunttejamme.",
@@ -704,7 +704,7 @@ export const TRANSLATIONS = {
     contact: {
       eyebrow: "Contact Us",
       title: "Reach us through these channels",
-      subtitle: "We don't use a contact form — reach us directly through the channels below. Telegram and Discord are fastest.",
+      subtitle: "We don't use a contact form — reach us directly through the channels below.",
       telegramDesc: "The fastest way to reach us — we usually reply within 1–4 hours.",
       discordDesc: "Join our community, ask questions and chat with other players.",
       kickDesc: "Follow our livestreams and bonus hunts.",
@@ -787,7 +787,7 @@ export const TRANSLATIONS = {
     contact: {
       eyebrow: "Contact Us",
       title: "Reach us through these channels",
-      subtitle: "We don't use a contact form — reach us directly through the channels below. Telegram and Discord are fastest.",
+      subtitle: "We don't use a contact form — reach us directly through the channels below.",
       telegramDesc: "The fastest way to reach us — we usually reply within 1–4 hours.",
       discordDesc: "Join our community, ask questions and chat with other players.",
       kickDesc: "Follow our livestreams and bonus hunts.",
