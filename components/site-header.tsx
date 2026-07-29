@@ -1,7 +1,7 @@
 "use client"
 
 import Link from "next/link"
-import { useState, useRef, useEffect, useCallback } from "react"
+import { useState, useRef, useEffect, useCallback, useTransition } from "react"
 import { CasinoLogo } from "@/components/casino-logo"
 import { createPortal } from "react-dom"
 import { useRouter, usePathname } from "next/navigation"
@@ -10,6 +10,7 @@ import type { RouteSlugMap } from "@/lib/supabase/route-slugs"
 import { TRANSLATIONS } from "@/lib/data"
 import { SlotsbandLogo } from "@/components/slotsband-logo"
 import { StreamDot } from "@/components/stream-status-badge"
+import { startNavigationProgress } from "@/components/navigation-progress"
 
 const LANG_INFO: Record<Lang, { flag: string; code: string; name: string }> = {
   fi: { flag: "🇫🇮", code: "FI",  name: "Suomi" },
@@ -96,6 +97,7 @@ export function SiteHeader({ lang, navSlugs = {}, allLangSlugs }: SiteHeaderProp
   const t = TRANSLATIONS[lang]
   const router = useRouter()
   const pathname = usePathname()
+  const [, startTransition] = useTransition()
   const [mobileOpen, setMobileOpen] = useState(false)
   const [langOpen, setLangOpen] = useState(false)
   const [langPos, setLangPos] = useState({ top: 0, right: 0 })
@@ -357,24 +359,31 @@ export function SiteHeader({ lang, navSlugs = {}, allLangSlugs }: SiteHeaderProp
                   {(["fi", "uk", "en"] as Lang[]).map((l) => {
                     const info = LANG_INFO[l]
                     const isActive = l === lang
+                    const targetPath = getLangPath(l)
                     return (
                       <li key={l} role="option" aria-selected={isActive}>
-                        <Link
-                          href={getLangPath(l)}
-                          onClick={() => { saveLangPref(l); setTimeout(() => setLangOpen(false), 200) }}
-                          className={`flex items-center gap-2.5 px-3.5 py-2.5 rounded-lg text-sm transition-colors ${
+                        <button
+                          onMouseEnter={() => { if (!isActive) router.prefetch(targetPath) }}
+                          onClick={() => {
+                            if (isActive) { setLangOpen(false); return }
+                            saveLangPref(l)
+                            setLangOpen(false)
+                            startNavigationProgress()
+                            startTransition(() => { router.push(targetPath) })
+                          }}
+                          className={`w-full flex items-center gap-2.5 px-3.5 py-2.5 rounded-lg text-sm transition-colors ${
                             isActive
                               ? "bg-[#2D1783] text-white font-bold"
                               : "text-[#222222] hover:bg-[#F3F0FA]"
                           }`}
                         >
                           <span className="text-[20px] leading-none" aria-hidden="true">{info.flag}</span>
-                          <span className="flex-1">{info.name}</span>
+                          <span className="flex-1 text-left">{info.name}</span>
                           <span className={`text-xs ${isActive ? "text-white/70 font-bold" : "text-[#6B7280]"}`}>
                             {info.code}
                           </span>
                           {isActive && <span className="text-white text-xs ml-1" aria-hidden="true">✓</span>}
-                        </Link>
+                        </button>
                       </li>
                     )
                   })}
