@@ -1,31 +1,122 @@
-﻿"use client"
+"use client"
 
-import { useState } from "react"
+import { use, useState } from "react"
 import type { Lang } from "@/lib/types"
 
-const SUBJECTS = [
-  "Kasinoarvostelu",
-  "Bonusongelma",
-  "Affiliate-yhteistyö",
-  "Tekninen ongelma",
-  "Muu kysymys",
+function KickIcon() {
+  return <span className="text-[10px] font-black">K</span>
+}
+
+function TwitchIcon() {
+  return (
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+      <path d="M11.571 4.714h1.715v5.143H11.57zm4.715 0H18v5.143h-1.714zM6 0L1.714 4.286v15.428h5.143V24l4.286-4.286h3.428L22.286 12V0zm14.571 11.143l-3.428 3.428h-3.429l-3 3v-3H6.857V1.714h13.714Z" />
+    </svg>
+  )
+}
+
+function YouTubeIcon() {
+  return (
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+      <path d="M23.498 6.186a3.016 3.016 0 0 0-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 0 0 .502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 0 0 2.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 0 0 2.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z" />
+    </svg>
+  )
+}
+
+function DiscordIcon() {
+  return (
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+      <path d="M20.317 4.3698a19.7913 19.7913 0 00-4.8851-1.5152.0741.0741 0 00-.0785.0371c-.211.3753-.4447.8648-.6083 1.2495-1.8447-.2762-3.68-.2762-5.4868 0-.1636-.3933-.4058-.8742-.6177-1.2495a.077.077 0 00-.0785-.037 19.7363 19.7363 0 00-4.8852 1.515.0699.0699 0 00-.0321.0277C.5334 9.0458-.319 13.5799.0992 18.0578a.0824.0824 0 00.0312.0561c2.0528 1.5076 4.0413 2.4228 5.9929 3.0294a.0777.0777 0 00.0842-.0276c.4616-.6304.8731-1.2952 1.226-1.9942a.076.076 0 00-.0416-.1057c-.6528-.2476-1.2743-.5495-1.8722-.8923a.077.077 0 01-.0076-.1277c.1258-.0943.2517-.1923.3718-.2914a.0743.0743 0 01.0776-.0105c3.9278 1.7933 8.18 1.7933 12.0614 0a.0739.0739 0 01.0785.0095c.1202.099.246.1981.3728.2924a.077.077 0 01-.0066.1276 12.2986 12.2986 0 01-1.873.8914.0766.0766 0 00-.0407.1067c.3604.698.7719 1.3628 1.225 1.9932a.0763.0763 0 00.0842.0286c1.961-.6067 3.9495-1.5219 6.0023-3.0294a.077.077 0 00.0313-.0552c.5004-5.177-.8382-9.6739-3.5485-13.6604a.061.061 0 00-.0312-.0286zM8.02 15.3312c-1.1825 0-2.1569-1.0857-2.1569-2.419 0-1.3332.9555-2.4189 2.157-2.4189 1.2108 0 2.1757 1.0952 2.1568 2.419 0 1.3332-.9555 2.4189-2.1569 2.4189zm7.9748 0c-1.1825 0-2.1569-1.0857-2.1569-2.419 0-1.3332.9554-2.4189 2.1569-2.4189 1.2108 0 2.1757 1.0952 2.1568 2.419 0 1.3332-.946 2.4189-2.1568 2.4189Z" />
+    </svg>
+  )
+}
+
+function TelegramIcon() {
+  return (
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+      <path d="M11.944 0A12 12 0 0 0 0 12a12 12 0 0 0 12 12 12 12 0 0 0 12-12A12 12 0 0 0 12 0a12 12 0 0 0-.056 0zm4.962 7.224c.1-.002.321.023.465.14a.506.506 0 0 1 .171.325c.016.093.036.306.02.472-.18 1.898-.962 6.502-1.36 8.627-.168.9-.499 1.201-.82 1.23-.696.065-1.225-.46-1.9-.902-1.056-.693-1.653-1.124-2.678-1.8-1.185-.78-.417-1.21.258-1.91.177-.184 3.247-2.977 3.307-3.23.007-.032.014-.15-.056-.212s-.174-.041-.249-.024c-.106.024-1.793 1.14-5.061 3.345-.48.33-.913.49-1.302.48-.428-.008-1.252-.241-1.865-.44-.752-.245-1.349-.374-1.297-.789.027-.216.325-.437.893-.663 3.498-1.524 5.831-2.529 6.998-3.014 3.332-1.386 4.025-1.627 4.476-1.635z" />
+    </svg>
+  )
+}
+
+const CHANNELS = [
+  {
+    label: "Telegram",
+    desc: "Nopein tapa tavoittaa meidät — vastaamme yleensä 1–4 tunnissa.",
+    href: "https://t.me/slotsband",
+    icon: <TelegramIcon />,
+    bg: "#229ED9",
+  },
+  {
+    label: "Discord",
+    desc: "Liity yhteisöömme, kysy ja jututa muita pelaajia.",
+    href: "https://discord.com/invite/VhcAnYcDMd",
+    icon: <DiscordIcon />,
+    bg: "#5865F2",
+  },
+  {
+    label: "Kick",
+    desc: "Seuraa livelähetyksiä ja bonushunttejamme.",
+    href: "https://kick.com/slotsband",
+    icon: <KickIcon />,
+    bg: "#53FC18",
+    text: "#000",
+  },
+  {
+    label: "Twitch",
+    desc: "Katso striimejä ja arvontoja livenä.",
+    href: "https://twitch.tv/slotsband",
+    icon: <TwitchIcon />,
+    bg: "#9146FF",
+  },
+  {
+    label: "YouTube",
+    desc: "Videokatsaukset, oppaat ja striimien parhaat hetket.",
+    href: "https://youtube.com/@slotsband",
+    icon: <YouTubeIcon />,
+    bg: "#FF0000",
+  },
 ]
 
-const SOCIALS = [
-  { label: "Telegram", icon: "send", href: "#" },
-  { label: "Instagram", icon: "photo_camera", href: "#" },
-  { label: "YouTube", icon: "smart_display", href: "#" },
-]
+/** Only assembled client-side after an explicit click, so it never
+ * appears in the server-rendered HTML for scrapers to harvest. */
+function EmailCard() {
+  const [email, setEmail] = useState<string | null>(null)
 
-export default function ContactPage({ params }: { params: { lang: string } }) {
-  const lang = (params.lang as Lang) || "fi"
-  const [sent, setSent] = useState(false)
-  const [form, setForm] = useState({ name: "", email: "", subject: "", message: "" })
-
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault()
-    setSent(true)
+  const reveal = () => {
+    const user = "slotsband.com"
+    const domain = "gmail.com"
+    setEmail(`${user}@${domain}`)
   }
+
+  return (
+    <div className="bg-white rounded-2xl border border-[#E5E8F0] p-5 flex items-start gap-3.5 hover:border-[#2D1783]/30 hover:shadow-md transition-all">
+      <div
+        className="w-11 h-11 rounded-xl flex items-center justify-center flex-shrink-0"
+        style={{ backgroundColor: "#2D1783" }}
+      >
+        <span className="material-symbols-outlined text-[#FFD700] text-[20px]" aria-hidden="true">mail</span>
+      </div>
+      <div className="min-w-0">
+        <p className="font-display font-bold text-sm text-[#1b1b1c]">Sähköposti</p>
+        {email ? (
+          <a href={`mailto:${email}`} className="text-sm text-[#2D1783] font-semibold hover:underline break-all">
+            {email}
+          </a>
+        ) : (
+          <button onClick={reveal} className="text-sm text-[#2D1783] font-semibold hover:underline">
+            Näytä osoite
+          </button>
+        )}
+        <p className="text-xs text-[#6B6879] mt-0.5">Vastausaika 1–24 tuntia arkisin.</p>
+      </div>
+    </div>
+  )
+}
+
+export default function ContactPage({ params }: { params: Promise<{ lang: string }> }) {
+  const { lang: langParam } = use(params)
+  const lang = (langParam as Lang) || "fi"
 
   return (
     <div className="min-h-screen bg-[#F8F9FD]">
@@ -33,139 +124,36 @@ export default function ContactPage({ params }: { params: { lang: string } }) {
       <header className="bg-[#2D1783] text-white pt-10 pb-14">
         <div className="max-w-[1280px] mx-auto px-4 md:px-12">
           <p className="text-[#FFD700] text-xs font-bold uppercase tracking-widest mb-2">Ota yhteyttä</p>
-          <h1 className="font-display font-bold text-3xl md:text-4xl text-white text-balance">Meillä on vastauksia kysymyksiisi</h1>
+          <h1 className="font-display font-bold text-3xl md:text-4xl text-white text-balance">Tavoitat meidät näistä kanavista</h1>
           <p className="text-white/70 text-sm mt-2 max-w-lg leading-relaxed">
-            Otamme yhteyttä yleensä 24 tunnin sisällä arkisin. Kiireellisissä asioissa Telegram on nopein kanava.
+            Emme käytä yhteydenottolomaketta — tavoitat meidät suoraan alla olevien kanavien kautta. Telegram ja Discord ovat nopeimmat.
           </p>
         </div>
       </header>
 
-      <div className="max-w-[1280px] mx-auto px-4 md:px-12 py-8">
-        <div className="flex flex-col lg:flex-row gap-8">
-          {/* Form */}
-          <div className="flex-1">
-            <div className="bg-white rounded-2xl border border-[#E5E8F0] p-6 md:p-8">
-              {sent ? (
-                <div className="text-center py-8">
-                  <div className="w-16 h-16 bg-[#27AE60]/10 rounded-full flex items-center justify-center mx-auto mb-4">
-                    <span className="material-symbols-outlined text-[#27AE60] text-4xl" aria-hidden="true">check_circle</span>
-                  </div>
-                  <h2 className="font-display font-bold text-xl text-[#1b1b1c] mb-2">Viesti lähetetty!</h2>
-                  <p className="text-sm text-[#6B6879]">Otamme sinuun yhteyttä mahdollisimman pian, viimeistään 24 tunnin kuluessa.</p>
-                  <button
-                    onClick={() => { setSent(false); setForm({ name: "", email: "", subject: "", message: "" }) }}
-                    className="mt-5 text-[#2D1783] text-sm font-bold hover:underline"
-                  >
-                    Lähetä uusi viesti
-                  </button>
-                </div>
-              ) : (
-                <form onSubmit={handleSubmit} className="space-y-4" noValidate>
-                  <h2 className="font-display font-bold text-lg text-[#1b1b1c] mb-2">Lähetä viesti</h2>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    <div>
-                      <label htmlFor="name" className="text-[11px] font-bold text-[#6B6879] uppercase tracking-wide block mb-1.5">Nimi *</label>
-                      <input
-                        id="name" type="text" required value={form.name}
-                        onChange={(e) => setForm({ ...form, name: e.target.value })}
-                        placeholder="Etunimi Sukunimi"
-                        className="w-full border border-[#E5E8F0] focus:border-[#2D1783] rounded-xl px-3 py-2.5 text-sm text-[#1b1b1c] outline-none placeholder:text-[#b0b0b8] transition-colors"
-                      />
-                    </div>
-                    <div>
-                      <label htmlFor="email" className="text-[11px] font-bold text-[#6B6879] uppercase tracking-wide block mb-1.5">Sähköposti *</label>
-                      <input
-                        id="email" type="email" required value={form.email}
-                        onChange={(e) => setForm({ ...form, email: e.target.value })}
-                        placeholder="sinä@example.com"
-                        className="w-full border border-[#E5E8F0] focus:border-[#2D1783] rounded-xl px-3 py-2.5 text-sm text-[#1b1b1c] outline-none placeholder:text-[#b0b0b8] transition-colors"
-                      />
-                    </div>
-                  </div>
-                  <div>
-                    <label htmlFor="subject" className="text-[11px] font-bold text-[#6B6879] uppercase tracking-wide block mb-1.5">Aihe *</label>
-                    <select
-                      id="subject" required value={form.subject}
-                      onChange={(e) => setForm({ ...form, subject: e.target.value })}
-                      className="w-full border border-[#E5E8F0] focus:border-[#2D1783] rounded-xl px-3 py-2.5 text-sm text-[#1b1b1c] outline-none bg-white transition-colors"
-                    >
-                      <option value="">Valitse aihe...</option>
-                      {SUBJECTS.map((s) => <option key={s} value={s}>{s}</option>)}
-                    </select>
-                  </div>
-                  <div>
-                    <label htmlFor="message" className="text-[11px] font-bold text-[#6B6879] uppercase tracking-wide block mb-1.5">Viesti *</label>
-                    <textarea
-                      id="message" required rows={5} value={form.message}
-                      onChange={(e) => setForm({ ...form, message: e.target.value })}
-                      placeholder="Kerro meille, kuinka voimme auttaa..."
-                      className="w-full border border-[#E5E8F0] focus:border-[#2D1783] rounded-xl px-3 py-2.5 text-sm text-[#1b1b1c] outline-none resize-none placeholder:text-[#b0b0b8] transition-colors"
-                    />
-                  </div>
-                  <button
-                    type="submit"
-                    className="w-full bg-[#2D1783] text-white font-bold text-sm py-3.5 rounded-xl hover:bg-[#3e2db2] active:scale-[0.99] transition-all flex items-center justify-center gap-2"
-                  >
-                    <span className="material-symbols-outlined text-[18px]" aria-hidden="true">send</span>
-                    Lähetä viesti
-                  </button>
-                  <p className="text-[10px] text-[#6B6879] text-center">Vastaamiseen menee yleensä 1–24 tuntia arkisin.</p>
-                </form>
-              )}
-            </div>
-          </div>
-
-          {/* Sidebar */}
-          <aside className="lg:w-72 flex-shrink-0 space-y-4">
-            {/* Response time */}
-            <div className="bg-white rounded-2xl border border-[#E5E8F0] p-5">
-              <h3 className="font-display font-bold text-sm text-[#1b1b1c] mb-3">Vasteaika</h3>
-              <div className="space-y-2">
-                {[
-                  { channel: "Sähköposti", time: "1–24 h", icon: "mail" },
-                  { channel: "Telegram", time: "1–4 h", icon: "send" },
-                  { channel: "Lomake", time: "1–24 h", icon: "contact_page" },
-                ].map((c) => (
-                  <div key={c.channel} className="flex items-center justify-between bg-[#F8F9FD] rounded-xl px-3 py-2.5">
-                    <div className="flex items-center gap-2">
-                      <span className="material-symbols-outlined text-[#2D1783] text-[16px]" aria-hidden="true">{c.icon}</span>
-                      <span className="text-xs font-semibold text-[#1b1b1c]">{c.channel}</span>
-                    </div>
-                    <span className="text-[10px] font-bold text-[#27AE60]">{c.time}</span>
-                  </div>
-                ))}
+      <div className="max-w-[1280px] mx-auto px-4 md:px-12 py-10">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
+          {CHANNELS.map((c) => (
+            <a
+              key={c.label}
+              href={c.href}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="bg-white rounded-2xl border border-[#E5E8F0] p-5 flex items-start gap-3.5 hover:border-[#2D1783]/30 hover:shadow-md transition-all"
+            >
+              <div
+                className="w-11 h-11 rounded-xl flex items-center justify-center flex-shrink-0"
+                style={{ backgroundColor: c.bg, color: c.text ?? "#fff" }}
+              >
+                {c.icon}
               </div>
-            </div>
-
-            {/* Social media */}
-            <div className="bg-white rounded-2xl border border-[#E5E8F0] p-5">
-              <h3 className="font-display font-bold text-sm text-[#1b1b1c] mb-3">Seuraa meitä</h3>
-              <div className="space-y-2">
-                {SOCIALS.map((s) => (
-                  <a
-                    key={s.label}
-                    href={s.href}
-                    className="flex items-center gap-3 p-3 rounded-xl hover:bg-[#F8F9FD] transition-colors group"
-                  >
-                    <div className="w-8 h-8 bg-[#2D1783]/10 rounded-xl flex items-center justify-center flex-shrink-0 group-hover:bg-[#2D1783]/20 transition-colors">
-                      <span className="material-symbols-outlined text-[#2D1783] text-[16px]" aria-hidden="true">{s.icon}</span>
-                    </div>
-                    <span className="text-sm font-semibold text-[#1b1b1c]">{s.label}</span>
-                    <span className="material-symbols-outlined text-[#6B6879] text-[14px] ml-auto" aria-hidden="true">arrow_forward</span>
-                  </a>
-                ))}
+              <div className="min-w-0">
+                <p className="font-display font-bold text-sm text-[#1b1b1c]">{c.label}</p>
+                <p className="text-xs text-[#6B6879] mt-0.5 leading-relaxed">{c.desc}</p>
               </div>
-            </div>
-
-            {/* Email */}
-            <div className="bg-[#2D1783] rounded-2xl p-5">
-              <span className="material-symbols-outlined text-[#FFD700] text-2xl block mb-2" aria-hidden="true">mail</span>
-              <p className="font-bold text-white text-sm">Sähköposti</p>
-              <a href="mailto:info@slotsband.com" className="text-white/70 text-xs hover:text-white transition-colors mt-0.5 block">
-                info@slotsband.com
-              </a>
-            </div>
-          </aside>
+            </a>
+          ))}
+          <EmailCard />
         </div>
       </div>
       <div className="pb-12" />
