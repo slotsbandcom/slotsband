@@ -45,7 +45,7 @@ export default async function HomePage({ params }: HomePageProps) {
   const { lang } = await params
   const safeLang = (VALID_LANGS.includes(lang as Lang) ? lang : "fi") as Lang
   const t = TRANSLATIONS[safeLang]
-  const featuredCasinos = await getCasinos({ activeOnly: true, sort: "rating" })
+  const featuredCasinos = await getCasinos({ activeOnly: true, sort: "rank" })
 
   return (
     <div className="min-h-screen bg-white">
