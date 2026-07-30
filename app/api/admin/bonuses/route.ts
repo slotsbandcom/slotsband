@@ -1,5 +1,13 @@
 import { createClient } from "@/lib/supabase/server"
+import { createClient as createSupabaseClient } from "@supabase/supabase-js"
 import { NextRequest, NextResponse } from "next/server"
+
+function adminDb() {
+  return createSupabaseClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.SUPABASE_SERVICE_ROLE_KEY!
+  )
+}
 
 const TYPE_TITLES: Record<string, string> = {
   welcome:    "Welcome Bonus",
@@ -64,7 +72,7 @@ export async function POST(req: NextRequest) {
     uk: (descriptionUk as string) ?? "",
   })
 
-  const { data, error } = await supabase
+  const { data, error } = await adminDb()
     .from("bonuses")
     .insert({
       casino_id: casinoId,

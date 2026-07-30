@@ -31,7 +31,7 @@ export async function POST(req: NextRequest) {
   // Remove any empty id so Postgres generates one
   if (!body.id) delete body.id
 
-  const { data, error } = await supabase
+  const { data, error } = await adminDb()
     .from("casinos")
     .insert(body)
     .select()
