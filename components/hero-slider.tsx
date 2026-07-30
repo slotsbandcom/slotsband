@@ -20,6 +20,23 @@ interface HeroSliderProps {
   banners: Banner[]
 }
 
+// btn_class comes from the DB at request time, so Tailwind's build-time
+// content scanner never sees arbitrary-value classes like "bg-[#26039d]" and
+// drops them from the production CSS. Pull those out into inline styles and
+// keep only plain, always-generated utilities (e.g. "text-white") as classes.
+function parseBtnClass(btnClass: string): { className: string; style: React.CSSProperties } {
+  const style: React.CSSProperties = {}
+  const classes: string[] = []
+  for (const token of btnClass.split(/\s+/).filter(Boolean)) {
+    const bg = token.match(/^bg-\[(#[0-9a-fA-F]{3,8})\]$/)
+    const text = token.match(/^text-\[(#[0-9a-fA-F]{3,8})\]$/)
+    if (bg) style.backgroundColor = bg[1]
+    else if (text) style.color = text[1]
+    else classes.push(token)
+  }
+  return { className: classes.join(" "), style }
+}
+
 export function HeroSlider({ lang, banners }: HeroSliderProps) {
   const [current, setCurrent] = useState(0)
 
@@ -75,7 +92,10 @@ export function HeroSlider({ lang, banners }: HeroSliderProps) {
                     href={b.link_url ?? `/${lang}`}
                     rel="nofollow sponsored noopener noreferrer"
                     target="_blank"
-                    className={`${b.btn_class} mt-1 px-6 py-2 rounded-full font-bold text-xs hover:opacity-90 active:scale-95 transition-all`}
+                    {...(() => {
+                      const { className, style } = parseBtnClass(b.btn_class)
+                      return { className: `${className} mt-1 px-6 py-2 rounded-full font-bold text-xs hover:opacity-90 active:scale-95 transition-all`, style }
+                    })()}
                   >
                     {lang === "fi" ? "Pelaa Nyt" : "Play Now"}
                   </a>
@@ -102,7 +122,10 @@ export function HeroSlider({ lang, banners }: HeroSliderProps) {
                     href={b.link_url ?? `/${lang}`}
                     rel="nofollow sponsored noopener noreferrer"
                     target="_blank"
-                    className={`${b.btn_class} px-8 py-3 rounded-full font-semibold text-sm hover:opacity-90 hover:shadow-xl transition-all active:scale-95`}
+                    {...(() => {
+                      const { className, style } = parseBtnClass(b.btn_class)
+                      return { className: `${className} px-8 py-3 rounded-full font-semibold text-sm hover:opacity-90 hover:shadow-xl transition-all active:scale-95`, style }
+                    })()}
                   >
                     {lang === "fi" ? "Pelaa Nyt" : "Play Now"}
                   </a>
