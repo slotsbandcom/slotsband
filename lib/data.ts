@@ -415,43 +415,6 @@ export const FILTER_OPTIONS = {
   providers: ["NetEnt", "Microgaming", "Play'n GO", "Pragmatic Play", "Evolution"],
 }
 
-export const HERO_SLIDES = [
-  {
-    id: 1,
-    casinoName: "SPIN PLATINUM",
-    bonus: "100% BONUS 500€ ASTI + 100FS",
-    subtext: "ZIMPLER TALLETUKSET JA NOSTOT",
-    bgColor: "bg-[#E0FCF9]",
-    textColor: "text-[#1B1B1C]",
-    bonusColor: "text-[#26039d]",
-    btnClass: "bg-[#26039d] text-white",
-    slug: "spinplatinum",
-  },
-  {
-    id: 2,
-    casinoName: "BLINGI",
-    bonus: "TALLETA JA SAA 250 ILMAISKIERROSTA",
-    subtext: "LISÄKSI SAAT 20% CASHBACK JOKA PÄIVÄ",
-    bgColor: "bg-[#232323]",
-    textColor: "text-white",
-    bonusColor: "text-white",
-    btnClass: "bg-[#97FF00] text-black",
-    accentColor: "text-[#97FF00]",
-    slug: "blingi",
-  },
-  {
-    id: 3,
-    casinoName: "CASH LOUNGE",
-    bonus: "150% NOSTICKY 1000€ ASTI + 150FS",
-    subtext: "VEDONLYÖNTI: 100% AINA 300€ ASTI",
-    bgColor: "bg-[#0D2E24]",
-    textColor: "text-[#F3C46C]",
-    bonusColor: "text-white",
-    btnClass: "bg-[#F3C46C] text-[#0D2E24]",
-    slug: "cashlounge",
-  },
-]
-
 // ─── BONUSES ────────────────────────────────────────────────────────────────
 export const BONUSES: Bonus[] = [
   { id: "b1", casino_id: "2", casino_name: "Lussurio Casino", casino_slug: "lussurio", title: "300% Tervetulosbonus 850€ asti + 100 FS", description: "Talleta vähintään 10€ ja saat 300% bonuksen 850€ asti sekä 100 ilmaiskierrosta.", bonus_type: "welcome", amount: "300% / 850€", wagering: 35, min_deposit: 10, is_featured: true, lang: "fi" },

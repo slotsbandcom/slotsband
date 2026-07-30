@@ -188,6 +188,24 @@ export async function getBonusesByCasino(casinoId: string, lang = "fi"): Promise
   }) as Bonus[]
 }
 
+// ─── Banners ──────────────────────────────────────────────────────────────────
+
+export async function getBanners(lang: string) {
+  const supabase = await createClient()
+  const { data, error } = await supabase
+    .from("banners")
+    .select("*")
+    .eq("is_active", true)
+    .eq("lang", lang)
+    .order("sort_order", { ascending: true })
+
+  if (error) {
+    console.error("[v0] getBanners error:", error.message)
+    return []
+  }
+  return data ?? []
+}
+
 // ─── Games ────────────────────────────────────────────────────────────────────
 
 export async function getGames(options?: { activeOnly?: boolean; featuredOnly?: boolean }): Promise<Game[]> {

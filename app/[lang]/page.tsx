@@ -1,7 +1,7 @@
 ﻿import type { Metadata } from "next"
 import type { Lang } from "@/lib/types"
 import { TRANSLATIONS } from "@/lib/data"
-import { getCasinos } from "@/lib/supabase/queries"
+import { getCasinos, getBanners } from "@/lib/supabase/queries"
 import { getPageMeta } from "@/lib/supabase/page-meta"
 import { HeroSlider } from "@/components/hero-slider"
 import { getCasinoListUrl } from "@/lib/casino-url"
@@ -45,7 +45,10 @@ export default async function HomePage({ params }: HomePageProps) {
   const { lang } = await params
   const safeLang = (VALID_LANGS.includes(lang as Lang) ? lang : "fi") as Lang
   const t = TRANSLATIONS[safeLang]
-  const featuredCasinos = await getCasinos({ activeOnly: true, sort: "rank" })
+  const [featuredCasinos, banners] = await Promise.all([
+    getCasinos({ activeOnly: true, sort: "rank" }),
+    getBanners(safeLang),
+  ])
 
   return (
     <div className="min-h-screen bg-white">
@@ -55,7 +58,7 @@ export default async function HomePage({ params }: HomePageProps) {
 
           {/* Mobile layout: slider on top, compact text strip below */}
           <div className="lg:hidden flex flex-col gap-2">
-            <HeroSlider lang={safeLang} />
+            <HeroSlider lang={safeLang} banners={banners} />
             {/* Compact text row — centered on mobile */}
             <div className="flex items-center justify-center gap-3">
               <h1 className="font-display font-bold text-base text-[#1b1b1c] leading-snug text-center">
@@ -115,7 +118,7 @@ export default async function HomePage({ params }: HomePageProps) {
               </div>
             </div>
             <div className="flex-1 w-full max-w-xl">
-              <HeroSlider lang={safeLang} />
+              <HeroSlider lang={safeLang} banners={banners} />
             </div>
           </div>
 
