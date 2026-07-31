@@ -68,8 +68,24 @@ export async function DELETE(
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
 
+  const { data: oldData } = await adminDb().from("casinos").select("name, slug").eq("id", id).maybeSingle()
+
   const { error } = await adminDb().from("casinos").delete().eq("id", id)
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+
+  try {
+    await adminDb().from("casino_audit_log").insert({
+      casino_id: id,
+      casino_name: oldData?.name ?? null,
+      casino_slug: oldData?.slug ?? null,
+      action: "delete",
+      actor_id: user.id,
+      actor_email: user.email,
+      changes: null,
+    })
+  } catch (e) {
+    console.warn("[casino-audit-log]", e)
+  }
 
   return NextResponse.json({ success: true })
 }
@@ -93,6 +109,9 @@ export async function PATCH(
     )
   )
 
+  // Snapshot the pre-update values for the fields being changed, so we can log a diff.
+  const { data: oldData } = await adminDb().from("casinos").select("*").eq("id", id).maybeSingle()
+
   // Use service-role client for the actual write (bypasses RLS)
   const { data, error } = await adminDb()
     .from("casinos")
@@ -109,6 +128,26 @@ export async function PATCH(
   // Sync bonus table so casino appears on /kasinobonukset/ immediately
   try { await syncCasinoBonus(adminDb(), data) } catch (e) {
     console.warn("[bonus-sync]", e)
+  }
+
+  try {
+    const changes = Object.keys(safeBody)
+      .map((key) => ({ field: key, old: (oldData as Record<string, unknown> | null)?.[key] ?? null, new: (safeBody as Record<string, unknown>)[key] }))
+      .filter((c) => JSON.stringify(c.old) !== JSON.stringify(c.new))
+
+    if (changes.length > 0) {
+      await adminDb().from("casino_audit_log").insert({
+        casino_id: id,
+        casino_name: data.name,
+        casino_slug: data.slug,
+        action: "update",
+        actor_id: user.id,
+        actor_email: user.email,
+        changes,
+      })
+    }
+  } catch (e) {
+    console.warn("[casino-audit-log]", e)
   }
 
   // Invalidate the front-facing casino pages so changes show immediately

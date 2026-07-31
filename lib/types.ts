@@ -4,6 +4,7 @@ export interface Casino {
   id: string
   slug: string
   name: string
+  updated_at?: string
   logo_url?: string
   banner_url?: string
   established_year?: number

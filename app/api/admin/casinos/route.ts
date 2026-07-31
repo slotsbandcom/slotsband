@@ -44,5 +44,19 @@ export async function POST(req: NextRequest) {
     console.warn("[bonus-sync]", e)
   }
 
+  try {
+    await adminDb().from("casino_audit_log").insert({
+      casino_id: data.id,
+      casino_name: data.name,
+      casino_slug: data.slug,
+      action: "create",
+      actor_id: user.id,
+      actor_email: user.email,
+      changes: null,
+    })
+  } catch (e) {
+    console.warn("[casino-audit-log]", e)
+  }
+
   return NextResponse.json(data, { status: 201 })
 }

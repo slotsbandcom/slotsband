@@ -470,6 +470,29 @@ function formatAiValue(v: unknown): string {
   return String(v).slice(0, 80)
 }
 
+function formatHistoryDate(iso: string | undefined): string {
+  if (!iso) return "—"
+  const date = new Date(iso)
+  const diffMs = Date.now() - date.getTime()
+  const mins = Math.floor(diffMs / 60000)
+  if (mins < 1) return "Just now"
+  if (mins < 60) return `${mins}m ago`
+  if (mins < 1440) return `${Math.floor(mins / 60)}h ago`
+  return date.toLocaleString("en-GB", { day: "numeric", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" })
+}
+
+function prettifyFieldName(field: string): string {
+  return field.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase())
+}
+
+function formatHistoryValue(v: unknown): string {
+  if (v === null || v === undefined || v === "") return "—"
+  if (typeof v === "boolean") return v ? "Yes" : "No"
+  if (Array.isArray(v)) return v.length > 0 ? v.join(", ") : "—"
+  if (typeof v === "object") return JSON.stringify(v).slice(0, 60)
+  return String(v).slice(0, 100)
+}
+
 function AiPopulateTab({ casinoName, casinoSlug, casinoId, currentForm, onApply }: {
   casinoName: string; casinoSlug: string; casinoId: string; currentForm: Casino; onApply: (data: Partial<Casino>) => void
 }) {
@@ -921,6 +944,17 @@ export function CasinoForm({ slug, createMode = false }: { slug?: string; create
   const [affiliateStats, setAffiliateStats] = useState<AffiliateStats | null>(null)
   const [statsLoading, setStatsLoading] = useState(false)
 
+  type AuditChange = { field: string; old: unknown; new: unknown }
+  type AuditEntry = {
+    id: string
+    action: "create" | "update" | "delete"
+    actor_email: string | null
+    changes: AuditChange[] | null
+    created_at: string
+  }
+  const [history, setHistory] = useState<AuditEntry[]>([])
+  const [historyLoading, setHistoryLoading] = useState(false)
+
   useEffect(() => {
     if (createMode || !slug) return
     fetch(`/api/admin/casinos/${slug}`)
@@ -928,6 +962,15 @@ export function CasinoForm({ slug, createMode = false }: { slug?: string; create
       .then(data => { if (data) setForm(data) })
       .finally(() => setLoading(false))
   }, [slug, createMode])
+
+  useEffect(() => {
+    if (createMode || !slug) return
+    setHistoryLoading(true)
+    fetch(`/api/admin/casinos/${slug}/history`)
+      .then(r => r.ok ? r.json() : [])
+      .then(data => { if (Array.isArray(data)) setHistory(data) })
+      .finally(() => setHistoryLoading(false))
+  }, [slug, createMode, saved])
 
   useEffect(() => {
     if (activeTab !== "affiliate" || createMode || !slug) return
@@ -1048,7 +1091,9 @@ export function CasinoForm({ slug, createMode = false }: { slug?: string; create
                 )}
               </div>
               <p className="text-xs text-[#787585]">
-                {createMode ? "Fill in casino details, then click Create Casino" : "Last modified: Today at 09:15"}
+                {createMode
+                  ? "Fill in casino details, then click Create Casino"
+                  : `Last modified: ${formatHistoryDate(history[0]?.created_at ?? form.updated_at)}`}
               </p>
             </div>
           </div>
@@ -1549,6 +1594,51 @@ export function CasinoForm({ slug, createMode = false }: { slug?: string; create
           )}
         </div>
       </div>
+
+      {/* Change history — always visible, independent of the active tab */}
+      {!createMode && (
+        <div className="mt-6">
+          <SectionCard title="Change History" icon="history">
+            {historyLoading ? (
+              <p className="text-xs text-[#787585]">Loading history...</p>
+            ) : history.length === 0 ? (
+              <p className="text-xs text-[#787585]">No changes recorded yet.</p>
+            ) : (
+              <ul className="divide-y divide-[#F0EDEE]">
+                {history.map((entry) => (
+                  <li key={entry.id} className="py-3 first:pt-0 last:pb-0">
+                    <div className="flex items-center justify-between gap-3">
+                      <div className="flex items-center gap-2">
+                        <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold uppercase ${
+                          entry.action === "create" ? "bg-[#27AE60]/10 text-[#27AE60]"
+                          : entry.action === "delete" ? "bg-red-500/10 text-red-600"
+                          : "bg-[#2D1783]/10 text-[#2D1783]"
+                        }`}>
+                          {entry.action}
+                        </span>
+                        <span className="text-xs font-semibold text-[#1b1b1c]">{entry.actor_email ?? "Unknown"}</span>
+                      </div>
+                      <span className="text-[10px] text-[#787585] whitespace-nowrap">{formatHistoryDate(entry.created_at)}</span>
+                    </div>
+                    {entry.changes && entry.changes.length > 0 && (
+                      <ul className="mt-2 space-y-1 pl-1">
+                        {entry.changes.map((c, i) => (
+                          <li key={i} className="text-[11px] text-[#474554]">
+                            <span className="font-semibold">{prettifyFieldName(c.field)}:</span>{" "}
+                            <span className="text-[#787585]">{formatHistoryValue(c.old)}</span>
+                            {" → "}
+                            <span className="text-[#1b1b1c] font-medium">{formatHistoryValue(c.new)}</span>
+                          </li>
+                        ))}
+                      </ul>
+                    )}
+                  </li>
+                ))}
+              </ul>
+            )}
+          </SectionCard>
+        </div>
+      )}
     </div>
   )
 }
