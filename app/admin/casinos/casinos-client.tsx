@@ -43,8 +43,8 @@ export default function AdminCasinosClient({ casinos, clickStats }: { casinos: C
   const router = useRouter()
   const [search,    setSearch]    = useState("")
   const [filter,    setFilter]    = useState<Filter>("all")
-  const [sortCol,   setSortCol]   = useState<SortCol | null>(null)
-  const [sortDir,   setSortDir]   = useState<SortDir>("desc")
+  const [sortCol,   setSortCol]   = useState<SortCol | null>("rank")
+  const [sortDir,   setSortDir]   = useState<SortDir>(DEFAULT_SORT_DIR.rank)
   const [selected,  setSelected]  = useState<string[]>([])
   const [isPending, startTransition] = useTransition()
   const [overrides, setOverrides] = useState<Record<string, { affiliate_url?: string; rank?: number }>>({})
@@ -91,6 +91,8 @@ export default function AdminCasinosClient({ casinos, clickStats }: { casinos: C
     })
     if (sortCol) {
       list = [...list].sort((a, b) => {
+        const activeCmp = Number(b.is_active) - Number(a.is_active)
+        if (activeCmp !== 0) return activeCmp
         let cmp = 0
         if (sortCol === "name")   cmp = a.name.localeCompare(b.name)
         if (sortCol === "rank")   cmp = (a.rank ?? 999) - (b.rank ?? 999)

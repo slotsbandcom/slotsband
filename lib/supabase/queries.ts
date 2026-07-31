@@ -70,7 +70,7 @@ export async function getAdminCasinos(): Promise<Casino[]> {
     .from("casinos")
     .select("*")
     .order("is_active", { ascending: false })
-    .order("rating",    { ascending: false })
+    .order("rank", { ascending: true, nullsFirst: false })
   if (error) {
     console.error("[admin] getAdminCasinos error:", error.message)
     return []
