@@ -117,6 +117,7 @@ export function SiteFooter({ lang, navSlugs = {} }: SiteFooterProps) {
             </h5>
             <ul className="space-y-2.5 text-sm text-white/70">
               <li><Link href={`${base}/${ns("kasinot")}`} className="hover:text-white transition-colors">{t.casinoCategories}</Link></li>
+              <li><Link href={`${base}/${ns("tarjoukset")}`} className="hover:text-white transition-colors">{t.offers}</Link></li>
               <li><Link href={`${base}/${ns("talletustavat")}`} className="hover:text-white transition-colors">{t.depositMethods}</Link></li>
               <li><Link href={`${base}/${ns("kotiutustavat")}`} className="hover:text-white transition-colors">{t.withdrawalMethods}</Link></li>
               <li><Link href={`${base}/${ns("ohjelmistot")}`} className="hover:text-white transition-colors">{t.software}</Link></li>
