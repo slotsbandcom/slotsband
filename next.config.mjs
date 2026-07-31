@@ -90,9 +90,6 @@ const nextConfig = {
     ])
 
     const genericRedirects = [
-      // /tarjoukset/[bonus-type] → kasinobonukset hub
-      { source: `/:lang(${L})/tarjoukset/:slug*`, destination: '/:lang/kasinobonukset', permanent: true },
-      { source: '/tarjoukset/:slug*', destination: '/fi/kasinobonukset', permanent: true },
       // /pelit and /pelit/* → kasinopelit hub
       { source: `/:lang(${L})/pelit/:slug*`, destination: '/:lang/kasinopelit', permanent: true },
       { source: '/pelit/:slug*', destination: '/fi/kasinopelit', permanent: true },

@@ -30,6 +30,7 @@ const TAXONOMY_BY_ROUTE_KEY: Record<string, string> = {
   ohjelmistot: "software",
   valmistaja: "vendor",
   lisenssi: "licence",
+  tarjoukset: "bonus-category",
 }
 
 // ─── Data helpers ─────────────────────────────────────────────────────────────

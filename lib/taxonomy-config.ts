@@ -173,6 +173,37 @@ export const TAXONOMY_CONFIGS: TaxonomyConfig[] = [
     },
   },
   {
+    taxonomy: "bonus-category",
+    path: "tarjoukset",
+    icon: "redeem",
+    labels: {
+      fi: {
+        title: "Tarjoukset",
+        subtitle: "Selaa kasinotarjouksia tyypin mukaan ja löydä sinulle sopivin bonus.",
+        crumb: "Tarjoukset",
+        countUnit: "kasino",
+        noCasinos: "Tälle tarjoustyypille ei ole vielä listattu kasinoita.",
+        termSuffix: "Tarjoukset",
+      },
+      en: {
+        title: "Offers",
+        subtitle: "Browse casino offers by type and find the right bonus for you.",
+        crumb: "Offers",
+        countUnit: "casino",
+        noCasinos: "No casinos listed for this offer type yet.",
+        termSuffix: "Offers",
+      },
+      uk: {
+        title: "Offers",
+        subtitle: "Browse casino offers by type and find the right bonus for you.",
+        crumb: "Offers",
+        countUnit: "casino",
+        noCasinos: "No casinos listed for this offer type yet.",
+        termSuffix: "Offers",
+      },
+    },
+  },
+  {
     taxonomy: "licence",
     path: "lisenssi",
     icon: "verified",

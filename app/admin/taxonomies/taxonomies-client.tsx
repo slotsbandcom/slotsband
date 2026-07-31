@@ -2,6 +2,8 @@
 
 import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
+import Link from "next/link"
+import { TAXONOMY_CONFIG_BY_TAXONOMY } from "@/lib/taxonomy-config"
 
 export interface TaxonomyTerm {
   id: string
@@ -383,6 +385,20 @@ export default function AdminTaxonomiesClient({
                     </td>
                     <td className="px-4 py-3">
                       <div className="flex items-center justify-end gap-1.5">
+                        {(() => {
+                          const config = TAXONOMY_CONFIG_BY_TAXONOMY[term.taxonomy]
+                          if (!config) return null
+                          return (
+                            <Link
+                              href={`/fi/${config.path}/${term.slug_fi}`}
+                              target="_blank"
+                              className="w-7 h-7 rounded-lg bg-[#F8F9FD] border border-[#E5E8F0] flex items-center justify-center hover:border-[#2D1783] transition-colors"
+                              title="View on site"
+                            >
+                              <span className="material-symbols-outlined text-[13px] text-[#474554]">open_in_new</span>
+                            </Link>
+                          )
+                        })()}
                         <button
                           onClick={() => setManagingTerm(term)}
                           className="h-7 px-2 rounded-lg bg-[#F8F9FD] border border-[#E5E8F0] flex items-center gap-1 hover:border-[#2D1783] transition-colors text-[11px] font-semibold text-[#474554] whitespace-nowrap"

@@ -26,7 +26,7 @@ export async function buildIndexMetadata(taxonomy: string, lang: Lang): Promise<
   if (!config) return {}
   const l = config.labels[lang]
   const { meta_title, meta_description } = await getPageMeta(config.path, lang)
-  const title = meta_title || `${l.title} 2026 | SlotsBand`
+  const title = meta_title || `${l.title} 2026`
   const desc = meta_description || l.subtitle
   return {
     title,
@@ -70,8 +70,8 @@ export async function buildTermMetadata(
   const descRaw = getTermDescription(term, lang)
   const desc = descRaw
     ? descRaw.replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim().substring(0, 160)
-    : `${name} – ${config.labels[lang].title} | SlotsBand`
-  const title = `${name} ${config.labels[lang].termSuffix} 2026 | SlotsBand`
+    : `${name} – ${config.labels[lang].title}`
+  const title = `${name} ${config.labels[lang].termSuffix} 2026`
   return {
     title,
     description: desc,

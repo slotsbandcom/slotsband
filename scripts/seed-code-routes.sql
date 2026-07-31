@@ -74,7 +74,12 @@ INSERT INTO pages (slug, lang, title, content, meta_title, meta_description, is_
 -- Lisenssi (licence taxonomy index)
 ('lisenssi', 'fi', 'Kasinolicenssit', '', 'Kasinolicenssit 2026 | SlotsBand', 'Vertaa kasinoita lisenssin perusteella – pelaa turvallisesti säännellyissä kasinoissa.', true, true, 'lisenssi'),
 ('lisenssi', 'en', 'Casino Licences', '', 'Casino Licences 2026 | SlotsBand', 'Compare casinos by licence – play safely at regulated casinos.', true, true, 'lisenssi'),
-('lisenssi', 'uk', 'Casino Licences', '', 'Casino Licences 2026 | SlotsBand', 'Compare casinos by licence – play safely at regulated casinos.', true, true, 'lisenssi')
+('lisenssi', 'uk', 'Casino Licences', '', 'Casino Licences 2026 | SlotsBand', 'Compare casinos by licence – play safely at regulated casinos.', true, true, 'lisenssi'),
+
+-- Tarjoukset (bonus-category taxonomy index)
+('tarjoukset', 'fi', 'Tarjoukset', '', 'Tarjoukset 2026', 'Selaa kasinotarjouksia tyypin mukaan ja löydä sinulle sopivin bonus.', true, true, 'tarjoukset'),
+('tarjoukset', 'en', 'Offers', '', 'Casino Offers 2026', 'Browse casino offers by type and find the right bonus for you.', true, true, 'tarjoukset'),
+('tarjoukset', 'uk', 'Offers', '', 'Casino Offers 2026', 'Browse casino offers by type and find the right bonus for you.', true, true, 'tarjoukset')
 
 ON CONFLICT (slug, lang) DO UPDATE SET
   is_code_route = true,
