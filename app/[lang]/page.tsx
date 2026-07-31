@@ -7,8 +7,34 @@ import { HeroSlider } from "@/components/hero-slider"
 import { getCasinoListUrl } from "@/lib/casino-url"
 import { StreamStatusBadge } from "@/components/stream-status-badge"
 import { CasinoListExpandable } from "@/components/casino-list-expandable"
+import { getTaxonomyTerms, getTermName, getTermSlug } from "@/lib/supabase/taxonomy-queries"
+import { TAXONOMY_CONFIG_BY_TAXONOMY } from "@/lib/taxonomy-config"
 
 const VALID_LANGS: Lang[] = ["fi", "uk", "en"]
+
+// Curated order (by stable fi slug) for the homepage "Browse by category" section —
+// a hand-picked subset of each taxonomy, not the full term list.
+const CASINO_TYPE_SLUGS = [
+  "parhaat-nettikasinot",
+  "uudet-nettikasinot",
+  "suomalaiset-nettikasinot",
+  "nettikasinot-ilman-rekisteroitymista",
+  "luotettavat-nettikasinot",
+  "verovapaat-nettikasinot",
+  "mobiilikasinot",
+  "kryptokasinot",
+  "pikakasinot",
+]
+
+const BONUS_TYPE_SLUGS = [
+  "non-sticky-bonukset",
+  "talletusbonukset",
+  "ilmaiskierroksia-ilman-talletusta",
+  "ilmaiskierroksia",
+  "ilmaiskierroksia-ilman-kierratysta",
+  "ilmaista-pelirahaa-ilman-talletusta",
+  "kierratysvapaat-bonukset",
+]
 
 interface HomePageProps {
   params: Promise<{ lang: string }>
@@ -45,10 +71,31 @@ export default async function HomePage({ params }: HomePageProps) {
   const { lang } = await params
   const safeLang = (VALID_LANGS.includes(lang as Lang) ? lang : "fi") as Lang
   const t = TRANSLATIONS[safeLang]
-  const [featuredCasinos, banners] = await Promise.all([
+  const [featuredCasinos, banners, casinoCategoryTerms, bonusCategoryTerms] = await Promise.all([
     getCasinos({ activeOnly: true, sort: "rank" }),
     getBanners(safeLang),
+    getTaxonomyTerms("casino-category"),
+    getTaxonomyTerms("bonus-category"),
   ])
+
+  const casinoCategoryPath = TAXONOMY_CONFIG_BY_TAXONOMY["casino-category"].path
+  const bonusCategoryPath = TAXONOMY_CONFIG_BY_TAXONOMY["bonus-category"].path
+
+  const casinoTypeLinks = CASINO_TYPE_SLUGS
+    .map((slug) => casinoCategoryTerms.find((t) => t.slug_fi === slug))
+    .filter((t) => !!t)
+    .map((term) => ({
+      name: getTermName(term, safeLang),
+      href: `/${safeLang}/${casinoCategoryPath}/${getTermSlug(term, safeLang)}`,
+    }))
+
+  const bonusTypeLinks = BONUS_TYPE_SLUGS
+    .map((slug) => bonusCategoryTerms.find((t) => t.slug_fi === slug))
+    .filter((t) => !!t)
+    .map((term) => ({
+      name: getTermName(term, safeLang),
+      href: `/${safeLang}/${bonusCategoryPath}/${getTermSlug(term, safeLang)}`,
+    }))
 
   return (
     <div className="min-h-screen bg-white">
@@ -168,6 +215,51 @@ export default async function HomePage({ params }: HomePageProps) {
           <CasinoListExpandable casinos={featuredCasinos} lang={safeLang} />
         </div>
       </main>
+
+      {/* Browse by category */}
+      <section className="bg-white py-14 border-t border-[#E5E8F0]">
+        <div className="max-w-[1280px] mx-auto px-4 md:px-12">
+          <h2 className="font-display font-bold text-3xl text-[#1b1b1c] mb-8 text-balance">
+            {t.browseByCategory.title}
+          </h2>
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <div className="bg-[#F8F9FD] p-6 rounded-2xl border border-[#E5E8F0]">
+              <h3 className="font-display font-bold text-lg text-[#1b1b1c] mb-4 flex items-center gap-2">
+                <span className="material-symbols-outlined text-[#2D1783] text-[20px]" aria-hidden="true">category</span>
+                {t.browseByCategory.casinoTypes}
+              </h3>
+              <div className="flex flex-wrap gap-2">
+                {casinoTypeLinks.map((item) => (
+                  <a
+                    key={item.href}
+                    href={item.href}
+                    className="bg-white border border-[#E5E8F0] px-3.5 py-2 rounded-xl text-[12px] font-bold text-[#1b1b1c] whitespace-nowrap hover:border-[#FFD700] hover:shadow-md hover:text-[#2D1783] transition-all"
+                  >
+                    {item.name}
+                  </a>
+                ))}
+              </div>
+            </div>
+            <div className="bg-[#F8F9FD] p-6 rounded-2xl border border-[#E5E8F0]">
+              <h3 className="font-display font-bold text-lg text-[#1b1b1c] mb-4 flex items-center gap-2">
+                <span className="material-symbols-outlined text-[#2D1783] text-[20px]" aria-hidden="true">redeem</span>
+                {t.browseByCategory.bonusTypes}
+              </h3>
+              <div className="flex flex-wrap gap-2">
+                {bonusTypeLinks.map((item) => (
+                  <a
+                    key={item.href}
+                    href={item.href}
+                    className="bg-white border border-[#E5E8F0] px-3.5 py-2 rounded-xl text-[12px] font-bold text-[#1b1b1c] whitespace-nowrap hover:border-[#FFD700] hover:shadow-md hover:text-[#2D1783] transition-all"
+                  >
+                    {item.name}
+                  </a>
+                ))}
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
 
       {/* Trust / Info section */}
       <section className="bg-white py-16 border-t border-[#E5E8F0]">

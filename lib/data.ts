@@ -541,6 +541,11 @@ export const TRANSLATIONS = {
       taxFree: "Verovapaat",
       freeSpins: "Ilmaispyöräytykset",
     },
+    browseByCategory: {
+      title: "Selaa kategorioittain",
+      casinoTypes: "Kasinotyypit",
+      bonusTypes: "Bonustyypit",
+    },
     listing: {
       title: "Parhaaksi Arvioidut Kasinot",
       subtitle: "Valikoitujen asiantuntijoiden parhaat poiminnot tälle viikolle.",
@@ -625,6 +630,11 @@ export const TRANSLATIONS = {
       taxFree: "Tax-Free",
       freeSpins: "Free Spins",
     },
+    browseByCategory: {
+      title: "Browse by Category",
+      casinoTypes: "Casino Types",
+      bonusTypes: "Bonus Types",
+    },
     listing: {
       title: "Top Rated Casinos",
       subtitle: "Our editors top picks for this week.",
@@ -708,6 +718,11 @@ export const TRANSLATIONS = {
       nonSticky: "No Wager Bonuses",
       taxFree: "Top Rated",
       freeSpins: "Free Spins",
+    },
+    browseByCategory: {
+      title: "Browse by Category",
+      casinoTypes: "Casino Types",
+      bonusTypes: "Bonus Types",
     },
     listing: {
       title: "Top Rated UK Casinos",
