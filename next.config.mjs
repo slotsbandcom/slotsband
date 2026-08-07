@@ -98,7 +98,93 @@ const nextConfig = {
       { source: '/kirjoittaja/:slug*', destination: '/fi/blogi', permanent: true },
     ]
 
-    return [...tarjousRedirects, ...genericRedirects]
+    // Old WP nav pointed straight at taxonomy term slugs from site root
+    // (e.g. /fi/luotettavat-nettikasinot/) — now they live under a hub path.
+    // casino-category terms → /kasinot/[slug], bonus-category terms → /tarjoukset/[slug]
+    const TAXONOMY_TERM_MAP = [
+      ['nettikasinot-ilman-rekisteroitymista', 'kasinot/nettikasinot-ilman-rekisteroitymista'],
+      ['luotettavat-nettikasinot', 'kasinot/luotettavat-nettikasinot'],
+      ['parhaat-nettikasinot', 'kasinot/parhaat-nettikasinot'],
+      ['uudet-nettikasinot', 'kasinot/uudet-nettikasinot'],
+      ['verovapaat-nettikasinot', 'kasinot/verovapaat-nettikasinot'],
+      ['parhaat-mobiilikasinot', 'kasinot/mobiilikasinot'], // slug renamed to mobiilikasinot
+      ['kryptokasinot', 'kasinot/kryptokasinot'],
+      ['suomalaiset-nettikasinot', 'kasinot/suomalaiset-nettikasinot'],
+      ['pikakasinot', 'kasinot/pikakasinot'],
+      ['100-rtp', 'kasinot/100-rtp'],
+      ['bonustarjousten-kasinoluettelo', 'kasinot/bonustarjousten-kasinoluettelo'],
+      ['ilmaiskierroksia-ilman-talletusta', 'tarjoukset/ilmaiskierroksia-ilman-talletusta'],
+      ['non-sticky-bonukset', 'tarjoukset/non-sticky-bonukset'],
+      ['talletusbonukset', 'tarjoukset/talletusbonukset'],
+      ['ilmaiskierroksia', 'tarjoukset/ilmaiskierroksia'],
+      ['kierratysvapaat-bonukset', 'tarjoukset/kierratysvapaat-bonukset'],
+      ['ilmaista-pelirahaa-ilman-talletusta', 'tarjoukset/ilmaista-pelirahaa-ilman-talletusta'],
+      ['ilmaiskierroksia-ilman-kierratysta', 'tarjoukset/ilmaiskierroksia-ilman-kierratysta'],
+      ['cashback', 'tarjoukset/cashback'],
+      // 'rafflet' intentionally excluded — that flat slug is the standalone
+      // /rafflet hub page itself, not the bonus-category term archive.
+    ]
+    const taxonomyRedirects = TAXONOMY_TERM_MAP.map(([oldSlug, dest]) => ({
+      source: `/:lang(${L})/${oldSlug}`,
+      destination: `/:lang/${dest}`,
+      permanent: true,
+    }))
+
+    // Old WP static/legal pages used Finnish slugs; the current routes use
+    // fixed English folder names shared across all languages.
+    const LEGACY_PAGE_MAP = [
+      ['tietoa-meista', 'about'],
+      ['ota-yhteytta', 'contact'],
+      ['tietosuojakaytanto', 'privacy'],
+      ['kayttoehdot', 'terms'],
+      ['vastuullinen-pelaaminen', 'responsible-gambling'],
+      ['kaikki-nettikasinot', 'nettikasinot'],
+      ['uutiset', 'blogi'],
+      ['games-archive-template-2', 'kasinopelit'],
+    ]
+    const legacyPageRedirects = LEGACY_PAGE_MAP.map(([oldSlug, dest]) => ({
+      source: `/:lang(${L})/${oldSlug}`,
+      destination: `/:lang/${dest}`,
+      permanent: true,
+    }))
+
+    // Old WP account/utility pages with no current equivalent → homepage
+    const deadPageRedirects = ['location', 'register', 'login'].map((oldSlug) => ({
+      source: `/:lang(${L})/${oldSlug}`,
+      destination: '/:lang',
+      permanent: true,
+    }))
+
+    // Casino/game detail pages that existed on the old WP site but no
+    // longer have a matching row in the DB → redirect to the hub instead
+    // of 404ing (kasinopelit/[slug] in particular returns a soft 200 for
+    // unknown slugs, so intercepting here at the redirect layer avoids that).
+    const deadCasinoSlugs = ['huikee-kasino', 'kunkku-kasino']
+    const deadGameSlugs = [
+      'rotiki', 'cleocatra', 'the-rave', 'giga-jar', 'disturbed',
+      'whacked', 'money-train-4', 'gargantoonz', 'the-dog-house-dog-or-alive',
+    ]
+    const deadContentRedirects = [
+      ...deadCasinoSlugs.map((slug) => ({
+        source: `/:lang(${L})/nettikasinot/${slug}`,
+        destination: '/:lang/nettikasinot',
+        permanent: true,
+      })),
+      ...deadGameSlugs.map((slug) => ({
+        source: `/:lang(${L})/kasinopelit/${slug}`,
+        destination: '/:lang/kasinopelit',
+        permanent: true,
+      })),
+    ]
+
+    return [
+      ...tarjousRedirects,
+      ...genericRedirects,
+      ...taxonomyRedirects,
+      ...legacyPageRedirects,
+      ...deadPageRedirects,
+      ...deadContentRedirects,
+    ]
   },
 }
 

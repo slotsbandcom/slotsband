@@ -1,5 +1,6 @@
 ﻿import Link from "next/link"
 import { notFound } from "next/navigation"
+import type { Metadata } from "next"
 import { getGames, getCasinos } from "@/lib/supabase/queries"
 import { getGameSlugs } from "@/lib/supabase/build-client"
 import type { Lang } from "@/lib/types"
@@ -7,19 +8,49 @@ import type { Lang } from "@/lib/types"
 const VOLATILITY_FI: Record<string, string> = { low: "Matala", medium: "Keskisuuri", high: "Korkea" }
 const TYPE_FI: Record<string, string> = { slot: "Kolikkopeli", live: "Live kasino", table: "Pöytäpeli", jackpot: "Jackpot" }
 
+const SITE_URL = "https://slotsband.com"
+
+export const revalidate = 3600
+
+interface GamePageProps { params: Promise<{ lang: string; slug: string }> }
+
 export async function generateStaticParams() {
   const langs = ["fi", "en", "uk"]
   const slugs = await getGameSlugs()
   return langs.flatMap((lang) => slugs.map((slug) => ({ lang, slug })))
 }
 
-export default async function GamePage({ params }: { params: { lang: string; slug: string } }) {
-  const lang = (params.lang as Lang) || "fi"
+export async function generateMetadata({ params }: GamePageProps): Promise<Metadata> {
+  const { lang: rawLang, slug } = await params
+  const lang = (rawLang as Lang) || "fi"
+  const allGames = await getGames({ activeOnly: true })
+  const game = allGames.find((g) => g.slug === slug)
+  if (!game) return {}
+
+  const title = lang === "fi"
+    ? `${game.name} — Pelaa ilmaiseksi | SlotsBand`
+    : `${game.name} — Play for Free | SlotsBand`
+  const desc = lang === "fi"
+    ? `Pelaa ${game.name} ilmaiseksi. ${game.provider}:n kehittämä peli, RTP ${game.rtp ?? "N/A"}%. Löydä parhaat kasinot pelata.`
+    : `Play ${game.name} for free. Developed by ${game.provider}, RTP ${game.rtp ?? "N/A"}%. Find the best casinos to play at.`
+  const canonical = `${SITE_URL}/${lang}/kasinopelit/${slug}`
+
+  return {
+    title,
+    description: desc,
+    openGraph: { title, description: desc },
+    alternates: { canonical },
+  }
+}
+
+export default async function GamePage({ params }: GamePageProps) {
+  const { lang: rawLang, slug } = await params
+  const lang = (rawLang as Lang) || "fi"
   const [allGames, casinos] = await Promise.all([
     getGames({ activeOnly: true }),
     getCasinos({ activeOnly: true }),
   ])
-  const game = allGames.find((g) => g.slug === params.slug)
+  const game = allGames.find((g) => g.slug === slug)
   if (!game) notFound()
 
   const similar = allGames.filter((g) => g.type === game.type && g.id !== game.id).slice(0, 4)

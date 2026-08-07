@@ -601,6 +601,13 @@ export const TRANSLATIONS = {
       emailResponseTime: "Vastausaika 1–24 tuntia arkisin.",
     },
     search: "Etsi kasinoita...",
+    notFound: {
+      eyebrow: "Virhe 404",
+      title: "Tätä sivua ei löytynyt",
+      subtitle: "Sivu on saattanut siirtyä tai sitä ei enää ole olemassa. Tässä muutama hyödyllinen linkki eteenpäin.",
+      homeCta: "Takaisin etusivulle",
+      popularTitle: "Suositut sivut",
+    },
   },
   en: {
     nav: {
@@ -690,6 +697,13 @@ export const TRANSLATIONS = {
       emailResponseTime: "Response time 1–24 hours on weekdays.",
     },
     search: "Search casinos...",
+    notFound: {
+      eyebrow: "404 Error",
+      title: "This page could not be found",
+      subtitle: "The page may have moved or no longer exists. Here are a few useful links to get you back on track.",
+      homeCta: "Back to homepage",
+      popularTitle: "Popular pages",
+    },
   },
   uk: {
     nav: {
@@ -779,5 +793,12 @@ export const TRANSLATIONS = {
       emailResponseTime: "Response time 1–24 hours on weekdays.",
     },
     search: "Search casinos...",
+    notFound: {
+      eyebrow: "404 Error",
+      title: "This page could not be found",
+      subtitle: "The page may have moved or no longer exists. Here are a few useful links to get you back on track.",
+      homeCta: "Back to homepage",
+      popularTitle: "Popular pages",
+    },
   },
 }
