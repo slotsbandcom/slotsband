@@ -1,4 +1,5 @@
 import Link from "next/link"
+import { headers } from "next/headers"
 import type { Metadata } from "next"
 import type { Lang } from "@/lib/types"
 import { TRANSLATIONS } from "@/lib/data"
@@ -9,11 +10,14 @@ export const metadata: Metadata = {
   robots: { index: false, follow: true },
 }
 
+const VALID_LANGS: Lang[] = ["fi", "en", "uk"]
+
 export default async function NotFound() {
-  // not-found.tsx does not receive the [lang] route param, so we fall back
-  // to the default locale — the header/footer inside the [lang] layout that
-  // wraps this page already renders in the correct language regardless.
-  const lang: Lang = "fi"
+  // not-found.tsx does not receive the [lang] route param directly — proxy.ts
+  // sets x-slotsband-lang from the URL so this can still localize correctly.
+  const headerList = await headers()
+  const detected = headerList.get("x-slotsband-lang")
+  const lang: Lang = (VALID_LANGS.includes(detected as Lang) ? detected : "fi") as Lang
   const t = TRANSLATIONS[lang].notFound
   const navSlugs = await getRouteSlugsByLang(lang)
   const ns = (key: string) => navSlugs[key] || key
