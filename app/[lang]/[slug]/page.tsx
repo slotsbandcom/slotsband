@@ -19,7 +19,7 @@ import { BlogiHub } from "@/components/pages/blogi-hub"
 import type { Lang } from "@/lib/types"
 
 const VALID_LANGS: Lang[] = ["fi", "en", "uk"]
-const SITE_URL = "https://slotsband.com"
+const SITE_URL = "https://www.slotsband.com"
 
 // ─── Taxonomy config lookup ───────────────────────────────────────────────────
 

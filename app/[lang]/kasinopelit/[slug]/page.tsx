@@ -8,7 +8,7 @@ import type { Lang } from "@/lib/types"
 const VOLATILITY_FI: Record<string, string> = { low: "Matala", medium: "Keskisuuri", high: "Korkea" }
 const TYPE_FI: Record<string, string> = { slot: "Kolikkopeli", live: "Live kasino", table: "Pöytäpeli", jackpot: "Jackpot" }
 
-const SITE_URL = "https://slotsband.com"
+const SITE_URL = "https://www.slotsband.com"
 
 export const revalidate = 3600
 

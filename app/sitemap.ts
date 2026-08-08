@@ -2,7 +2,7 @@ import type { MetadataRoute } from "next"
 import { createClient } from "@supabase/supabase-js"
 import { TAXONOMY_CONFIGS } from "@/lib/taxonomy-config"
 
-const SITE_URL = "https://slotsband.com"
+const SITE_URL = "https://www.slotsband.com"
 const LANGS = ["fi", "en", "uk"]
 
 function buildClient() {

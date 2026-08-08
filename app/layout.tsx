@@ -20,23 +20,23 @@ const hankenGrotesk = Hanken_Grotesk({
 })
 
 export const metadata: Metadata = {
-  metadataBase: new URL('https://slotsband.com'),
+  metadataBase: new URL('https://www.slotsband.com'),
   title: {
     default: 'SlotsBand – Parhaat Nettikasinot Suomessa 2026',
     template: '%s | SlotsBand',
   },
   description: 'SlotsBand on Suomen kattavin opas nettikasinoihin ja bonuksiin. Löydä parhaat kasinot, eksklusiiviset bonukset ja verovapaat voitot.',
   keywords: ['nettikasinot', 'kasino', 'bonus', 'ilmaiskierrokset', 'pikakasino', 'verovapaa kasino', 'suomalaiset kasinot 2026'],
-  authors: [{ name: 'SlotsBand', url: 'https://slotsband.com' }],
+  authors: [{ name: 'SlotsBand', url: 'https://www.slotsband.com' }],
   creator: 'SlotsBand',
   publisher: 'SlotsBand',
   robots: { index: true, follow: true, googleBot: { index: true, follow: true } },
   alternates: {
-    canonical: 'https://slotsband.com/fi',
+    canonical: 'https://www.slotsband.com/fi',
     languages: {
-      'fi': 'https://slotsband.com/fi',
-      'en': 'https://slotsband.com/en',
-      'en-GB': 'https://slotsband.com/uk',
+      'fi': 'https://www.slotsband.com/fi',
+      'en': 'https://www.slotsband.com/en',
+      'en-GB': 'https://www.slotsband.com/uk',
     },
   },
   openGraph: {
@@ -46,7 +46,7 @@ export const metadata: Metadata = {
     locale: 'fi_FI',
     alternateLocale: ['en_GB', 'en_US'],
     siteName: 'SlotsBand',
-    url: 'https://slotsband.com/fi',
+    url: 'https://www.slotsband.com/fi',
   },
   twitter: {
     card: 'summary_large_image',

@@ -1230,8 +1230,8 @@ export function CasinoForm({ slug, createMode = false }: { slug?: string; create
                   {prettyLinks.map(({ lang, url }) => (
                     <div key={lang} className="flex items-center gap-2 bg-[#F8F9FD] border border-[#E5E8F0] rounded-xl px-3 py-2.5">
                       <span className="text-xs font-bold uppercase text-[#2D1783] w-5">{lang}</span>
-                      <span className="flex-1 text-xs font-mono text-[#474554]">slotsband.com{url}</span>
-                      <CopyButton text={`https://slotsband.com${url}`} />
+                      <span className="flex-1 text-xs font-mono text-[#474554]">www.slotsband.com{url}</span>
+                      <CopyButton text={`https://www.slotsband.com${url}`} />
                     </div>
                   ))}
                 </div>

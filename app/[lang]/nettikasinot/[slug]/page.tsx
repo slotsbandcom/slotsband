@@ -28,7 +28,7 @@ export async function generateStaticParams() {
   return paths
 }
 
-const SITE_URL = "https://slotsband.com"
+const SITE_URL = "https://www.slotsband.com"
 
 export async function generateMetadata({ params }: CasinoPageProps): Promise<Metadata> {
   const { lang: rawLang, slug } = await params

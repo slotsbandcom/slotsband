@@ -10,7 +10,7 @@ interface Props {
   terms: (TaxonomyTerm & { casino_count: number })[]
 }
 
-const SITE_URL = "https://slotsband.com"
+const SITE_URL = "https://www.slotsband.com"
 
 export function TaxonomyIndexPage({ taxonomy, lang, terms }: Props) {
   const config = TAXONOMY_CONFIG_BY_TAXONOMY[taxonomy]

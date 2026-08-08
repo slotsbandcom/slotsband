@@ -7,6 +7,6 @@ export default function robots(): MetadataRoute.Robots {
       allow: "/",
       disallow: ["/admin/", "/wp-admin/", "/wp-content/"],
     },
-    sitemap: "https://slotsband.com/sitemap.xml",
+    sitemap: "https://www.slotsband.com/sitemap.xml",
   }
 }

@@ -13,7 +13,7 @@ import { TAXONOMY_CONFIG_BY_TAXONOMY } from "@/lib/taxonomy-config"
 import { getPageMeta } from "@/lib/supabase/page-meta"
 
 export const VALID_LANGS: Lang[] = ["fi", "uk", "en"]
-export const SITE_URL = "https://slotsband.com"
+export const SITE_URL = "https://www.slotsband.com"
 
 export function resolveLang(raw: string): Lang {
   return (VALID_LANGS.includes(raw as Lang) ? raw : "fi") as Lang

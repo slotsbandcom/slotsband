@@ -12,6 +12,8 @@ import { TAXONOMY_CONFIG_BY_TAXONOMY } from "@/lib/taxonomy-config"
 
 const VALID_LANGS: Lang[] = ["fi", "uk", "en"]
 
+const SITE_URL = "https://www.slotsband.com"
+
 // Curated order (by stable fi slug) for the homepage "Browse by category" section —
 // a hand-picked subset of each taxonomy, not the full term list.
 const CASINO_TYPE_SLUGS = [
@@ -64,6 +66,15 @@ export async function generateMetadata({ params }: HomePageProps): Promise<Metad
   return {
     title: meta_title || titles[safeLang],
     description: meta_description || descs[safeLang],
+    alternates: {
+      canonical: `${SITE_URL}/${safeLang}`,
+      languages: {
+        fi: `${SITE_URL}/fi`,
+        en: `${SITE_URL}/en`,
+        "en-GB": `${SITE_URL}/uk`,
+        "x-default": `${SITE_URL}/fi`,
+      },
+    },
   }
 }
 

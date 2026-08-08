@@ -114,7 +114,7 @@ function GeneralTab() {
 }
 
 function AffiliateTab() {
-  const [format, setFormat] = useState("https://slotsband.com/fi/mene/{casino_slug}")
+  const [format, setFormat] = useState("https://www.slotsband.com/fi/mene/{casino_slug}")
   return (
     <div className="space-y-5">
       <SectionCard title="Link Configuration">
@@ -156,7 +156,7 @@ function SeoTab() {
 
       <SectionCard title="Robots.txt">
         <Field label="robots.txt content">
-          <Textarea defaultValue={"User-agent: *\nAllow: /\nDisallow: /admin\nDisallow: /api\n\nSitemap: https://slotsband.com/sitemap.xml"} rows={8} />
+          <Textarea defaultValue={"User-agent: *\nAllow: /\nDisallow: /admin\nDisallow: /api\n\nSitemap: https://www.slotsband.com/sitemap.xml"} rows={8} />
         </Field>
       </SectionCard>
 
@@ -166,7 +166,7 @@ function SeoTab() {
         <Toggle label="Include bonus pages" defaultChecked />
         <Toggle label="Include game pages" />
         <Field label="Sitemap URL">
-          <TextInput defaultValue="https://slotsband.com/sitemap.xml" />
+          <TextInput defaultValue="https://www.slotsband.com/sitemap.xml" />
         </Field>
       </SectionCard>
     </div>
