@@ -159,7 +159,7 @@ const nextConfig = {
     // longer have a matching row in the DB → redirect to the hub instead
     // of 404ing (kasinopelit/[slug] in particular returns a soft 200 for
     // unknown slugs, so intercepting here at the redirect layer avoids that).
-    const deadCasinoSlugs = ['huikee-kasino', 'kunkku-kasino']
+    const deadCasinoSlugs = ['huikee-kasino', 'kunkku-kasino', 'netticasino', 'lilibetcasino']
     const deadGameSlugs = [
       'rotiki', 'cleocatra', 'the-rave', 'giga-jar', 'disturbed',
       'whacked', 'money-train-4', 'gargantoonz', 'the-dog-house-dog-or-alive',
@@ -177,6 +177,53 @@ const nextConfig = {
       })),
     ]
 
+    // Old WP root-level blog permalinks (from before the /[lang]/ prefix existed)
+    const blogRootRedirects = [
+      { source: '/blog/kirjoittaja/:slug*', destination: '/fi/blogi', permanent: true },
+      { source: '/blog/:slug', destination: '/fi/:slug', permanent: true },
+    ]
+
+    // casino-language ("kieli") and casino founding-year ("perustettu") were
+    // WP taxonomies with public archive pages; neither has a current
+    // equivalent section, so send them to the casino hub instead of 404ing.
+    // :rest* also swallows old /sivu/N/ pagination segments in one go.
+    const orphanTaxonomyRedirects = [
+      { source: `/:lang(${L})/kieli/:rest*`, destination: '/:lang/nettikasinot', permanent: true },
+      { source: '/kieli/:rest*', destination: '/fi/nettikasinot', permanent: true },
+      { source: `/:lang(${L})/perustettu/:rest*`, destination: '/:lang/nettikasinot', permanent: true },
+      { source: '/perustettu/:rest*', destination: '/fi/nettikasinot', permanent: true },
+      // WP's default post-category archive
+      { source: `/:lang(${L})/category/:rest*`, destination: '/:lang/blogi', permanent: true },
+      { source: '/category/:rest*', destination: '/fi/blogi', permanent: true },
+    ]
+
+    // Old WP paginated listings (/sivu/2/, /sivu/3/, ...) have no equivalent —
+    // the current hub/taxonomy pages load more results in place instead of
+    // paginating via the URL — so strip the suffix and land on page 1.
+    const HUBS_WITH_TERMS = 'kasinot|talletustavat|kotiutustavat|ohjelmistot|valmistaja|lisenssi|tarjoukset'
+    const ALL_HUBS = `${HUBS_WITH_TERMS}|nettikasinot|kasinobonukset|kasinopelit|blogi`
+    const paginationRedirects = [
+      { source: `/:lang(${L})/:hub(${HUBS_WITH_TERMS})/:term/sivu/:num(\\d+)`, destination: '/:lang/:hub/:term', permanent: true },
+      { source: `/:lang(${L})/:hub(${ALL_HUBS})/sivu/:num(\\d+)`, destination: '/:lang/:hub', permanent: true },
+      // old hub name, with pagination
+      { source: `/:lang(${L})/kaikki-nettikasinot/sivu/:num(\\d+)`, destination: '/:lang/nettikasinot', permanent: true },
+    ]
+
+    // Old WP RSS feed URLs (/nettikasinot/[slug]/feed/ etc.) — strip the
+    // suffix and let the underlying path resolve (or redirect again) normally.
+    const feedRedirects = [
+      { source: `/:lang(${L})/nettikasinot/:slug/feed`, destination: '/:lang/nettikasinot/:slug', permanent: true },
+      { source: `/:lang(${L})/kasinopelit/:slug/feed`, destination: '/:lang/kasinopelit/:slug', permanent: true },
+      { source: `/:lang(${L})/tarjous/:slug/feed`, destination: '/:lang/tarjous/:slug', permanent: true },
+      { source: '/tarjous/:slug/feed', destination: '/tarjous/:slug', permanent: true },
+    ]
+
+    // Safety net: new-style hub/taxonomy URLs indexed without their /[lang]/
+    // prefix (e.g. /kasinot/kryptokasinot/ instead of /fi/kasinot/kryptokasinot/).
+    const bareHubFallbackRedirects = [
+      { source: `/:hub(${ALL_HUBS})/:rest*`, destination: '/fi/:hub/:rest*', permanent: true },
+    ]
+
     return [
       ...tarjousRedirects,
       ...genericRedirects,
@@ -184,6 +231,11 @@ const nextConfig = {
       ...legacyPageRedirects,
       ...deadPageRedirects,
       ...deadContentRedirects,
+      ...blogRootRedirects,
+      ...orphanTaxonomyRedirects,
+      ...paginationRedirects,
+      ...feedRedirects,
+      ...bareHubFallbackRedirects,
     ]
   },
 }

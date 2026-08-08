@@ -5,7 +5,7 @@ export default function robots(): MetadataRoute.Robots {
     rules: {
       userAgent: "*",
       allow: "/",
-      disallow: "/admin/",
+      disallow: ["/admin/", "/wp-admin/", "/wp-content/"],
     },
     sitemap: "https://slotsband.com/sitemap.xml",
   }
