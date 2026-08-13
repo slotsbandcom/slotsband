@@ -97,10 +97,11 @@ function PredictionModal({ games, onClose, onSubmit }: {
                   type="text"
                   value={nickname}
                   onChange={e => setNickname(e.target.value)}
-                  placeholder="Twitch-nimesi..."
+                  placeholder="esim. SlotKing99"
                   className="w-full bg-white/5 border border-white/10 focus:border-[#FFD700]/60 rounded-xl px-4 py-2.5 text-white placeholder:text-white/30 outline-none transition-colors"
                   required
                 />
+                <p className="text-[11px] text-white/35 mt-1.5">Käytä Kick- tai Twitch-käyttäjänimeäsi — kumpi tahansa käy.</p>
               </div>
               <div>
                 <label className="block text-[11px] font-bold text-white/50 uppercase tracking-wider mb-1.5">Loppusumma (€)</label>
