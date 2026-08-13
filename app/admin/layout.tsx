@@ -12,6 +12,7 @@ const NAV_ITEMS = [
   { icon: "description", label: "Pages", href: "/admin/pages" },
   { icon: "redeem", label: "Bonuses", href: "/admin/bonuses" },
   { icon: "image", label: "Banners", href: "/admin/banners" },
+  { icon: "emoji_events", label: "Bonushunt", href: "/admin/bonushunt" },
   { icon: "category", label: "Categories", href: "/admin/categories" },
   { icon: "label", label: "Taxonomies", href: "/admin/taxonomies" },
   { icon: "article", label: "Blog", href: "/admin/blog" },

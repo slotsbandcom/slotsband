@@ -351,7 +351,7 @@ export async function getBonusHunts(): Promise<BonusHunt[]> {
   const supabase = await createClient()
   const { data: sessions, error } = await supabase
     .from("bonushunt_sessions")
-    .select("*, bonushunt_slots(*)")
+    .select("*, bonushunt_slots(*), bonushunt_predictions!session_id(*)")
     .order("date", { ascending: false })
 
   if (error) {
@@ -371,6 +371,16 @@ export async function getBonusHunts(): Promise<BonusHunt[]> {
       bonus_value: slot.bonus_value,
       multiplier: slot.multiplier ?? null,
     })),
+    predictions: (s.bonushunt_predictions ?? [])
+      .map((p: any) => ({
+        id: p.id,
+        session_id: p.session_id,
+        nickname: p.username,
+        amount: p.predicted_total,
+        game: p.predicted_game ?? null,
+        submitted_at: p.submitted_at,
+      }))
+      .sort((a: any, b: any) => new Date(b.submitted_at).getTime() - new Date(a.submitted_at).getTime()),
   })) as BonusHunt[]
 }
 

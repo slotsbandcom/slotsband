@@ -1,6 +1,7 @@
 "use client"
 
 import { useState, useEffect } from "react"
+import { useRouter } from "next/navigation"
 import type { Lang, BonusHunt, BonusHuntSlot } from "@/lib/types"
 import { useStreamStatus } from "@/hooks/use-stream-status"
 import { StreamStatusBadge } from "@/components/stream-status-badge"
@@ -38,48 +39,34 @@ function ProfitCell({ slot }: { slot: BonusHuntSlot }) {
 // ─── Prediction modal ────────────────────────────────────────────────────────
 
 interface Prediction {
+  id?: string
   nickname: string
   amount: number
-  multiplier: number
-  game: string
+  game: string | null
   submittedAt: string
-}
-
-function scorePrediction(pred: Prediction, actual: { amount: number; multiplier: number }): number {
-  let pts = 0
-  const amtDiff = Math.abs(pred.amount - actual.amount) / actual.amount
-  if (amtDiff === 0) pts += 100
-  else if (amtDiff <= 0.1) pts += 50
-  else if (amtDiff <= 0.25) pts += 25
-  const multDiff = Math.abs(pred.multiplier - actual.multiplier) / actual.multiplier
-  if (multDiff === 0) pts += 100
-  else if (multDiff <= 0.1) pts += 50
-  else if (multDiff <= 0.25) pts += 25
-  return pts
 }
 
 function PredictionModal({ games, onClose, onSubmit }: {
   games: string[]
   onClose: () => void
-  onSubmit: (p: Prediction) => void
+  onSubmit: (p: { nickname: string; amount: number; game: string }) => Promise<{ ok: boolean; error?: string }>
 }) {
   const [nickname, setNickname] = useState("")
   const [amount, setAmount] = useState("")
-  const [multiplier, setMultiplier] = useState("")
-  const [game, setGame] = useState(games[0] ?? "")
+  const [game, setGame] = useState("")
   const [done, setDone] = useState(false)
+  const [submitting, setSubmitting] = useState(false)
+  const [error, setError] = useState<string | null>(null)
 
-  function handleSubmit(e: React.FormEvent) {
+  async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
-    if (!nickname || !amount || !multiplier || !game) return
-    onSubmit({
-      nickname,
-      amount: Number(amount),
-      multiplier: Number(multiplier),
-      game,
-      submittedAt: new Date().toLocaleTimeString("fi-FI"),
-    })
-    setDone(true)
+    if (!nickname || !amount) return
+    setSubmitting(true)
+    setError(null)
+    const result = await onSubmit({ nickname, amount: Number(amount), game })
+    setSubmitting(false)
+    if (result.ok) setDone(true)
+    else setError(result.error ?? "Ennusteen lähetys epäonnistui. Yritä uudelleen.")
   }
 
   return (
@@ -123,38 +110,33 @@ function PredictionModal({ games, onClose, onSubmit }: {
                   onChange={e => setAmount(e.target.value)}
                   placeholder="esim. 3200"
                   min="0"
-                  className="w-full bg-white/5 border border-white/10 focus:border-[#FFD700]/60 rounded-xl px-4 py-2.5 text-white placeholder:text-white/30 outline-none transition-colors"
-                  required
-                />
-              </div>
-              <div>
-                <label className="block text-[11px] font-bold text-white/50 uppercase tracking-wider mb-1.5">Paras kerroin</label>
-                <input
-                  type="number"
-                  value={multiplier}
-                  onChange={e => setMultiplier(e.target.value)}
-                  placeholder="esim. 450"
-                  min="0"
+                  step="0.01"
                   className="w-full bg-white/5 border border-white/10 focus:border-[#FFD700]/60 rounded-xl px-4 py-2.5 text-white placeholder:text-white/30 outline-none transition-colors"
                   required
                 />
               </div>
               <div>
                 <label className="block text-[11px] font-bold text-white/50 uppercase tracking-wider mb-1.5">Voittava peli</label>
-                <select
+                <input
+                  type="text"
+                  list="bonushunt-games"
                   value={game}
                   onChange={e => setGame(e.target.value)}
-                  className="w-full bg-white/5 border border-white/10 focus:border-[#FFD700]/60 rounded-xl px-4 py-2.5 text-white outline-none transition-colors"
-                  required
-                >
-                  {games.map(g => <option key={g} value={g} className="bg-[#1a0e3a]">{g}</option>)}
-                </select>
+                  placeholder="esim. Gates of Olympus"
+                  className="w-full bg-white/5 border border-white/10 focus:border-[#FFD700]/60 rounded-xl px-4 py-2.5 text-white placeholder:text-white/30 outline-none transition-colors"
+                />
+                <datalist id="bonushunt-games">
+                  {games.map(g => <option key={g} value={g} />)}
+                </datalist>
+                <p className="text-[11px] text-white/35 mt-1.5">Vapaaehtoinen — ei vaikuta voittajan valintaan, vain Loppusumma ratkaisee.</p>
               </div>
+              {error && <p className="text-xs text-red-400">{error}</p>}
               <button
                 type="submit"
-                className="w-full bg-[#FFD700] text-[#1a0e3a] font-bold py-3.5 rounded-2xl text-sm hover:bg-yellow-300 active:scale-95 transition-all mt-1"
+                disabled={submitting}
+                className="w-full bg-[#FFD700] text-[#1a0e3a] font-bold py-3.5 rounded-2xl text-sm hover:bg-yellow-300 active:scale-95 disabled:opacity-50 transition-all mt-1"
               >
-                Lähetä ennuste
+                {submitting ? "Lähetetään..." : "Lähetä ennuste"}
               </button>
             </form>
           </>
@@ -318,6 +300,7 @@ export default function BonusHuntPage({
   const active = bonusHunts.find(b => b.is_active) ?? bonusHunts[0]
   const past = bonusHunts.filter(b => !b.is_active)
 
+  const router = useRouter()
   const { status: streamStatus, anyLive } = useStreamStatus()
 
   // All-time stats from past sessions (safe even when bonusHunts is empty)
@@ -341,19 +324,34 @@ export default function BonusHuntPage({
   const avgMultiplier = completedSlots.length ? Math.round(completedSlots.reduce((sum, s) => sum + (s.multiplier ?? 0), 0) / completedSlots.length) : 0
   const roi = active.total_won > 0 ? Math.round(((active.total_won - active.total_invested) / active.total_invested) * 100) : 0
 
-  const [tab, setTab] = useState<"slots" | "predictions" | "archive">("slots")
+  const [tab, setTab] = useState<"slots" | "predictions" | "archive">("predictions")
   const [showModal, setShowModal] = useState(false)
-  const [predictions, setPredictions] = useState<Prediction[]>([
-    { nickname: "SlotKing99", amount: 3800, multiplier: 420, game: "Gates of Olympus", submittedAt: "14:23" },
-    { nickname: "BonusBeast", amount: 2500, multiplier: 280, game: "Sweet Bonanza", submittedAt: "14:24" },
-    { nickname: "FinlandHighRoller", amount: 4200, multiplier: 650, game: "Gates of Olympus", submittedAt: "14:25" },
-    { nickname: "LuckyLauri", amount: 1900, multiplier: 150, game: "Big Bass Bonanza", submittedAt: "14:26" },
-  ])
+
+  const predictions: Prediction[] = (active.predictions ?? []).map(p => ({
+    id: p.id,
+    nickname: p.nickname,
+    amount: p.amount,
+    game: p.game,
+    submittedAt: new Date(p.submitted_at).toLocaleTimeString("fi-FI", { hour: "2-digit", minute: "2-digit" }),
+  }))
 
   const gameNames = slots.map(s => s.game)
 
-  // Actual results for completed session scoring (use past[0] as example)
-  const actualResult = { amount: past[0]?.total_won ?? 4320, multiplier: 1240 }
+  async function handlePredictionSubmit(p: { nickname: string; amount: number; game: string }): Promise<{ ok: boolean; error?: string }> {
+    try {
+      const res = await fetch("/api/bonushunt/predictions", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(p),
+      })
+      const json = await res.json()
+      if (!res.ok) return { ok: false, error: json.error }
+      router.refresh()
+      return { ok: true }
+    } catch {
+      return { ok: false, error: "Verkkovirhe. Yritä uudelleen." }
+    }
+  }
 
   return (
     <div className="min-h-screen bg-[#0d0820]">
@@ -426,8 +424,8 @@ export default function BonusHuntPage({
           {/* Tabs */}
           <div className="flex gap-1 border-b border-white/10">
             {([
-              { id: "slots", label: "Bonuslista" },
               { id: "predictions", label: `Ennusteet (${predictions.length})` },
+              { id: "slots", label: "Bonuslista" },
               { id: "archive", label: "Arkisto" },
             ] as const).map(t => (
               <button
@@ -452,6 +450,63 @@ export default function BonusHuntPage({
 
           {/* Main column */}
           <div className="flex-1 min-w-0">
+
+            {/* ── TAB: PREDICTIONS ── */}
+            {tab === "predictions" && (
+              <div className="space-y-4">
+                {/* Stream embed — always shown on predictions tab */}
+                <StreamEmbed isLive={anyLive} />
+
+                <div className="flex items-center justify-between">
+                  <h2 className="font-display font-bold text-lg text-white">Katsojaennusteet</h2>
+                  <button
+                    onClick={() => setShowModal(true)}
+                    className="flex items-center gap-1.5 bg-[#FFD700] text-[#0d0820] font-bold text-xs px-4 py-2 rounded-full hover:bg-yellow-300 active:scale-95 transition-all"
+                  >
+                    <span className="material-symbols-outlined text-[14px]" aria-hidden="true">add</span>
+                    Tee ennuste
+                  </button>
+                </div>
+
+                {/* Winner rule */}
+                <div className="bg-[#1a0e3a] border border-white/10 rounded-2xl p-4">
+                  <p className="text-white/50 text-[11px]">
+                    <span className="text-[#FFD700] font-bold">Voittaja</span> on ennuste, jonka Loppusumma on lähimpänä oikeaa lopputulosta. Voittava peli on vain vinkki, ei vaikuta voittajaan.
+                  </p>
+                </div>
+
+                {/* Leaderboard */}
+                <div className="bg-[#1a0e3a] border border-white/10 rounded-2xl overflow-hidden">
+                  <table className="w-full text-sm min-w-[400px]" aria-label="Ennusteet">
+                    <thead>
+                      <tr className="border-b border-white/10">
+                        {["#", "Nimimerkki", "Loppusumma", "Voittava peli"].map(h => (
+                          <th key={h} className="text-left px-4 py-3 text-[10px] font-bold text-white/30 uppercase tracking-wider whitespace-nowrap">{h}</th>
+                        ))}
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {predictions.map((pred, i) => {
+                        const isWinner = !!pred.id && pred.id === active.winner_prediction_id
+                        return (
+                          <tr
+                            key={pred.id ?? i}
+                            className={`border-b border-white/5 last:border-0 transition-colors ${isWinner ? "bg-[#FFD700]/5 border-[#FFD700]/20" : "hover:bg-white/3"}`}
+                          >
+                            <td className="px-4 py-3 text-white/30 text-xs">
+                              {isWinner ? <span className="material-symbols-outlined text-[#FFD700] text-[16px]" style={{ fontVariationSettings: "'FILL' 1" }}>emoji_events</span> : i + 1}
+                            </td>
+                            <td className="px-4 py-3 font-semibold text-white text-sm">{pred.nickname}</td>
+                            <td className="px-4 py-3 text-white/70 text-sm">{pred.amount}€</td>
+                            <td className="px-4 py-3 text-white/50 text-xs">{pred.game || "—"}</td>
+                          </tr>
+                        )
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            )}
 
             {/* ── TAB: SLOTS ── */}
             {tab === "slots" && (
@@ -516,78 +571,6 @@ export default function BonusHuntPage({
                       </div>
                     ))}
                   </div>
-                </div>
-              </div>
-            )}
-
-            {/* ── TAB: PREDICTIONS ── */}
-            {tab === "predictions" && (
-              <div className="space-y-4">
-                <div className="flex items-center justify-between">
-                  <h2 className="font-display font-bold text-lg text-white">Katsojaennusteet</h2>
-                  <button
-                    onClick={() => setShowModal(true)}
-                    className="flex items-center gap-1.5 bg-[#FFD700] text-[#0d0820] font-bold text-xs px-4 py-2 rounded-full hover:bg-yellow-300 active:scale-95 transition-all"
-                  >
-                    <span className="material-symbols-outlined text-[14px]" aria-hidden="true">add</span>
-                    Tee ennuste
-                  </button>
-                </div>
-
-                {/* Points key */}
-                <div className="bg-[#1a0e3a] border border-white/10 rounded-2xl p-4">
-                  <p className="text-white/40 text-[11px] font-bold uppercase tracking-wide mb-2">Pistejärjestelmä</p>
-                  <div className="flex flex-wrap gap-3">
-                    {[
-                      { pts: "100p", label: "Tarkka osuma" },
-                      { pts: "50p", label: "±10% heitto" },
-                      { pts: "25p", label: "±25% heitto" },
-                    ].map(r => (
-                      <div key={r.pts} className="flex items-center gap-1.5">
-                        <span className="bg-[#FFD700]/20 text-[#FFD700] font-bold text-[11px] px-2 py-0.5 rounded">{r.pts}</span>
-                        <span className="text-white/50 text-[11px]">{r.label}</span>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-
-                {/* Leaderboard */}
-                <div className="bg-[#1a0e3a] border border-white/10 rounded-2xl overflow-hidden">
-                  <table className="w-full text-sm min-w-[460px]" aria-label="Ennusteet">
-                    <thead>
-                      <tr className="border-b border-white/10">
-                        {["#", "Nimimerkki", "Loppusumma", "Paras kerroin", "Voittava peli", "Pisteet"].map(h => (
-                          <th key={h} className="text-left px-4 py-3 text-[10px] font-bold text-white/30 uppercase tracking-wider whitespace-nowrap">{h}</th>
-                        ))}
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {predictions.map((pred, i) => {
-                        const pts = active.is_active ? null : scorePrediction(pred, actualResult)
-                        const isWinner = pts !== null && pts === Math.max(...predictions.map(p => scorePrediction(p, actualResult)))
-                        return (
-                          <tr
-                            key={i}
-                            className={`border-b border-white/5 last:border-0 transition-colors ${isWinner ? "bg-[#FFD700]/5 border-[#FFD700]/20" : "hover:bg-white/3"}`}
-                          >
-                            <td className="px-4 py-3 text-white/30 text-xs">
-                              {isWinner ? <span className="material-symbols-outlined text-[#FFD700] text-[16px]" style={{ fontVariationSettings: "'FILL' 1" }}>emoji_events</span> : i + 1}
-                            </td>
-                            <td className="px-4 py-3 font-semibold text-white text-sm">{pred.nickname}</td>
-                            <td className="px-4 py-3 text-white/70 text-sm">{pred.amount}€</td>
-                            <td className="px-4 py-3 text-white/70 text-sm">{pred.multiplier}x</td>
-                            <td className="px-4 py-3 text-white/50 text-xs">{pred.game}</td>
-                            <td className="px-4 py-3">
-                              {pts !== null
-                                ? <span className={`font-bold text-sm ${pts >= 100 ? "text-[#FFD700]" : pts >= 50 ? "text-emerald-400" : "text-white/50"}`}>{pts}p</span>
-                                : <span className="text-white/20 text-xs">—</span>
-                              }
-                            </td>
-                          </tr>
-                        )
-                      })}
-                    </tbody>
-                  </table>
                 </div>
               </div>
             )}
@@ -675,7 +658,7 @@ export default function BonusHuntPage({
         <PredictionModal
           games={gameNames}
           onClose={() => setShowModal(false)}
-          onSubmit={(p) => { setPredictions(prev => [p, ...prev]) }}
+          onSubmit={handlePredictionSubmit}
         />
       )}
     </div>

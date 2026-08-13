@@ -195,6 +195,15 @@ export interface Raffle {
   upcoming?: Raffle[]
 }
 
+export interface BonusHuntPrediction {
+  id: string
+  session_id: string
+  nickname: string
+  amount: number
+  game: string | null
+  submitted_at: string
+}
+
 export interface BonusHunt {
   id: string
   title: string
@@ -209,6 +218,10 @@ export interface BonusHunt {
   stream_url?: string
   notes?: string
   slots: BonusHuntSlot[]
+  predictions: BonusHuntPrediction[]
+  final_result: number | null
+  winner_prediction_id: string | null
+  result_entered_at: string | null
 }
 
 export interface NavItem {
