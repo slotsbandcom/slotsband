@@ -25,6 +25,23 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
 
   const db = adminDb()
 
+  // Investment update — independent of the result/winner flow, can be
+  // edited any time while the session is active.
+  if (typeof body.totalBuyin === "number") {
+    if (!Number.isFinite(body.totalBuyin) || body.totalBuyin < 0) {
+      return NextResponse.json({ error: "Valid totalBuyin is required" }, { status: 400 })
+    }
+    const { data, error } = await db
+      .from("bonushunt_sessions")
+      .update({ total_buyin: body.totalBuyin })
+      .eq("id", id)
+      .select()
+      .single()
+
+    if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+    return NextResponse.json({ success: true, data })
+  }
+
   // Manual tie-break: admin picked one of the tied candidates directly.
   if (typeof body.winnerPredictionId === "string") {
     const { data, error } = await db

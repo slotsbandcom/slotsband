@@ -160,6 +160,7 @@ export interface Game {
 }
 
 export interface BonusHuntSlot {
+  id: string
   game: string
   provider: string
   balance: number

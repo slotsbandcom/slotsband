@@ -353,6 +353,7 @@ export async function getBonusHunts(): Promise<BonusHunt[]> {
     .from("bonushunt_sessions")
     .select("*, bonushunt_slots(*), bonushunt_predictions!session_id(*)")
     .order("date", { ascending: false })
+    .order("sort_order", { foreignTable: "bonushunt_slots", ascending: true })
 
   if (error) {
     console.error("[v0] getBonusHunts error:", error.message)
@@ -364,6 +365,7 @@ export async function getBonusHunts(): Promise<BonusHunt[]> {
     is_active: s.status === "active",
     total_invested: s.total_buyin ?? 0,
     slots: (s.bonushunt_slots ?? []).map((slot: any) => ({
+      id: slot.id,
       game: slot.game,
       provider: slot.provider,
       balance: slot.balance,
