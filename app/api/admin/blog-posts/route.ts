@@ -1,4 +1,5 @@
-import { createClient } from "@/lib/supabase/server"
+import { getAdminSession } from "@/lib/supabase/admin-auth"
+import { logBlogAudit } from "@/lib/supabase/blog-audit"
 import { createClient as createSupabaseClient } from "@supabase/supabase-js"
 import { NextRequest, NextResponse } from "next/server"
 
@@ -10,24 +11,27 @@ function adminDb() {
 }
 
 export async function GET() {
+  const session = await getAdminSession()
+  if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+
   const db = adminDb()
   const { data, error } = await db
     .from("blog_posts")
-    .select("id, slug_fi, slug_en, slug_uk, title_fi, title_en, title_uk, published_at, is_active, featured_image_url, created_at")
+    .select("id, slug_fi, slug_en, slug_uk, title_fi, title_en, title_uk, published_at, is_active, featured_image_url, created_at, review_status, review_note, submitted_by")
     .order("published_at", { ascending: false, nullsFirst: false })
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
   return NextResponse.json(data ?? [])
 }
 
 export async function POST(req: NextRequest) {
-  const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+  const session = await getAdminSession()
+  if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
 
   const body = await req.json()
   if (!body.title_fi?.trim()) return NextResponse.json({ error: "title_fi is required" }, { status: 400 })
   if (!body.slug_fi?.trim()) return NextResponse.json({ error: "slug_fi is required" }, { status: 400 })
 
+  const isEditor = session.role === "editor"
   const db = adminDb()
   const { data, error } = await db
     .from("blog_posts")
@@ -51,12 +55,25 @@ export async function POST(req: NextRequest) {
       meta_description_fi: body.meta_description_fi?.trim() || null,
       meta_description_en: body.meta_description_en?.trim() || null,
       meta_description_uk: body.meta_description_uk?.trim() || null,
-      published_at: body.published_at || null,
-      is_active: body.is_active ?? true,
+      published_at: isEditor ? null : (body.published_at || null),
+      is_active: isEditor ? false : (body.is_active ?? true),
+      review_status: isEditor ? "pending" : "approved",
+      submitted_by: isEditor ? session.user.id : null,
     })
     .select()
     .single()
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+
+  await logBlogAudit({
+    postId: data.id,
+    postTitle: data.title_fi,
+    postSlug: data.slug_fi,
+    action: isEditor ? "submit" : "create",
+    actorId: session.user.id,
+    actorEmail: session.user.email,
+    note: isEditor ? "New article submitted for review" : null,
+  })
+
   return NextResponse.json(data, { status: 201 })
 }

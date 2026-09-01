@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import Link from "next/link"
 import { usePathname, useRouter } from "next/navigation"
 import { SlotsbandLogo } from "@/components/slotsband-logo"
@@ -21,10 +21,28 @@ const NAV_ITEMS = [
   { icon: "settings", label: "Settings", href: "/admin/settings" },
 ]
 
+const EDITOR_NAV_ITEMS = NAV_ITEMS.filter(item => item.href === "/admin/blog")
+
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname()
   const router = useRouter()
   const [collapsed, setCollapsed] = useState(false)
+  const [role, setRole] = useState<"admin" | "editor" | null>(null)
+  const [email, setEmail] = useState<string | null>(null)
+
+  useEffect(() => {
+    if (pathname === "/admin/login") return
+    fetch("/api/admin/me")
+      .then(r => r.ok ? r.json() : null)
+      .then(data => { setRole(data?.role ?? "admin"); setEmail(data?.email ?? null) })
+      .catch(() => setRole("admin"))
+  }, [pathname])
+
+  const displayName = email ? email.split("@")[0] : (role === null ? "" : role === "editor" ? "Editor" : "Admin")
+
+  // Don't show the full nav before we know the role — briefly rendering
+  // every admin section to an editor (even just visually) is the wrong default.
+  const navItems = role === null ? [] : role === "editor" ? EDITOR_NAV_ITEMS : NAV_ITEMS
 
   // Login page is standalone — no sidebar or header
   if (pathname === "/admin/login") {
@@ -61,7 +79,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
 
         {/* Nav */}
         <nav className="flex-1 py-4 space-y-0.5 px-2">
-          {NAV_ITEMS.map((item) => {
+          {navItems.map((item) => {
             const isActive = item.href === "/admin" ? pathname === "/admin" : pathname.startsWith(item.href)
             return (
               <Link
@@ -106,10 +124,14 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
               <span className="material-symbols-outlined text-[#474554] text-[18px]">notifications</span>
             </button>
             <div className="flex items-center gap-2.5">
-              <div className="w-8 h-8 rounded-full bg-[#2D1783] flex items-center justify-center text-white text-xs font-bold">
-                A
-              </div>
-              <span className="text-sm font-semibold text-[#1b1b1c] hidden sm:block">Admin</span>
+              {displayName && (
+                <>
+                  <div className="w-8 h-8 rounded-full bg-[#2D1783] flex items-center justify-center text-white text-xs font-bold">
+                    {displayName.charAt(0).toUpperCase()}
+                  </div>
+                  <span className="text-sm font-semibold text-[#1b1b1c] hidden sm:block capitalize">{displayName}</span>
+                </>
+              )}
               <button
                 onClick={handleLogout}
                 title="Sign out"

@@ -4,6 +4,7 @@ import { useEditor, EditorContent } from "@tiptap/react"
 import type { Editor } from "@tiptap/core"
 import StarterKit from "@tiptap/starter-kit"
 import LinkExt from "@tiptap/extension-link"
+import ImageExt from "@tiptap/extension-image"
 import Underline from "@tiptap/extension-underline"
 import TextAlign from "@tiptap/extension-text-align"
 import Color from "@tiptap/extension-color"
@@ -15,7 +16,7 @@ import { Table } from "@tiptap/extension-table"
 import TableRow from "@tiptap/extension-table-row"
 import TableCell from "@tiptap/extension-table-cell"
 import TableHeader from "@tiptap/extension-table-header"
-import { useEffect, useRef, useCallback } from "react"
+import { useEffect, useRef, useCallback, useState } from "react"
 
 // ── Toolbar primitives ────────────────────────────────────────────────────────
 
@@ -54,6 +55,9 @@ export interface RichTextEditorProps {
   onChange: (html: string) => void
   placeholder?: string
   minHeight?: number
+  // Storage folder to upload inline images into (e.g. the article slug).
+  // Omit to disable inline image upload.
+  uploadFolder?: string
 }
 
 export function RichTextEditor({
@@ -61,10 +65,14 @@ export function RichTextEditor({
   onChange,
   placeholder = "Write detailed casino review...",
   minHeight = 400,
+  uploadFolder,
 }: RichTextEditorProps) {
   // Track the last value we pushed into the editor so the sync effect doesn't
   // re-apply content that originated from the editor itself.
   const lastSetValue = useRef(value)
+  const fileInputRef = useRef<HTMLInputElement>(null)
+  const [uploading, setUploading] = useState(false)
+  const [uploadError, setUploadError] = useState<string | null>(null)
 
   const handleUpdate = useCallback(
     ({ editor }: { editor: Editor }) => {
@@ -79,6 +87,7 @@ export function RichTextEditor({
     extensions: [
       StarterKit.configure({ heading: { levels: [1, 2, 3] } }),
       LinkExt.configure({ openOnClick: false, HTMLAttributes: { rel: "noopener noreferrer" } }),
+      ImageExt.configure({ HTMLAttributes: { class: "rounded-lg max-w-full" } }),
       Underline,
       TextAlign.configure({ types: ["heading", "paragraph"] }),
       TextStyle,
@@ -118,6 +127,38 @@ export function RichTextEditor({
     editor.chain().focus().extendMarkRange("link").setLink({ href: url }).run()
   }
 
+  function addImageByUrl() {
+    const url = window.prompt("Image URL", "https://")
+    if (!url) return
+    editor.chain().focus().setImage({ src: url }).run()
+  }
+
+  async function handleImageFile(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0]
+    e.target.value = ""
+    if (!file) return
+    setUploadError(null)
+    setUploading(true)
+    try {
+      const body = new FormData()
+      body.set("file", file)
+      body.set("slug", uploadFolder || "misc")
+      body.set("bucket", "blog-images")
+      body.set("field", `content-${Date.now()}`)
+      const res = await fetch("/api/admin/upload", { method: "POST", body })
+      if (!res.ok) {
+        const errBody = await res.json().catch(() => ({}))
+        throw new Error((errBody as { error?: string }).error || `HTTP ${res.status}`)
+      }
+      const { url } = await res.json()
+      editor.chain().focus().setImage({ src: url }).run()
+    } catch (err) {
+      setUploadError(err instanceof Error ? err.message : "Upload failed")
+    } finally {
+      setUploading(false)
+    }
+  }
+
   // ── Counts ────────────────────────────────────────────────────────────────
   const words = (editor.storage.characterCount as { words?: () => number } | undefined)?.words?.() ?? 0
   const chars = (editor.storage.characterCount as { characters?: () => number } | undefined)?.characters?.() ?? 0
@@ -154,6 +195,18 @@ export function RichTextEditor({
         <TBtn icon="link" active={editor.isActive("link")} title="Add link" onClick={addLink} />
         <TBtn icon="link_off" active={false} title="Remove link"
           onClick={() => editor.chain().focus().extendMarkRange("link").unsetLink().run()} />
+
+        <TSep />
+
+        {/* Image */}
+        <TBtn icon={uploading ? "hourglass_empty" : "image"} active={false}
+          title={uploadFolder ? "Upload image" : "Insert image by URL"}
+          onClick={() => {
+            if (uploading) return
+            if (uploadFolder) fileInputRef.current?.click()
+            else addImageByUrl()
+          }} />
+        <input ref={fileInputRef} type="file" accept="image/png,image/jpeg,image/webp,image/gif" hidden onChange={handleImageFile} />
 
         <TSep />
 
@@ -199,6 +252,13 @@ export function RichTextEditor({
         <TBtn icon="redo" active={false} title="Redo"
           onClick={() => editor.chain().focus().redo().run()} />
       </div>
+
+      {uploadError && (
+        <div className="flex items-center justify-between gap-2 bg-red-50 border-b border-red-200 text-red-700 text-xs px-3 py-1.5">
+          <span>{uploadError}</span>
+          <button type="button" onClick={() => setUploadError(null)} className="text-red-400 hover:text-red-600">✕</button>
+        </div>
+      )}
 
       {/* ── Editor area ── */}
       <EditorContent editor={editor} />
