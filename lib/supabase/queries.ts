@@ -2,8 +2,10 @@
  * Shared Supabase query helpers used by both admin and public pages.
  * Always call createClient() from the server client inside each function.
  */
+import { unstable_cache } from "next/cache"
 import { createClient } from "@/lib/supabase/server"
 import { createClient as createServiceClient } from "@supabase/supabase-js"
+import { createBuildClient } from "@/lib/supabase/build-client"
 import type { Casino, Bonus, Game, Raffle, BonusHunt } from "@/lib/types"
 
 // Service-role client for admin-only reads (newsletter subscribers, dashboard
@@ -16,15 +18,25 @@ function adminDb() {
   )
 }
 
+// The public-facing reads below (casinos/bonuses/banners/games/taxonomy) are
+// unauthenticated and read the same publicly-readable rows for every visitor,
+// but were being re-run uncached on every request AND every Next.js
+// background link-prefetch — several times per real pageview, plus every bot
+// crawl. That's what blew through Supabase's egress quota. Caching them for
+// 60s (via a cookie-free client, since unstable_cache can't depend on
+// request-scoped cookies) collapses that burst into one shared DB read;
+// admin edits still show up within a minute.
+const PUBLIC_CACHE = { revalidate: 60 }
+
 // ─── Casinos ──────────────────────────────────────────────────────────────────
 
-export async function getCasinos(options?: {
+async function fetchCasinos(options?: {
   activeOnly?: boolean
   featuredOnly?: boolean
   lang?: string
   sort?: "rank" | "rating"
 }): Promise<Casino[]> {
-  const supabase = await createClient()
+  const supabase = createBuildClient()
 
   const sortByRating = options?.sort === "rating"
   let query = supabase
@@ -45,9 +57,10 @@ export async function getCasinos(options?: {
   }
   return (data ?? []) as Casino[]
 }
+export const getCasinos = unstable_cache(fetchCasinos, ["casinos"], PUBLIC_CACHE)
 
-export async function getCasinosWithTermIds(): Promise<Casino[]> {
-  const supabase = await createClient()
+async function fetchCasinosWithTermIds(): Promise<Casino[]> {
+  const supabase = createBuildClient()
   const { data, error } = await supabase
     .from("casinos")
     .select("*, casino_taxonomy_terms(term_id)")
@@ -63,6 +76,7 @@ export async function getCasinosWithTermIds(): Promise<Casino[]> {
     casino_taxonomy_terms: undefined,
   })) as Casino[]
 }
+export const getCasinosWithTermIds = unstable_cache(fetchCasinosWithTermIds, ["casinos-with-term-ids"], PUBLIC_CACHE)
 
 export async function getAdminCasinos(): Promise<Casino[]> {
   const supabase = await createClient()
@@ -78,8 +92,8 @@ export async function getAdminCasinos(): Promise<Casino[]> {
   return (data ?? []) as Casino[]
 }
 
-export async function getCasinoBySlug(slug: string): Promise<Casino | null> {
-  const supabase = await createClient()
+async function fetchCasinoBySlug(slug: string): Promise<Casino | null> {
+  const supabase = createBuildClient()
   const { data, error } = await supabase
     .from("casinos")
     .select("*")
@@ -92,6 +106,7 @@ export async function getCasinoBySlug(slug: string): Promise<Casino | null> {
   }
   return data as Casino
 }
+export const getCasinoBySlug = unstable_cache(fetchCasinoBySlug, ["casino-by-slug"], PUBLIC_CACHE)
 
 export async function upsertCasino(casino: Partial<Casino> & { slug: string }): Promise<Casino | null> {
   const supabase = await createClient()
@@ -120,8 +135,8 @@ export async function deleteCasino(id: string): Promise<boolean> {
 
 // ─── Bonuses ──────────────────────────────────────────────────────────────────
 
-export async function getBonuses(options?: { lang?: string; activeOnly?: boolean }): Promise<Bonus[]> {
-  const supabase = await createClient()
+async function fetchBonuses(options?: { lang?: string; activeOnly?: boolean }): Promise<Bonus[]> {
+  const supabase = createBuildClient()
   let query = supabase
     .from("bonuses")
     .select("*, casinos(name, logo_url, slug)")
@@ -153,9 +168,10 @@ export async function getBonuses(options?: { lang?: string; activeOnly?: boolean
     }
   }) as Bonus[]
 }
+export const getBonuses = unstable_cache(fetchBonuses, ["bonuses"], PUBLIC_CACHE)
 
-export async function getBonusesByCasino(casinoId: string, lang = "fi"): Promise<Bonus[]> {
-  const supabase = await createClient()
+async function fetchBonusesByCasino(casinoId: string, lang = "fi"): Promise<Bonus[]> {
+  const supabase = createBuildClient()
   const today = new Date().toISOString().split("T")[0]
   const { data, error } = await supabase
     .from("bonuses")
@@ -187,11 +203,12 @@ export async function getBonusesByCasino(casinoId: string, lang = "fi"): Promise
     }
   }) as Bonus[]
 }
+export const getBonusesByCasino = unstable_cache(fetchBonusesByCasino, ["bonuses-by-casino"], PUBLIC_CACHE)
 
 // ─── Banners ──────────────────────────────────────────────────────────────────
 
-export async function getBanners(lang: string) {
-  const supabase = await createClient()
+async function fetchBanners(lang: string) {
+  const supabase = createBuildClient()
   const { data, error } = await supabase
     .from("banners")
     .select("*")
@@ -205,11 +222,12 @@ export async function getBanners(lang: string) {
   }
   return data ?? []
 }
+export const getBanners = unstable_cache(fetchBanners, ["banners"], PUBLIC_CACHE)
 
 // ─── Games ────────────────────────────────────────────────────────────────────
 
-export async function getGames(options?: { activeOnly?: boolean; featuredOnly?: boolean }): Promise<Game[]> {
-  const supabase = await createClient()
+async function fetchGames(options?: { activeOnly?: boolean; featuredOnly?: boolean }): Promise<Game[]> {
+  const supabase = createBuildClient()
   let query = supabase.from("games").select("*").order("name", { ascending: true })
 
   if (options?.activeOnly) query = query.eq("is_active", true)
@@ -222,6 +240,7 @@ export async function getGames(options?: { activeOnly?: boolean; featuredOnly?: 
   }
   return (data ?? []) as Game[]
 }
+export const getGames = unstable_cache(fetchGames, ["games"], PUBLIC_CACHE)
 
 // ─── Newsletter ───────────────────────────────────────────────────────────────
 

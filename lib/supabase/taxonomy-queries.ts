@@ -1,6 +1,10 @@
-import { createClient } from "@/lib/supabase/server"
+import { unstable_cache } from "next/cache"
 import { createBuildClient } from "@/lib/supabase/build-client"
 import type { Casino } from "@/lib/types"
+
+// See lib/supabase/queries.ts for why these public reads are cached — this
+// is the taxonomy-terms half of the same egress-quota fix.
+const PUBLIC_CACHE = { revalidate: 60 }
 
 export interface FaqItem {
   q: string
@@ -28,8 +32,8 @@ export interface TaxonomyTerm {
   sort_order: number
 }
 
-export async function getTaxonomyTerms(taxonomy: string): Promise<TaxonomyTerm[]> {
-  const supabase = await createClient()
+async function fetchTaxonomyTerms(taxonomy: string): Promise<TaxonomyTerm[]> {
+  const supabase = createBuildClient()
   const { data, error } = await supabase
     .from("taxonomy_terms")
     .select("*")
@@ -43,13 +47,14 @@ export async function getTaxonomyTerms(taxonomy: string): Promise<TaxonomyTerm[]
   }
   return (data ?? []) as TaxonomyTerm[]
 }
+export const getTaxonomyTerms = unstable_cache(fetchTaxonomyTerms, ["taxonomy-terms"], PUBLIC_CACHE)
 
-export async function getTaxonomyTerm(
+async function fetchTaxonomyTerm(
   taxonomy: string,
   slug: string,
   lang = "fi"
 ): Promise<TaxonomyTerm | null> {
-  const supabase = await createClient()
+  const supabase = createBuildClient()
   const slugCol = lang === "fi" ? "slug_fi" : lang === "en" ? "slug_en" : "slug_uk"
   const { data, error } = await supabase
     .from("taxonomy_terms")
@@ -60,9 +65,10 @@ export async function getTaxonomyTerm(
   if (error) return null
   return data as TaxonomyTerm
 }
+export const getTaxonomyTerm = unstable_cache(fetchTaxonomyTerm, ["taxonomy-term"], PUBLIC_CACHE)
 
-export async function getCasinosByTerm(termId: string): Promise<Casino[]> {
-  const supabase = await createClient()
+async function fetchCasinosByTerm(termId: string): Promise<Casino[]> {
+  const supabase = createBuildClient()
 
   const { data: cttRows, error: cttError } = await supabase
     .from("casino_taxonomy_terms")
@@ -88,11 +94,12 @@ export async function getCasinosByTerm(termId: string): Promise<Casino[]> {
   }
   return (casinos ?? []) as Casino[]
 }
+export const getCasinosByTerm = unstable_cache(fetchCasinosByTerm, ["casinos-by-term"], PUBLIC_CACHE)
 
-export async function getTaxonomyTermsWithCounts(
+async function fetchTaxonomyTermsWithCounts(
   taxonomy: string
 ): Promise<(TaxonomyTerm & { casino_count: number })[]> {
-  const supabase = await createClient()
+  const supabase = createBuildClient()
   const { data: terms, error } = await supabase
     .from("taxonomy_terms")
     .select("*")
@@ -132,6 +139,7 @@ export async function getTaxonomyTermsWithCounts(
     casino_count: number
   })[]
 }
+export const getTaxonomyTermsWithCounts = unstable_cache(fetchTaxonomyTermsWithCounts, ["taxonomy-terms-with-counts"], PUBLIC_CACHE)
 
 export async function getTermSlugsByLang(
   taxonomy: string
