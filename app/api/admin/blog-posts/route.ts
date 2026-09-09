@@ -56,6 +56,7 @@ export async function POST(req: NextRequest) {
       meta_description_en: body.meta_description_en?.trim() || null,
       meta_description_uk: body.meta_description_uk?.trim() || null,
       published_at: isEditor ? null : (body.published_at || null),
+      requested_published_at: isEditor ? (body.requested_published_at || null) : null,
       is_active: isEditor ? false : (body.is_active ?? true),
       review_status: isEditor ? "pending" : "approved",
       submitted_by: isEditor ? session.user.id : null,

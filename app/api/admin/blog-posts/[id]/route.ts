@@ -18,11 +18,12 @@ const ALLOWED = [
   "featured_image_url",
   "meta_title_fi", "meta_title_en", "meta_title_uk",
   "meta_description_fi", "meta_description_en", "meta_description_uk",
-  "published_at", "is_active",
+  "published_at", "is_active", "requested_published_at",
 ]
 
-// Fields an editor is allowed to stage/submit — never is_active/published_at,
-// those only ever change via approval.
+// Fields an editor is allowed to stage/submit — never is_active/published_at
+// directly (those only ever change via approval), but requested_published_at
+// lets them propose a date for the admin to apply on approval.
 const EDITOR_ALLOWED = ALLOWED.filter(k => k !== "is_active" && k !== "published_at")
 
 export async function GET(_req: NextRequest, { params }: { params: Promise<{ id: string }> }) {

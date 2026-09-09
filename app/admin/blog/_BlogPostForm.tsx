@@ -333,6 +333,7 @@ interface BlogPost {
   meta_title_fi: string | null; meta_title_en: string | null; meta_title_uk: string | null
   meta_description_fi: string | null; meta_description_en: string | null; meta_description_uk: string | null
   published_at: string | null
+  requested_published_at: string | null
   is_active: boolean
   review_status?: "approved" | "pending" | "rejected"
   review_note?: string | null
@@ -347,7 +348,7 @@ const EMPTY: BlogPost = {
   featured_image_url: null,
   meta_title_fi: null, meta_title_en: null, meta_title_uk: null,
   meta_description_fi: null, meta_description_en: null, meta_description_uk: null,
-  published_at: null, is_active: true,
+  published_at: null, requested_published_at: null, is_active: true,
   review_status: "approved", review_note: null,
 }
 
@@ -808,10 +809,32 @@ export function BlogPostForm({ postId, createMode = false }: { postId?: string; 
                 <span className="material-symbols-outlined text-[#2D1783] text-[18px]">calendar_today</span>
                 <h3 className="text-sm font-bold text-[#1b1b1c]">Published Date</h3>
               </div>
-              <div className="p-5">
+              <div className="p-5 space-y-2">
+                {form.requested_published_at && (
+                  <p className="text-[11px] text-[#787585]">
+                    Editor requested <span className="font-semibold text-[#1b1b1c]">{new Date(form.requested_published_at).toLocaleString()}</span> — applied automatically on approve, or set a date below to override.
+                  </p>
+                )}
                 <input type="datetime-local"
                   value={form.published_at ? new Date(form.published_at).toISOString().slice(0, 16) : ""}
                   onChange={e => patch({ published_at: e.target.value ? new Date(e.target.value).toISOString() : null })}
+                  className="w-full bg-[#F8F9FD] border border-[#E5E8F0] rounded-xl px-4 py-2.5 text-sm focus:border-[#2D1783] focus:outline-none" />
+              </div>
+            </div>
+          )}
+
+          {/* Requested publish date (editor) */}
+          {isEditor && (
+            <div className="bg-white rounded-2xl border border-[#E5E8F0] overflow-hidden">
+              <div className="flex items-center gap-2 px-5 py-3.5 border-b border-[#E5E8F0] bg-[#F8F9FD]">
+                <span className="material-symbols-outlined text-[#2D1783] text-[18px]">calendar_today</span>
+                <h3 className="text-sm font-bold text-[#1b1b1c]">Requested Publish Date</h3>
+              </div>
+              <div className="p-5 space-y-2">
+                <p className="text-[11px] text-[#787585]">Pick the day you'd like this to go live. The admin sees this when reviewing and it's applied once approved.</p>
+                <input type="datetime-local"
+                  value={form.requested_published_at ? new Date(form.requested_published_at).toISOString().slice(0, 16) : ""}
+                  onChange={e => patch({ requested_published_at: e.target.value ? new Date(e.target.value).toISOString() : null })}
                   className="w-full bg-[#F8F9FD] border border-[#E5E8F0] rounded-xl px-4 py-2.5 text-sm focus:border-[#2D1783] focus:outline-none" />
               </div>
             </div>

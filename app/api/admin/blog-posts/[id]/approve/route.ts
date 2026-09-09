@@ -21,9 +21,22 @@ export async function POST(_req: NextRequest, { params }: { params: Promise<{ id
     .from("blog_posts").select("*").eq("id", id).single()
   if (fetchError) return NextResponse.json({ error: fetchError.message }, { status: 404 })
 
-  const update = existing.pending_data
-    ? { ...existing.pending_data, pending_data: null, review_status: "approved" }
-    : { is_active: true, published_at: existing.published_at || new Date().toISOString(), review_status: "approved" }
+  const pending = existing.pending_data as Record<string, unknown> | null
+
+  const update = pending
+    ? {
+        ...pending,
+        published_at: (pending.requested_published_at as string | null | undefined) || existing.published_at,
+        requested_published_at: null,
+        pending_data: null,
+        review_status: "approved",
+      }
+    : {
+        is_active: true,
+        published_at: existing.requested_published_at || existing.published_at || new Date().toISOString(),
+        requested_published_at: null,
+        review_status: "approved",
+      }
 
   const { data, error } = await db
     .from("blog_posts").update(update).eq("id", id).select().single()
