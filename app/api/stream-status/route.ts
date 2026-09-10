@@ -1,6 +1,13 @@
+import { unstable_cache } from "next/cache"
+import { getStreamOverrideRow, toStreamOverrideResponse } from "@/lib/supabase/stream-override"
 import { NextResponse } from "next/server"
 
-// Never cache this route — override changes need to be reflected immediately
+// The override check itself stays fully live (uncached DB read below) —
+// changes need to show up immediately. Only the external Twitch/YouTube/Kick
+// auto-detect calls are cached (see getCachedAutoStatus), since those were
+// being re-fetched from scratch by every visitor's tab every 60s with zero
+// sharing between them, which is what drove Vercel's Fluid Active CPU over
+// quota despite modest traffic.
 export const dynamic = "force-dynamic"
 
 interface PlatformStatus {
@@ -15,19 +22,36 @@ const FALLBACK: PlatformStatus = { isLive: false, viewers: 0, title: "" }
 
 // ─── Twitch ──────────────────────────────────────────────────────────────────
 
+// Twitch app access tokens are valid for ~60 days — fetching a brand new one
+// on every single status poll (was happening before) is pure waste. Cache it
+// for a day; getTwitchStatus() still handles a stale/rejected token safely
+// via the streamRes.ok check below.
+const getCachedTwitchToken = unstable_cache(
+  async (clientId: string, clientSecret: string): Promise<string | null> => {
+    try {
+      const tokenRes = await fetch(
+        `https://id.twitch.tv/oauth2/token?client_id=${clientId}&client_secret=${clientSecret}&grant_type=client_credentials`,
+        { method: "POST", signal: AbortSignal.timeout(3000) }
+      )
+      if (!tokenRes.ok) return null
+      const { access_token } = await tokenRes.json()
+      return access_token ?? null
+    } catch {
+      return null
+    }
+  },
+  ["twitch-app-token"],
+  { revalidate: 86_400 }
+)
+
 async function getTwitchStatus(): Promise<PlatformStatus> {
   const clientId = process.env.TWITCH_CLIENT_ID
   const clientSecret = process.env.TWITCH_CLIENT_SECRET
   if (!clientId || !clientSecret) return FALLBACK
 
   try {
-    // Fetch app access token
-    const tokenRes = await fetch(
-      `https://id.twitch.tv/oauth2/token?client_id=${clientId}&client_secret=${clientSecret}&grant_type=client_credentials`,
-      { method: "POST", signal: AbortSignal.timeout(3000) }
-    )
-    if (!tokenRes.ok) return FALLBACK
-    const { access_token } = await tokenRes.json()
+    const access_token = await getCachedTwitchToken(clientId, clientSecret)
+    if (!access_token) return FALLBACK
 
     const streamRes = await fetch(
       "https://api.twitch.tv/helix/streams?user_login=slotsband",
@@ -124,21 +148,37 @@ async function getKickStatus(): Promise<PlatformStatus> {
 
 // ─── Override store ───────────────────────────────────────────────────────────
 
+// Reads the row directly in-process instead of making an HTTP round-trip to
+// /api/stream-override (a second, separate function invocation) — same data,
+// same shape, no self-fetch. Stays fully uncached so a manual override still
+// takes effect immediately.
 async function getOverride() {
   try {
-    const baseUrl = process.env.VERCEL_URL
-      ? `https://${process.env.VERCEL_URL}`
-      : "http://localhost:3000"
-    const res = await fetch(`${baseUrl}/api/stream-override`, {
-      signal: AbortSignal.timeout(1000),
-      cache: "no-store",
-    })
-    if (!res.ok) return null
-    return await res.json()
+    const row = await getStreamOverrideRow()
+    return toStreamOverrideResponse(row)
   } catch {
     return null
   }
 }
+
+// ─── Auto-detect (cached) ──────────────────────────────────────────────────────
+
+// The real stream state doesn't change second-to-second, but this was being
+// re-fetched from Twitch/YouTube/Kick by every visitor's tab independently
+// every 60s. Cache the combined result for 30s so concurrent visitors share
+// one set of external calls instead of one each.
+const getCachedAutoStatus = unstable_cache(
+  async () => {
+    const [twitch, youtube, kick] = await Promise.all([
+      getTwitchStatus(),
+      getYouTubeStatus(),
+      getKickStatus(),
+    ])
+    return { twitch, youtube, kick }
+  },
+  ["stream-auto-status"],
+  { revalidate: 30 }
+)
 
 // ─── Route handler ────────────────────────────────────────────────────────────
 
@@ -159,12 +199,8 @@ export async function GET() {
     )
   }
 
-  // 2. Auto-detect all platforms in parallel
-  const [twitch, youtube, kick] = await Promise.all([
-    getTwitchStatus(),
-    getYouTubeStatus(),
-    getKickStatus(),
-  ])
+  // 2. Auto-detect all platforms (cached — see getCachedAutoStatus)
+  const { twitch, youtube, kick } = await getCachedAutoStatus()
 
   return NextResponse.json(
     { kick, twitch, youtube, override: ov },
