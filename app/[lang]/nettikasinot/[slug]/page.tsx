@@ -172,7 +172,7 @@ export default async function CasinoPage({ params }: CasinoPageProps) {
     getCasinoBySlug(slug),
     getCasinos({ activeOnly: true }),
   ])
-  if (!casino) notFound()
+  if (!casino || !casino.is_active) notFound()
   const casinoBonuses = await getBonusesByCasino(casino.id, lang)
 
   // For non-fi pages, fall back to en then fi so content shows even when translation is missing
