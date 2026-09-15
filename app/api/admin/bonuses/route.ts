@@ -1,5 +1,6 @@
 import { createClient } from "@/lib/supabase/server"
 import { createClient as createSupabaseClient } from "@supabase/supabase-js"
+import { revalidateTag } from "next/cache"
 import { NextRequest, NextResponse } from "next/server"
 
 function adminDb() {
@@ -96,5 +97,6 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: error.message }, { status: 500 })
   }
 
+  revalidateTag("bonuses", "max")
   return NextResponse.json({ success: true, data }, { status: 201 })
 }

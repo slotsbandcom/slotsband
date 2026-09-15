@@ -12,6 +12,7 @@
 
 type Casino = {
   id: string
+  is_active?: boolean | null
   welcome_bonus_text?: string | null
   welcome_bonus_percent?: number | null
   welcome_bonus_max_amount?: number | null
@@ -56,7 +57,8 @@ function buildAmount(c: Casino): string | null {
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export async function syncCasinoBonus(db: any, casino: Casino): Promise<void> {
-  const hasData = hasBonusData(casino)
+  // A deactivated casino must never keep an active bonus row alive.
+  const hasData = hasBonusData(casino) && casino.is_active !== false
   const amount  = buildAmount(casino)
   const title   = casino.welcome_bonus_text ?? amount ?? "Casino Bonus"
 

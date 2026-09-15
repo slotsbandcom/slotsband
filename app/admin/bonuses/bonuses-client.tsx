@@ -3,6 +3,7 @@
 import { useState } from "react"
 import { useRouter } from "next/navigation"
 import type { Casino, Bonus } from "@/lib/types"
+import { getCasinoUrl } from "@/lib/casino-url"
 
 type BonusType = "welcome" | "no_deposit" | "free_spins" | "cashback" | "reload"
 type Lang = "fi" | "en" | "uk"
@@ -303,10 +304,12 @@ export default function AdminBonusesPage({
   const [typeFilter, setTypeFilter] = useState<BonusType | "all">("all")
   const [showForm, setShowForm] = useState(false)
   const [editingBonus, setEditingBonus] = useState<Bonus | null>(null)
-  const [toast, setToast] = useState<string | null>(null)
+  const [toast, setToast] = useState<{ msg: string; error?: boolean } | null>(null)
+  const [selected, setSelected] = useState<Set<string>>(new Set())
+  const [bulkWorking, setBulkWorking] = useState(false)
 
-  const showToast = (msg: string) => {
-    setToast(msg)
+  const showToast = (msg: string, error = false) => {
+    setToast({ msg, error })
     setTimeout(() => setToast(null), 3000)
   }
 
@@ -321,8 +324,27 @@ export default function AdminBonusesPage({
     if (!confirm("Delete this bonus?")) return
     const res = await fetch(`/api/admin/bonuses/${id}`, { method: "DELETE" })
     if (res.ok) {
+      setSelected(prev => { const next = new Set(prev); next.delete(id); return next })
       router.refresh()
       showToast("Bonus deleted")
+    } else {
+      const json = await res.json().catch(() => null)
+      showToast(json?.error ?? "Failed to delete bonus", true)
+    }
+  }
+
+  const handleToggleActive = async (bonus: Bonus) => {
+    const res = await fetch(`/api/admin/bonuses/${bonus.id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ is_active: !bonus.is_active }),
+    })
+    if (res.ok) {
+      router.refresh()
+      showToast(bonus.is_active ? "Bonus deactivated" : "Bonus activated")
+    } else {
+      const json = await res.json().catch(() => null)
+      showToast(json?.error ?? "Failed to update bonus", true)
     }
   }
 
@@ -333,6 +355,56 @@ export default function AdminBonusesPage({
     return matchSearch && matchType
   })
 
+  const allFilteredSelected = filtered.length > 0 && filtered.every(b => selected.has(b.id))
+
+  const toggleSelectAll = () => {
+    setSelected(prev => {
+      if (allFilteredSelected) return new Set()
+      const next = new Set(prev)
+      filtered.forEach(b => next.add(b.id))
+      return next
+    })
+  }
+
+  const toggleSelectOne = (id: string) => {
+    setSelected(prev => {
+      const next = new Set(prev)
+      if (next.has(id)) next.delete(id)
+      else next.add(id)
+      return next
+    })
+  }
+
+  const runBulk = async (ids: string[], fn: (id: string) => Promise<Response>) => {
+    setBulkWorking(true)
+    try {
+      const results = await Promise.all(ids.map(fn))
+      const failed = results.filter(r => !r.ok).length
+      setSelected(new Set())
+      router.refresh()
+      if (failed > 0) showToast(`${ids.length - failed} of ${ids.length} succeeded, ${failed} failed`, true)
+      return failed === 0
+    } finally {
+      setBulkWorking(false)
+    }
+  }
+
+  const handleBulkSetActive = (isActive: boolean) => {
+    const ids = Array.from(selected)
+    runBulk(ids, id => fetch(`/api/admin/bonuses/${id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ is_active: isActive }),
+    })).then(ok => { if (ok) showToast(`${ids.length} bonus${ids.length === 1 ? "" : "es"} ${isActive ? "activated" : "deactivated"}`) })
+  }
+
+  const handleBulkDelete = () => {
+    const ids = Array.from(selected)
+    if (!confirm(`Delete ${ids.length} bonus${ids.length === 1 ? "" : "es"}? This cannot be undone.`)) return
+    runBulk(ids, id => fetch(`/api/admin/bonuses/${id}`, { method: "DELETE" }))
+      .then(ok => { if (ok) showToast(`${ids.length} bonus${ids.length === 1 ? "" : "es"} deleted`) })
+  }
+
   return (
     <div className="space-y-5">
       {showForm && <BonusForm onClose={() => setShowForm(false)} onSaved={handleSaved} casinos={casinos} />}
@@ -340,9 +412,9 @@ export default function AdminBonusesPage({
 
       {/* Toast */}
       {toast && (
-        <div className="fixed bottom-6 right-6 z-50 bg-[#27AE60] text-white text-sm font-semibold px-5 py-3 rounded-2xl shadow-lg flex items-center gap-2">
-          <span className="material-symbols-outlined text-[18px]">check_circle</span>
-          {toast}
+        <div className={`fixed bottom-6 right-6 z-50 text-white text-sm font-semibold px-5 py-3 rounded-2xl shadow-lg flex items-center gap-2 ${toast.error ? "bg-[#E74C3C]" : "bg-[#27AE60]"}`}>
+          <span className="material-symbols-outlined text-[18px]">{toast.error ? "error" : "check_circle"}</span>
+          {toast.msg}
         </div>
       )}
 
@@ -375,6 +447,34 @@ export default function AdminBonusesPage({
         </div>
       </div>
 
+      {/* Bulk actions bar */}
+      {selected.size > 0 && (
+        <div className="bg-[#2D1783]/5 border border-[#2D1783]/25 rounded-2xl p-3 flex flex-wrap items-center justify-between gap-3">
+          <p className="text-sm font-semibold text-[#2D1783] px-2">{selected.size} selected</p>
+          <div className="flex flex-wrap gap-2">
+            <button onClick={() => handleBulkSetActive(true)} disabled={bulkWorking}
+              className="flex items-center gap-1.5 bg-white border border-[#27AE60]/40 text-[#27AE60] text-xs font-bold px-3 py-2 rounded-xl hover:bg-[#27AE60]/10 disabled:opacity-50 transition-colors">
+              <span className="material-symbols-outlined text-[15px]">visibility</span>
+              Activate
+            </button>
+            <button onClick={() => handleBulkSetActive(false)} disabled={bulkWorking}
+              className="flex items-center gap-1.5 bg-white border border-[#F59E0B]/40 text-[#92400E] text-xs font-bold px-3 py-2 rounded-xl hover:bg-[#F59E0B]/10 disabled:opacity-50 transition-colors">
+              <span className="material-symbols-outlined text-[15px]">visibility_off</span>
+              Deactivate
+            </button>
+            <button onClick={handleBulkDelete} disabled={bulkWorking}
+              className="flex items-center gap-1.5 bg-white border border-[#E74C3C]/40 text-[#E74C3C] text-xs font-bold px-3 py-2 rounded-xl hover:bg-[#E74C3C]/10 disabled:opacity-50 transition-colors">
+              <span className="material-symbols-outlined text-[15px]">delete</span>
+              Delete
+            </button>
+            <button onClick={() => setSelected(new Set())} disabled={bulkWorking}
+              className="text-xs font-semibold text-[#787585] px-3 py-2 hover:text-[#1b1b1c] transition-colors">
+              Clear
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* Table */}
       <div className="bg-white rounded-2xl border border-[#E5E8F0] overflow-hidden">
         {filtered.length === 0 ? (
@@ -388,6 +488,15 @@ export default function AdminBonusesPage({
             <table className="w-full">
               <thead>
                 <tr className="border-b border-[#E5E8F0] bg-[#F8F9FD]">
+                  <th className="w-10 px-4 py-3">
+                    <input
+                      type="checkbox"
+                      checked={allFilteredSelected}
+                      onChange={toggleSelectAll}
+                      className="w-4 h-4 rounded border-[#E5E8F0] accent-[#2D1783] cursor-pointer"
+                      aria-label="Select all"
+                    />
+                  </th>
                   <th className="px-4 py-3 text-left text-xs font-bold text-[#787585] uppercase tracking-wider">Casino</th>
                   <th className="px-4 py-3 text-left text-xs font-bold text-[#787585] uppercase tracking-wider">Bonus</th>
                   <th className="px-4 py-3 text-left text-xs font-bold text-[#787585] uppercase tracking-wider">Type</th>
@@ -395,12 +504,22 @@ export default function AdminBonusesPage({
                   <th className="px-4 py-3 text-left text-xs font-bold text-[#787585] uppercase tracking-wider">Wagering</th>
                   <th className="px-4 py-3 text-left text-xs font-bold text-[#787585] uppercase tracking-wider">Min Dep</th>
                   <th className="px-4 py-3 text-left text-xs font-bold text-[#787585] uppercase tracking-wider">Featured</th>
+                  <th className="px-4 py-3 text-left text-xs font-bold text-[#787585] uppercase tracking-wider">Status</th>
                   <th className="px-4 py-3 text-right text-xs font-bold text-[#787585] uppercase tracking-wider">Actions</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-[#E5E8F0]">
                 {filtered.map(bonus => (
-                  <tr key={bonus.id} className="hover:bg-[#F8F9FD] transition-colors">
+                  <tr key={bonus.id} className={`hover:bg-[#F8F9FD] transition-colors ${selected.has(bonus.id) ? "bg-[#2D1783]/5" : ""}`}>
+                    <td className="px-4 py-3">
+                      <input
+                        type="checkbox"
+                        checked={selected.has(bonus.id)}
+                        onChange={() => toggleSelectOne(bonus.id)}
+                        className="w-4 h-4 rounded border-[#E5E8F0] accent-[#2D1783] cursor-pointer"
+                        aria-label={`Select ${bonus.title ?? "bonus"}`}
+                      />
+                    </td>
                     <td className="px-4 py-3">
                       <div className="flex items-center gap-2.5">
                         <div className="w-8 h-8 rounded-lg bg-[#F0EDEE] flex items-center justify-center flex-shrink-0">
@@ -426,7 +545,30 @@ export default function AdminBonusesPage({
                         : <span className="material-symbols-outlined text-[#E5E8F0] text-[18px]">star</span>}
                     </td>
                     <td className="px-4 py-3">
+                      <button
+                        onClick={() => handleToggleActive(bonus)}
+                        title={bonus.is_active ? "Click to deactivate" : "Click to activate"}
+                        className={`flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold transition-colors ${
+                          bonus.is_active ? "bg-[#27AE60]/10 text-[#27AE60] hover:bg-[#27AE60]/20" : "bg-[#E5E8F0] text-[#787585] hover:bg-[#E5E8F0]/70"
+                        }`}
+                      >
+                        <span className="w-1.5 h-1.5 rounded-full flex-shrink-0" style={{ background: bonus.is_active ? "#27AE60" : "#9CA3AF" }} />
+                        {bonus.is_active ? "Active" : "Inactive"}
+                      </button>
+                    </td>
+                    <td className="px-4 py-3">
                       <div className="flex items-center justify-end gap-1.5">
+                        {bonus.casino_slug && (
+                          <a
+                            href={getCasinoUrl("fi", bonus.casino_slug)}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="w-7 h-7 rounded-lg bg-[#F8F9FD] border border-[#E5E8F0] flex items-center justify-center hover:border-[#2D1783] transition-colors"
+                            title="View on site"
+                          >
+                            <span className="material-symbols-outlined text-[13px] text-[#474554]">open_in_new</span>
+                          </a>
+                        )}
                         <button
                           onClick={() => setEditingBonus(bonus)}
                           className="w-7 h-7 rounded-lg bg-[#F8F9FD] border border-[#E5E8F0] flex items-center justify-center hover:border-[#2D1783] transition-colors"

@@ -1,6 +1,6 @@
 import { createClient } from "@/lib/supabase/server"
 import { createClient as createSupabaseClient } from "@supabase/supabase-js"
-import { revalidatePath } from "next/cache"
+import { revalidatePath, revalidateTag } from "next/cache"
 import { NextRequest, NextResponse } from "next/server"
 import { syncCasinoBonus } from "@/lib/supabase/bonus-sync"
 
@@ -72,6 +72,10 @@ export async function DELETE(
 
   const { error } = await adminDb().from("casinos").delete().eq("id", id)
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+
+  // Casino delete cascades to its bonuses in the DB — invalidate both caches.
+  revalidateTag("casinos", "max")
+  revalidateTag("bonuses", "max")
 
   try {
     await adminDb().from("casino_audit_log").insert({
@@ -150,11 +154,14 @@ export async function PATCH(
     console.warn("[casino-audit-log]", e)
   }
 
-  // Invalidate the front-facing casino pages so changes show immediately
+  // Invalidate the front-facing casino pages and cached queries (including
+  // any synced bonus row) so activation/deactivation shows immediately.
   const slug = (data as { slug: string }).slug
   for (const lang of ["fi", "en", "uk"]) {
     revalidatePath(`/${lang}/nettikasinot/${slug}`)
   }
+  revalidateTag("casinos", "max")
+  revalidateTag("bonuses", "max")
 
   return NextResponse.json(data)
 }

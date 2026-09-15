@@ -57,7 +57,7 @@ async function fetchCasinos(options?: {
   }
   return (data ?? []) as Casino[]
 }
-export const getCasinos = unstable_cache(fetchCasinos, ["casinos"], PUBLIC_CACHE)
+export const getCasinos = unstable_cache(fetchCasinos, ["casinos"], { ...PUBLIC_CACHE, tags: ["casinos"] })
 
 async function fetchCasinosWithTermIds(): Promise<Casino[]> {
   const supabase = createBuildClient()
@@ -106,7 +106,7 @@ async function fetchCasinoBySlug(slug: string): Promise<Casino | null> {
   }
   return data as Casino
 }
-export const getCasinoBySlug = unstable_cache(fetchCasinoBySlug, ["casino-by-slug"], PUBLIC_CACHE)
+export const getCasinoBySlug = unstable_cache(fetchCasinoBySlug, ["casino-by-slug"], { ...PUBLIC_CACHE, tags: ["casinos"] })
 
 export async function upsertCasino(casino: Partial<Casino> & { slug: string }): Promise<Casino | null> {
   const supabase = await createClient()
@@ -137,12 +137,15 @@ export async function deleteCasino(id: string): Promise<boolean> {
 
 async function fetchBonuses(options?: { lang?: string; activeOnly?: boolean }): Promise<Bonus[]> {
   const supabase = createBuildClient()
+  // A bonus must never outlive its casino: use an inner join so a bonus whose
+  // casino is inactive (deactivated or deleted) can't leak into public listings
+  // even if the bonus row's own is_active flag was left stale.
   let query = supabase
     .from("bonuses")
-    .select("*, casinos(name, logo_url, slug)")
+    .select(options?.activeOnly ? "*, casinos!inner(name, logo_url, slug, is_active)" : "*, casinos(name, logo_url, slug)")
     .order("created_at", { ascending: false })
 
-  if (options?.activeOnly) query = query.eq("is_active", true)
+  if (options?.activeOnly) query = query.eq("is_active", true).eq("casinos.is_active", true)
 
   const { data, error } = await query
   if (error) {
@@ -168,16 +171,17 @@ async function fetchBonuses(options?: { lang?: string; activeOnly?: boolean }): 
     }
   }) as Bonus[]
 }
-export const getBonuses = unstable_cache(fetchBonuses, ["bonuses"], PUBLIC_CACHE)
+export const getBonuses = unstable_cache(fetchBonuses, ["bonuses"], { ...PUBLIC_CACHE, tags: ["bonuses"] })
 
 async function fetchBonusesByCasino(casinoId: string, lang = "fi"): Promise<Bonus[]> {
   const supabase = createBuildClient()
   const today = new Date().toISOString().split("T")[0]
   const { data, error } = await supabase
     .from("bonuses")
-    .select("*, casinos(name, logo_url, slug)")
+    .select("*, casinos!inner(name, logo_url, slug, is_active)")
     .eq("casino_id", casinoId)
     .eq("is_active", true)
+    .eq("casinos.is_active", true)
     .or(`end_date.is.null,end_date.gte.${today}`)
     .order("created_at", { ascending: false })
 
@@ -203,7 +207,7 @@ async function fetchBonusesByCasino(casinoId: string, lang = "fi"): Promise<Bonu
     }
   }) as Bonus[]
 }
-export const getBonusesByCasino = unstable_cache(fetchBonusesByCasino, ["bonuses-by-casino"], PUBLIC_CACHE)
+export const getBonusesByCasino = unstable_cache(fetchBonusesByCasino, ["bonuses-by-casino"], { ...PUBLIC_CACHE, tags: ["bonuses"] })
 
 // ─── Banners ──────────────────────────────────────────────────────────────────
 
