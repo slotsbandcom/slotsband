@@ -2,6 +2,7 @@ import { getAdminSession } from "@/lib/supabase/admin-auth"
 import { logBlogAudit } from "@/lib/supabase/blog-audit"
 import { createClient as createSupabaseClient } from "@supabase/supabase-js"
 import { NextRequest, NextResponse } from "next/server"
+import { revalidatePublicSite } from "@/lib/supabase/public-cache"
 
 function adminDb() {
   return createSupabaseClient(
@@ -76,5 +77,6 @@ export async function POST(req: NextRequest) {
     note: isEditor ? "New article submitted for review" : null,
   })
 
+  revalidatePublicSite()
   return NextResponse.json(data, { status: 201 })
 }

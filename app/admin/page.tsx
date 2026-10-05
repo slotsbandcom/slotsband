@@ -2,6 +2,9 @@ import Link from "next/link"
 import { getDashboardStats, getCasinos } from "@/lib/supabase/queries"
 import GoLivePanel from "./go-live-panel"
 
+// Admin-only traffic — always render fresh (dashboard stats aren't cached).
+export const dynamic = "force-dynamic"
+
 
 const QUICK_ACTIONS = [
   { icon: "add_circle", label: "Add Casino", href: "/admin/casinos/new", color: "bg-[#2D1783] text-white hover:bg-[#3e2db2]" },

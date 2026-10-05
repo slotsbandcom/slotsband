@@ -1,6 +1,7 @@
 import { createClient } from "@/lib/supabase/server"
 import { createClient as createSupabaseClient } from "@supabase/supabase-js"
 import { NextRequest, NextResponse } from "next/server"
+import { revalidatePublicSite } from "@/lib/supabase/public-cache"
 
 function adminDb() {
   return createSupabaseClient(
@@ -39,6 +40,7 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
     .single()
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+  revalidatePublicSite()
   return NextResponse.json({ success: true, data })
 }
 
@@ -50,5 +52,6 @@ export async function DELETE(_req: NextRequest, { params }: { params: Promise<{ 
 
   const { error } = await adminDb().from("bonushunt_slots").delete().eq("id", id)
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+  revalidatePublicSite()
   return NextResponse.json({ success: true })
 }

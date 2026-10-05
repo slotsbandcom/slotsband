@@ -1,6 +1,7 @@
 import { createClient } from "@/lib/supabase/server"
 import { createClient as createSupabaseClient } from "@supabase/supabase-js"
 import { NextRequest, NextResponse } from "next/server"
+import { revalidatePublicSite } from "@/lib/supabase/public-cache"
 
 function adminDb() {
   return createSupabaseClient(
@@ -50,5 +51,6 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
     if (insError) return NextResponse.json({ error: insError.message }, { status: 500 })
   }
 
+  revalidatePublicSite()
   return NextResponse.json({ ok: true, count: casino_ids.length })
 }

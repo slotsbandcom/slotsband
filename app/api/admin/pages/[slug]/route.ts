@@ -2,6 +2,7 @@ import { createClient } from "@/lib/supabase/server"
 import { createClient as createSupabaseClient } from "@supabase/supabase-js"
 import { NextRequest, NextResponse } from "next/server"
 import { revalidatePath } from "next/cache"
+import { revalidatePublicSite } from "@/lib/supabase/public-cache"
 
 function adminDb() {
   return createSupabaseClient(
@@ -90,6 +91,7 @@ export async function PATCH(req: NextRequest, { params }: Params) {
     revalidatePath("/en", "layout")
     revalidatePath("/uk", "layout")
 
+    revalidatePublicSite()
     return NextResponse.json(result)
   }
 
@@ -121,6 +123,7 @@ export async function PATCH(req: NextRequest, { params }: Params) {
 
   const result: Record<string, unknown> = { slug }
   for (const row of data) result[row.lang as string] = row
+  revalidatePublicSite()
   return NextResponse.json(result)
 }
 
@@ -142,5 +145,6 @@ export async function DELETE(_req: NextRequest, { params }: Params) {
 
   const { error } = await db.from("pages").delete().eq("slug", slug)
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+  revalidatePublicSite()
   return NextResponse.json({ ok: true })
 }

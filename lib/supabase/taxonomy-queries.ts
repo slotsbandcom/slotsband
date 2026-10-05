@@ -2,9 +2,10 @@ import { unstable_cache } from "next/cache"
 import { createBuildClient } from "@/lib/supabase/build-client"
 import type { Casino } from "@/lib/types"
 
-// See lib/supabase/queries.ts for why these public reads are cached — this
-// is the taxonomy-terms half of the same egress-quota fix.
-const PUBLIC_CACHE = { revalidate: 60 }
+import { publicCache } from "@/lib/supabase/public-cache"
+
+// See lib/supabase/public-cache.ts for why these public reads are cached.
+const PUBLIC_CACHE = publicCache("taxonomy")
 
 export interface FaqItem {
   q: string

@@ -1,5 +1,7 @@
 ﻿import Link from "next/link"
-import { createClient } from "@/lib/supabase/server"
+import { unstable_cache } from "next/cache"
+import { createBuildClient } from "@/lib/supabase/build-client"
+import { publicCache } from "@/lib/supabase/public-cache"
 import { BlogPostImage } from "@/components/blog-post-image"
 import type { Lang } from "@/lib/types"
 
@@ -11,13 +13,18 @@ function formatDate(iso: string | null, lang: Lang) {
   )
 }
 
-export async function BlogiHub({ lang }: { lang: Lang }) {
-  const supabase = await createClient()
-  const { data: posts } = await supabase
+const getBlogPostList = unstable_cache(async () => {
+  const supabase = createBuildClient()
+  const { data } = await supabase
     .from("blog_posts")
     .select("id, slug_fi, slug_en, slug_uk, title_fi, title_en, title_uk, excerpt_fi, excerpt_en, excerpt_uk, featured_image_url, published_at")
     .eq("is_active", true)
     .order("published_at", { ascending: false, nullsFirst: false })
+  return data
+}, ["blog-post-list"], publicCache("blog"))
+
+export async function BlogiHub({ lang }: { lang: Lang }) {
+  const posts = await getBlogPostList()
 
   const slugCol = lang === "fi" ? "slug_fi" : lang === "en" ? "slug_en" : "slug_uk"
   const titleKey = lang === "fi" ? "title_fi" : lang === "en" ? "title_en" : "title_uk"

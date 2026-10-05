@@ -331,6 +331,10 @@ const CONTENT: Record<Lang, { home: string; title: string; updated: string; sect
   },
 }
 
+// Only fi/en/uk exist (generateStaticParams in [lang]/layout.tsx); any other
+// first path segment 404s without rendering.
+export const dynamicParams = false
+
 export default async function PrivacyPage({ params }: { params: Promise<{ lang: string }> }) {
   const { lang: rawLang } = await params
   const lang = (rawLang as Lang) || "fi"

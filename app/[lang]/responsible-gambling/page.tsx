@@ -54,6 +54,10 @@ const TOOLS = [
   { icon: "visibility_off", title: "Todellisuustarkistus", desc: "Automaattiset muistutukset kertovat kuinka kauan olet pelannut ja kuinka paljon olet käyttänyt." },
 ]
 
+// Only fi/en/uk exist (generateStaticParams in [lang]/layout.tsx); any other
+// first path segment 404s without rendering.
+export const dynamicParams = false
+
 export default function ResponsibleGamblingPage({ params }: { params: { lang: string } }) {
   const lang = (params.lang as Lang) || "fi"
 

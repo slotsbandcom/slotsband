@@ -45,7 +45,7 @@ export function SiteFooter({ lang, navSlugs = {} }: SiteFooterProps) {
         <div className="max-w-[1280px] mx-auto px-4 md:px-12 flex flex-wrap items-center justify-center gap-4 text-xs font-medium text-white/80">
           <span className="material-symbols-outlined text-[#FFD700] text-[18px]" aria-hidden="true">warning</span>
           <span>{t.disclaimer}</span>
-          <Link href={`${base}/responsible-gambling`} className="text-white underline underline-offset-2 hover:text-[#FFD700] transition-colors">
+          <Link prefetch={false} href={`${base}/responsible-gambling`} className="text-white underline underline-offset-2 hover:text-[#FFD700] transition-colors">
             {t.responsibleGambling}
           </Link>
           {lang === "uk" && (
@@ -67,7 +67,7 @@ export function SiteFooter({ lang, navSlugs = {} }: SiteFooterProps) {
 
           {/* Brand col */}
           <div className="md:col-span-2 lg:col-span-1">
-            <Link href={`/${lang}`} className="inline-block mb-4">
+            <Link prefetch={false} href={`/${lang}`} className="inline-block mb-4">
               <SlotsbandLogo variant="light" height={30} />
             </Link>
             <p className="text-sm text-white/60 leading-relaxed">
@@ -101,12 +101,12 @@ export function SiteFooter({ lang, navSlugs = {} }: SiteFooterProps) {
               {t.quicklinks}
             </h5>
             <ul className="space-y-2.5 text-sm text-white/70">
-              <li><Link href={`${base}/${ns("nettikasinot")}`} className="hover:text-white transition-colors">{t.bestCasinos}</Link></li>
-              <li><Link href={`${base}/${ns("nettikasinot")}?filter=pikakasinot`} className="hover:text-white transition-colors">{t.quickCasinos}</Link></li>
-              <li><Link href={`${base}/${ns("kasinobonukset")}`} className="hover:text-white transition-colors">{t.bonuses}</Link></li>
-              <li><Link href={`${base}/${ns("kasinopelit")}`} className="hover:text-white transition-colors">{t.games}</Link></li>
-              <li><Link href={`${base}/${ns("rafflet")}`} className="hover:text-white transition-colors">{t.raffles}</Link></li>
-              <li><Link href={`${base}/${ns("blogi")}`} className="hover:text-white transition-colors">{t.blog}</Link></li>
+              <li><Link prefetch={false} href={`${base}/${ns("nettikasinot")}`} className="hover:text-white transition-colors">{t.bestCasinos}</Link></li>
+              <li><Link prefetch={false} href={`${base}/${ns("nettikasinot")}?filter=pikakasinot`} className="hover:text-white transition-colors">{t.quickCasinos}</Link></li>
+              <li><Link prefetch={false} href={`${base}/${ns("kasinobonukset")}`} className="hover:text-white transition-colors">{t.bonuses}</Link></li>
+              <li><Link prefetch={false} href={`${base}/${ns("kasinopelit")}`} className="hover:text-white transition-colors">{t.games}</Link></li>
+              <li><Link prefetch={false} href={`${base}/${ns("rafflet")}`} className="hover:text-white transition-colors">{t.raffles}</Link></li>
+              <li><Link prefetch={false} href={`${base}/${ns("blogi")}`} className="hover:text-white transition-colors">{t.blog}</Link></li>
             </ul>
           </div>
 
@@ -116,13 +116,13 @@ export function SiteFooter({ lang, navSlugs = {} }: SiteFooterProps) {
               {t.browseTitle}
             </h5>
             <ul className="space-y-2.5 text-sm text-white/70">
-              <li><Link href={`${base}/${ns("kasinot")}`} className="hover:text-white transition-colors">{t.casinoCategories}</Link></li>
-              <li><Link href={`${base}/${ns("tarjoukset")}`} className="hover:text-white transition-colors">{t.offers}</Link></li>
-              <li><Link href={`${base}/${ns("talletustavat")}`} className="hover:text-white transition-colors">{t.depositMethods}</Link></li>
-              <li><Link href={`${base}/${ns("kotiutustavat")}`} className="hover:text-white transition-colors">{t.withdrawalMethods}</Link></li>
-              <li><Link href={`${base}/${ns("ohjelmistot")}`} className="hover:text-white transition-colors">{t.software}</Link></li>
-              <li><Link href={`${base}/${ns("valmistaja")}`} className="hover:text-white transition-colors">{t.vendors}</Link></li>
-              <li><Link href={`${base}/${ns("lisenssi")}`} className="hover:text-white transition-colors">{t.licences}</Link></li>
+              <li><Link prefetch={false} href={`${base}/${ns("kasinot")}`} className="hover:text-white transition-colors">{t.casinoCategories}</Link></li>
+              <li><Link prefetch={false} href={`${base}/${ns("tarjoukset")}`} className="hover:text-white transition-colors">{t.offers}</Link></li>
+              <li><Link prefetch={false} href={`${base}/${ns("talletustavat")}`} className="hover:text-white transition-colors">{t.depositMethods}</Link></li>
+              <li><Link prefetch={false} href={`${base}/${ns("kotiutustavat")}`} className="hover:text-white transition-colors">{t.withdrawalMethods}</Link></li>
+              <li><Link prefetch={false} href={`${base}/${ns("ohjelmistot")}`} className="hover:text-white transition-colors">{t.software}</Link></li>
+              <li><Link prefetch={false} href={`${base}/${ns("valmistaja")}`} className="hover:text-white transition-colors">{t.vendors}</Link></li>
+              <li><Link prefetch={false} href={`${base}/${ns("lisenssi")}`} className="hover:text-white transition-colors">{t.licences}</Link></li>
             </ul>
           </div>
 
@@ -132,9 +132,9 @@ export function SiteFooter({ lang, navSlugs = {} }: SiteFooterProps) {
               {t.about}
             </h5>
             <ul className="space-y-2.5 text-sm text-white/70">
-              <li><Link href={`${base}/about`} className="hover:text-white transition-colors">{t.aboutSlotsband}</Link></li>
-              <li><Link href={`${base}/contact`} className="hover:text-white transition-colors">{t.contact}</Link></li>
-              <li><Link href={`${base}/about#how-we-rate`} className="hover:text-white transition-colors">{t.howWeRate}</Link></li>
+              <li><Link prefetch={false} href={`${base}/about`} className="hover:text-white transition-colors">{t.aboutSlotsband}</Link></li>
+              <li><Link prefetch={false} href={`${base}/contact`} className="hover:text-white transition-colors">{t.contact}</Link></li>
+              <li><Link prefetch={false} href={`${base}/about#how-we-rate`} className="hover:text-white transition-colors">{t.howWeRate}</Link></li>
             </ul>
           </div>
 
@@ -145,7 +145,7 @@ export function SiteFooter({ lang, navSlugs = {} }: SiteFooterProps) {
             </h5>
             <ul className="space-y-2.5 text-sm text-white/70">
               <li>
-                <Link href={`${base}/responsible-gambling`} className="hover:text-white transition-colors">
+                <Link prefetch={false} href={`${base}/responsible-gambling`} className="hover:text-white transition-colors">
                   {t.responsibleGambling}
                 </Link>
               </li>
@@ -190,10 +190,10 @@ export function SiteFooter({ lang, navSlugs = {} }: SiteFooterProps) {
         <div className="pt-6 border-t border-white/15 flex flex-col md:flex-row justify-between items-center gap-3">
           <p className="text-xs text-white/60">{t.copyright}</p>
           <div className="flex gap-4 text-xs text-white/60">
-            <Link href={`${base}/privacy`} className="hover:text-white transition-colors">
+            <Link prefetch={false} href={`${base}/privacy`} className="hover:text-white transition-colors">
               {t.privacy}
             </Link>
-            <Link href={`${base}/terms`} className="hover:text-white transition-colors">
+            <Link prefetch={false} href={`${base}/terms`} className="hover:text-white transition-colors">
               {t.terms}
             </Link>
           </div>

@@ -2,6 +2,7 @@ import { createClient } from "@/lib/supabase/server"
 import { createClient as createSupabaseClient } from "@supabase/supabase-js"
 import { revalidateTag } from "next/cache"
 import { NextRequest, NextResponse } from "next/server"
+import { revalidatePublicSite } from "@/lib/supabase/public-cache"
 
 function adminDb() {
   return createSupabaseClient(
@@ -19,6 +20,7 @@ export async function DELETE(_req: NextRequest, { params }: { params: Promise<{ 
   const { error } = await adminDb().from("bonuses").delete().eq("id", id)
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
   revalidateTag("bonuses", "max")
+  revalidatePublicSite()
   return NextResponse.json({ success: true })
 }
 
@@ -38,5 +40,6 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
   revalidateTag("bonuses", "max")
+  revalidatePublicSite()
   return NextResponse.json({ success: true, data })
 }

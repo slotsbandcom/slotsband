@@ -1,12 +1,15 @@
-import { cache } from "react"
-import { createClient } from "@/lib/supabase/server"
+import { unstable_cache } from "next/cache"
+import { createBuildClient } from "@/lib/supabase/build-client"
+import { publicCache } from "@/lib/supabase/public-cache"
 import type { Lang } from "@/lib/types"
 
 export type RouteSlugMap = Record<string, string>
 
-export const getRouteSlugsByLang = cache(async (lang: Lang): Promise<RouteSlugMap> => {
+// Read by the [lang] layout on every page, so it must stay cookie-free —
+// a cookies() call here made the entire public site render dynamically.
+async function fetchRouteSlugsByLang(lang: Lang): Promise<RouteSlugMap> {
   try {
-    const supabase = await createClient()
+    const supabase = createBuildClient()
     const { data, error } = await supabase
       .from("pages")
       .select("route_key, slug")
@@ -33,4 +36,6 @@ export const getRouteSlugsByLang = cache(async (lang: Lang): Promise<RouteSlugMa
   } catch {
     return {}
   }
-})
+}
+
+export const getRouteSlugsByLang = unstable_cache(fetchRouteSlugsByLang, ["route-slugs-by-lang"], publicCache("pages"))

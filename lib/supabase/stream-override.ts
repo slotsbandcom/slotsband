@@ -3,10 +3,10 @@
  * override directly (in-process DB read) instead of making an HTTP
  * round-trip to app/api/stream-override/route.ts on every poll.
  */
-import { createClient } from "@/lib/supabase/server"
+import { createBuildClient } from "@/lib/supabase/build-client"
 
 export async function getStreamOverrideRow() {
-  const supabase = await createClient()
+  const supabase = createBuildClient()
   const { data } = await supabase
     .from("stream_status")
     .select("*")

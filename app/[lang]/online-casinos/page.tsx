@@ -6,17 +6,20 @@ const VALID_LANGS: Lang[] = ["fi", "uk", "en"]
 
 interface PageProps {
   params: Promise<{ lang: string }>
-  searchParams?: Promise<{ [key: string]: string | string[] | undefined }>
 }
 
-export default async function OnlineCasinosPage({ params, searchParams }: PageProps) {
+export const revalidate = 3600
+
+// Only fi/en/uk exist (generateStaticParams in [lang]/layout.tsx); any other
+// first path segment 404s without rendering.
+export const dynamicParams = false
+
+export default async function OnlineCasinosPage({ params }: PageProps) {
   const { lang: rawLang } = await params
   const lang = (VALID_LANGS.includes(rawLang as Lang) ? rawLang : "en") as Lang
 
   if (lang === "fi") redirect("/fi/nettikasinot")
 
-  const sp = searchParams ? await searchParams : {}
-  const initialFilter = typeof sp.filter === "string" ? sp.filter : null
-
-  return <NettikasinotHub lang={lang} initialFilter={initialFilter} />
+  // ?filter= is applied client-side by the listing (see listing-client.tsx)
+  return <NettikasinotHub lang={lang} />
 }

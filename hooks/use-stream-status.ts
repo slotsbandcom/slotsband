@@ -19,14 +19,14 @@ const FALLBACK: StreamStatus = {
 }
 
 /**
- * Polls /api/stream-status every 60 seconds.
+ * Polls /api/stream-status every 2 minutes (served from the CDN, see the route).
  * Falls back to all-OFFLINE on error — never shows fake LIVE.
  */
 export function useStreamStatus() {
   const { data, isLoading } = useSWR<StreamStatus>(
     "/api/stream-status",
     {
-      refreshInterval: 60_000,
+      refreshInterval: 120_000,
       fallbackData: FALLBACK,
     }
   )

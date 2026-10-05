@@ -66,11 +66,46 @@ function SectionCard({ title, children }: { title: string; children: React.React
   )
 }
 
+// Public pages are cached on the CDN and refresh automatically after edits made
+// in this admin panel. Changes made directly in Supabase (games, raffles…)
+// show up within an hour — this button pushes them out immediately.
+function CacheCard() {
+  const [status, setStatus] = useState<"idle" | "busy" | "done" | "error">("idle")
+
+  async function purge() {
+    setStatus("busy")
+    try {
+      const res = await fetch("/api/admin/revalidate", { method: "POST" })
+      setStatus(res.ok ? "done" : "error")
+    } catch {
+      setStatus("error")
+    }
+    setTimeout(() => setStatus("idle"), 3000)
+  }
+
+  return (
+    <SectionCard title="Site Cache">
+      <div className="flex items-center justify-between gap-4">
+        <p className="text-xs text-[#787585]">
+          Edits made here update the public site automatically. Use this after changing data directly in Supabase.
+        </p>
+        <button onClick={purge} disabled={status === "busy"}
+          className="shrink-0 flex items-center gap-1.5 px-4 py-2 text-sm font-semibold text-white bg-[#2D1783] rounded-xl hover:bg-[#3e2db2] transition-colors disabled:opacity-60">
+          <span className="material-symbols-outlined text-[17px]">refresh</span>
+          {status === "busy" ? "Refreshing…" : status === "done" ? "Refreshed" : status === "error" ? "Error" : "Refresh site cache"}
+        </button>
+      </div>
+    </SectionCard>
+  )
+}
+
 // ─── Tab content ─────────────────────────────────────────────────────────────
 function GeneralTab() {
   const [activeLang, setActiveLang] = useState<Lang>("fi")
   return (
     <div className="space-y-5">
+      <CacheCard />
+
       <SectionCard title="Site Identity">
         {/* Per-language tabs */}
         <div className="flex border-b border-[#E5E8F0] -mt-1">
@@ -242,7 +277,7 @@ function StreamTab() {
     setSaving(true)
     setSaveMsg("")
     try {
-      const res = await fetch("/api/stream-override", {
+      const res = await fetch("/api/admin/stream-override", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(patch),

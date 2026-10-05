@@ -88,6 +88,10 @@ function EmailCard({ t }: { t: ContactT }) {
   )
 }
 
+// Only fi/en/uk exist (generateStaticParams in [lang]/layout.tsx); any other
+// first path segment 404s without rendering.
+export const dynamicParams = false
+
 export default function ContactPage({ params }: { params: Promise<{ lang: string }> }) {
   const { lang: langParam } = use(params)
   const lang = (["fi", "en", "uk"].includes(langParam) ? langParam : "fi") as Lang

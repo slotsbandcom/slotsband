@@ -78,6 +78,10 @@ export async function generateMetadata({ params }: HomePageProps): Promise<Metad
   }
 }
 
+// Only fi/en/uk exist (generateStaticParams in [lang]/layout.tsx); any other
+// first path segment 404s without rendering.
+export const dynamicParams = false
+
 export default async function HomePage({ params }: HomePageProps) {
   const { lang } = await params
   const safeLang = (VALID_LANGS.includes(lang as Lang) ? lang : "fi") as Lang

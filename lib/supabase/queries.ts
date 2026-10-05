@@ -6,6 +6,7 @@ import { unstable_cache } from "next/cache"
 import { createClient } from "@/lib/supabase/server"
 import { createClient as createServiceClient } from "@supabase/supabase-js"
 import { createBuildClient } from "@/lib/supabase/build-client"
+import { publicCache } from "@/lib/supabase/public-cache"
 import type { Casino, Bonus, Game, Raffle, BonusHunt } from "@/lib/types"
 
 // Service-role client for admin-only reads (newsletter subscribers, dashboard
@@ -20,13 +21,9 @@ function adminDb() {
 
 // The public-facing reads below (casinos/bonuses/banners/games/taxonomy) are
 // unauthenticated and read the same publicly-readable rows for every visitor,
-// but were being re-run uncached on every request AND every Next.js
-// background link-prefetch — several times per real pageview, plus every bot
-// crawl. That's what blew through Supabase's egress quota. Caching them for
-// 60s (via a cookie-free client, since unstable_cache can't depend on
-// request-scoped cookies) collapses that burst into one shared DB read;
-// admin edits still show up within a minute.
-const PUBLIC_CACHE = { revalidate: 60 }
+// so they go through a cookie-free client and Next's data cache (see
+// lib/supabase/public-cache.ts). Admin writes call revalidatePublicSite(), so
+// edits still show up on the next visit.
 
 // ─── Casinos ──────────────────────────────────────────────────────────────────
 
@@ -57,7 +54,7 @@ async function fetchCasinos(options?: {
   }
   return (data ?? []) as Casino[]
 }
-export const getCasinos = unstable_cache(fetchCasinos, ["casinos"], { ...PUBLIC_CACHE, tags: ["casinos"] })
+export const getCasinos = unstable_cache(fetchCasinos, ["casinos"], publicCache("casinos"))
 
 async function fetchCasinosWithTermIds(): Promise<Casino[]> {
   const supabase = createBuildClient()
@@ -76,7 +73,7 @@ async function fetchCasinosWithTermIds(): Promise<Casino[]> {
     casino_taxonomy_terms: undefined,
   })) as Casino[]
 }
-export const getCasinosWithTermIds = unstable_cache(fetchCasinosWithTermIds, ["casinos-with-term-ids"], PUBLIC_CACHE)
+export const getCasinosWithTermIds = unstable_cache(fetchCasinosWithTermIds, ["casinos-with-term-ids"], publicCache("casinos"))
 
 export async function getAdminCasinos(): Promise<Casino[]> {
   const supabase = await createClient()
@@ -106,7 +103,7 @@ async function fetchCasinoBySlug(slug: string): Promise<Casino | null> {
   }
   return data as Casino
 }
-export const getCasinoBySlug = unstable_cache(fetchCasinoBySlug, ["casino-by-slug"], { ...PUBLIC_CACHE, tags: ["casinos"] })
+export const getCasinoBySlug = unstable_cache(fetchCasinoBySlug, ["casino-by-slug"], publicCache("casinos"))
 
 export async function upsertCasino(casino: Partial<Casino> & { slug: string }): Promise<Casino | null> {
   const supabase = await createClient()
@@ -171,7 +168,7 @@ async function fetchBonuses(options?: { lang?: string; activeOnly?: boolean }): 
     }
   }) as Bonus[]
 }
-export const getBonuses = unstable_cache(fetchBonuses, ["bonuses"], { ...PUBLIC_CACHE, tags: ["bonuses"] })
+export const getBonuses = unstable_cache(fetchBonuses, ["bonuses"], publicCache("bonuses"))
 
 async function fetchBonusesByCasino(casinoId: string, lang = "fi"): Promise<Bonus[]> {
   const supabase = createBuildClient()
@@ -207,7 +204,7 @@ async function fetchBonusesByCasino(casinoId: string, lang = "fi"): Promise<Bonu
     }
   }) as Bonus[]
 }
-export const getBonusesByCasino = unstable_cache(fetchBonusesByCasino, ["bonuses-by-casino"], { ...PUBLIC_CACHE, tags: ["bonuses"] })
+export const getBonusesByCasino = unstable_cache(fetchBonusesByCasino, ["bonuses-by-casino"], publicCache("bonuses"))
 
 // ─── Banners ──────────────────────────────────────────────────────────────────
 
@@ -226,7 +223,7 @@ async function fetchBanners(lang: string) {
   }
   return data ?? []
 }
-export const getBanners = unstable_cache(fetchBanners, ["banners"], PUBLIC_CACHE)
+export const getBanners = unstable_cache(fetchBanners, ["banners"], publicCache("banners"))
 
 // ─── Games ────────────────────────────────────────────────────────────────────
 
@@ -244,7 +241,7 @@ async function fetchGames(options?: { activeOnly?: boolean; featuredOnly?: boole
   }
   return (data ?? []) as Game[]
 }
-export const getGames = unstable_cache(fetchGames, ["games"], PUBLIC_CACHE)
+export const getGames = unstable_cache(fetchGames, ["games"], publicCache("games"))
 
 // ─── Newsletter ───────────────────────────────────────────────────────────────
 
@@ -329,8 +326,12 @@ export async function setStreamOverride(opts: {
 
 // ─── Raffles ─────────────────────────────────────────────────────────────────
 
-export async function getRaffles(): Promise<Raffle[]> {
-  const supabase = await createClient()
+// Raffles and bonus hunts are edited outside the admin API routes (directly in
+// the DB) and bonus-hunt predictions come in from visitors, so they get a much
+// shorter cache window than the rest — this also caps the ISR revalidate of
+// just the /rafflet and /bonushunt pages that read them.
+async function fetchRaffles(): Promise<Raffle[]> {
+  const supabase = createBuildClient()
   const { data, error } = await supabase
     .from("raffle_sessions")
     .select("*")
@@ -367,11 +368,11 @@ export async function getRaffles(): Promise<Raffle[]> {
 
   return rows
 }
+export const getRaffles = unstable_cache(fetchRaffles, ["raffles"], { revalidate: 300, tags: ["public", "raffles"] })
 
 // ─── Bonus Hunts ──────────────────────────────────────────────────────────────
 
-export async function getBonusHunts(): Promise<BonusHunt[]> {
-  const supabase = await createClient()
+async function fetchBonusHunts(supabase: ReturnType<typeof createBuildClient>): Promise<BonusHunt[]> {
   const { data: sessions, error } = await supabase
     .from("bonushunt_sessions")
     .select("*, bonushunt_slots(*), bonushunt_predictions!session_id(*)")
@@ -407,6 +408,12 @@ export async function getBonusHunts(): Promise<BonusHunt[]> {
       }))
       .sort((a: any, b: any) => new Date(b.submitted_at).getTime() - new Date(a.submitted_at).getTime()),
   })) as BonusHunt[]
+}
+export const getBonusHunts = unstable_cache(() => fetchBonusHunts(createBuildClient()), ["bonus-hunts"], { revalidate: 60, tags: ["public", "bonushunt"] })
+
+// Uncached, session-aware read for the admin panel.
+export async function getBonusHuntsUncached(): Promise<BonusHunt[]> {
+  return fetchBonusHunts((await createClient()) as unknown as ReturnType<typeof createBuildClient>)
 }
 
 // ─── Dashboard stats ──────────────────────────────────────────────────────────

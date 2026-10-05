@@ -4,6 +4,10 @@ import { TRANSLATIONS } from "@/lib/data"
 
 const VALID_LANGS: Lang[] = ["fi", "en", "uk"]
 
+// Only fi/en/uk exist (generateStaticParams in [lang]/layout.tsx); any other
+// first path segment 404s without rendering.
+export const dynamicParams = false
+
 export default async function AboutPage({ params }: { params: Promise<{ lang: string }> }) {
   const { lang: rawLang } = await params
   const lang = (VALID_LANGS.includes(rawLang as Lang) ? rawLang : "fi") as Lang

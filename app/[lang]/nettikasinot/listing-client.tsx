@@ -1,6 +1,6 @@
 ﻿"use client"
 
-import { useState, use } from "react"
+import { useState, useEffect, use } from "react"
 import Link from "next/link"
 import type { Lang } from "@/lib/types"
 import type { Casino } from "@/lib/types"
@@ -73,7 +73,6 @@ interface ListingPageProps {
   casinos?: Casino[]
   licenceTerms?: FilterTerm[]
   depositTerms?: FilterTerm[]
-  initialFilter?: string | null
 }
 
 export default function NettikasinotPage({
@@ -81,18 +80,23 @@ export default function NettikasinotPage({
   casinos = [],
   licenceTerms = [],
   depositTerms = [],
-  initialFilter,
 }: ListingPageProps) {
   const { lang: rawLang } = use(params)
   const lang = (VALID_LANGS.includes(rawLang as Lang) ? rawLang : "fi") as Lang
   const labels = PAGE_LABELS[lang]
 
-  // initialFilter from ?filter= URL param initializes the toggles on first render
-  const [filterPika, setFilterPika] = useState(initialFilter === "pikakasinot")
-  const [filterNew, setFilterNew] = useState(
-    initialFilter === "uudet" || initialFilter === "uudet-nettikasinot"
-  )
-  const [filterFeatured, setFilterFeatured] = useState(initialFilter === "suositeltu")
+  const [filterPika, setFilterPika] = useState(false)
+  const [filterNew, setFilterNew] = useState(false)
+  const [filterFeatured, setFilterFeatured] = useState(false)
+
+  // ?filter= URL param initializes the toggles. Read client-side (instead of
+  // via the page's searchParams) so the page itself stays static/ISR.
+  useEffect(() => {
+    const initialFilter = new URLSearchParams(window.location.search).get("filter")
+    if (initialFilter === "pikakasinot") setFilterPika(true)
+    if (initialFilter === "uudet" || initialFilter === "uudet-nettikasinot") setFilterNew(true)
+    if (initialFilter === "suositeltu") setFilterFeatured(true)
+  }, [])
 
   const [filterLicense, setFilterLicense] = useState<string[]>([])
   const [filterPayment, setFilterPayment] = useState<string[]>([])

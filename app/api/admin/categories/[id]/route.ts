@@ -1,6 +1,7 @@
 import { createClient } from "@/lib/supabase/server"
 import { createClient as createSupabaseClient } from "@supabase/supabase-js"
 import { NextRequest, NextResponse } from "next/server"
+import { revalidatePublicSite } from "@/lib/supabase/public-cache"
 
 function adminDb() {
   return createSupabaseClient(
@@ -33,6 +34,7 @@ export async function PATCH(
     .single()
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+  revalidatePublicSite()
   return NextResponse.json(data)
 }
 
@@ -47,5 +49,6 @@ export async function DELETE(
 
   const { error } = await adminDb().from("categories").delete().eq("id", id)
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+  revalidatePublicSite()
   return NextResponse.json({ success: true })
 }

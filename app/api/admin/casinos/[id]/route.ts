@@ -3,6 +3,7 @@ import { createClient as createSupabaseClient } from "@supabase/supabase-js"
 import { revalidatePath, revalidateTag } from "next/cache"
 import { NextRequest, NextResponse } from "next/server"
 import { syncCasinoBonus } from "@/lib/supabase/bonus-sync"
+import { revalidatePublicSite } from "@/lib/supabase/public-cache"
 
 // Columns that actually exist in the casinos table.
 // Fields in the Casino TypeScript type that are NOT here (bonus_text, bonus_terms,
@@ -91,6 +92,7 @@ export async function DELETE(
     console.warn("[casino-audit-log]", e)
   }
 
+  revalidatePublicSite()
   return NextResponse.json({ success: true })
 }
 
@@ -163,5 +165,6 @@ export async function PATCH(
   revalidateTag("casinos", "max")
   revalidateTag("bonuses", "max")
 
+  revalidatePublicSite()
   return NextResponse.json(data)
 }

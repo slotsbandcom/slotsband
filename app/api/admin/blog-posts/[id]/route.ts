@@ -2,6 +2,7 @@ import { getAdminSession } from "@/lib/supabase/admin-auth"
 import { diffFields, logBlogAudit } from "@/lib/supabase/blog-audit"
 import { createClient as createSupabaseClient } from "@supabase/supabase-js"
 import { NextRequest, NextResponse } from "next/server"
+import { revalidatePublicSite } from "@/lib/supabase/public-cache"
 
 function adminDb() {
   return createSupabaseClient(
@@ -82,6 +83,7 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
       changes: diffFields(existing, staged, EDITOR_ALLOWED),
     })
 
+    revalidatePublicSite()
     return NextResponse.json(data.pending_data ? { ...data, ...data.pending_data } : data)
   }
 
@@ -107,6 +109,7 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
     changes: diffFields(existing, fields, ALLOWED),
   })
 
+  revalidatePublicSite()
   return NextResponse.json(data)
 }
 
@@ -131,5 +134,6 @@ export async function DELETE(_req: NextRequest, { params }: { params: Promise<{ 
     actorEmail: session.user.email,
   })
 
+  revalidatePublicSite()
   return NextResponse.json({ ok: true })
 }

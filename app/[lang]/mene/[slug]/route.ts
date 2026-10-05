@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server"
-import { createClient } from "@/lib/supabase/server"
+import { createBuildClient } from "@/lib/supabase/build-client"
 
 interface RouteParams {
   params: Promise<{ lang: string; slug: string }>
@@ -8,7 +8,12 @@ interface RouteParams {
 export async function GET(request: NextRequest, { params }: RouteParams) {
   const { slug, lang } = await params
 
-  const supabase = await createClient()
+  // slug is interpolated into the PostgREST filter below — only allow real slugs
+  if (!/^[a-z0-9-]+$/i.test(slug)) {
+    return NextResponse.redirect(new URL(`/${["fi", "en", "uk"].includes(lang) ? lang : "fi"}/nettikasinot`, request.url))
+  }
+
+  const supabase = createBuildClient()
   const { data: casino } = await supabase
     .from("casinos")
     .select("id, slug, affiliate_url, mene_slug")

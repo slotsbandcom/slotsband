@@ -1,6 +1,7 @@
 import { createClient } from "@/lib/supabase/server"
 import { createClient as createSupabaseClient } from "@supabase/supabase-js"
 import { NextRequest, NextResponse } from "next/server"
+import { revalidatePublicSite } from "@/lib/supabase/public-cache"
 
 function adminDb() {
   return createSupabaseClient(
@@ -58,5 +59,6 @@ export async function POST(req: NextRequest) {
     .upsert(rows, { onConflict: "slug,lang" })
     .select()
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+  revalidatePublicSite()
   return NextResponse.json(data, { status: 201 })
 }

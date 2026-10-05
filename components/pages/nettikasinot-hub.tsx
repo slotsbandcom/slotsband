@@ -4,7 +4,7 @@ import NettikasinotPage from "@/app/[lang]/nettikasinot/listing-client"
 import type { Lang } from "@/lib/types"
 import type { TaxonomyTerm } from "@/lib/supabase/taxonomy-queries"
 
-export async function NettikasinotHub({ lang, initialFilter }: { lang: Lang; initialFilter?: string | null }) {
+export async function NettikasinotHub({ lang }: { lang: Lang }) {
   const [casinos, licenceTermsRaw, depositTermsRaw] = await Promise.all([
     getCasinosWithTermIds(),
     getTaxonomyTerms("licence"),
@@ -34,7 +34,6 @@ export async function NettikasinotHub({ lang, initialFilter }: { lang: Lang; ini
       casinos={casinos}
       licenceTerms={withCounts(licenceTermsRaw)}
       depositTerms={withCounts(depositTermsRaw)}
-      initialFilter={initialFilter}
     />
   )
 }

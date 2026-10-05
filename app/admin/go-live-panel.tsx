@@ -27,7 +27,7 @@ export default function GoLivePanel() {
   async function toggle(live: boolean) {
     setLoading(true)
     try {
-      const res = await fetch("/api/stream-override", {
+      const res = await fetch("/api/admin/stream-override", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -121,7 +121,7 @@ export default function GoLivePanel() {
               type="text"
               value={title}
               onChange={e => setTitle(e.target.value)}
-              onBlur={() => fetch("/api/stream-override", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ mode: "manual", isLive: true, title, viewers }) })}
+              onBlur={() => fetch("/api/admin/stream-override", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ mode: "manual", isLive: true, title, viewers }) })}
               placeholder="e.g. Bonus Hunt #42 — 50 bonuksen avaus!"
               className="w-full bg-white border border-red-200 rounded-xl px-3 py-2 text-sm focus:border-red-400 focus:outline-none"
             />
@@ -133,7 +133,7 @@ export default function GoLivePanel() {
               min={0}
               value={viewers}
               onChange={e => setViewers(Number(e.target.value))}
-              onBlur={() => fetch("/api/stream-override", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ mode: "manual", isLive: true, title, viewers }) })}
+              onBlur={() => fetch("/api/admin/stream-override", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ mode: "manual", isLive: true, title, viewers }) })}
               className="w-full bg-white border border-red-200 rounded-xl px-3 py-2 text-sm focus:border-red-400 focus:outline-none"
             />
           </div>

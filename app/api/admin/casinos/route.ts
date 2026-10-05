@@ -2,6 +2,7 @@ import { createClient } from "@/lib/supabase/server"
 import { createClient as createSupabaseClient } from "@supabase/supabase-js"
 import { NextRequest, NextResponse } from "next/server"
 import { syncCasinoBonus } from "@/lib/supabase/bonus-sync"
+import { revalidatePublicSite } from "@/lib/supabase/public-cache"
 
 function adminDb() {
   return createSupabaseClient(
@@ -58,5 +59,6 @@ export async function POST(req: NextRequest) {
     console.warn("[casino-audit-log]", e)
   }
 
+  revalidatePublicSite()
   return NextResponse.json(data, { status: 201 })
 }

@@ -1,9 +1,11 @@
-import { createClient } from "@/lib/supabase/server"
+import { unstable_cache } from "next/cache"
+import { createBuildClient } from "@/lib/supabase/build-client"
+import { publicCache } from "@/lib/supabase/public-cache"
 import type { Lang } from "@/lib/types"
 
-export async function getPageMeta(slug: string, lang: Lang) {
+async function fetchPageMeta(slug: string, lang: Lang) {
   try {
-    const supabase = await createClient()
+    const supabase = createBuildClient()
     const { data } = await supabase
       .from("pages")
       .select("meta_title, meta_description")
@@ -18,3 +20,5 @@ export async function getPageMeta(slug: string, lang: Lang) {
     return { meta_title: null, meta_description: null }
   }
 }
+
+export const getPageMeta = unstable_cache(fetchPageMeta, ["page-meta"], publicCache("pages"))

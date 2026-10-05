@@ -1,10 +1,10 @@
 ﻿import { notFound, permanentRedirect } from "next/navigation"
-import { cache } from "react"
+import { unstable_cache } from "next/cache"
 import Link from "next/link"
 import type { Metadata } from "next"
-import { createClient } from "@/lib/supabase/server"
 import { BlogPostImage } from "@/components/blog-post-image"
 import { createBuildClient } from "@/lib/supabase/build-client"
+import { publicCache } from "@/lib/supabase/public-cache"
 import { CasinoLogo } from "@/components/casino-logo"
 import { TaxonomyIndexPage } from "@/components/taxonomy-index-page"
 import { TAXONOMY_CONFIG_BY_TAXONOMY } from "@/lib/taxonomy-config"
@@ -71,8 +71,8 @@ interface LangSlugRow {
   slug: string
 }
 
-const getCodeRoute = cache(async (lang: Lang, slug: string): Promise<CodeRouteRow | null> => {
-  const supabase = await createClient()
+const getCodeRoute = unstable_cache(async (lang: Lang, slug: string): Promise<CodeRouteRow | null> => {
+  const supabase = createBuildClient()
   const { data, error } = await supabase
     .from("pages")
     .select("route_key, meta_title, meta_description")
@@ -97,10 +97,10 @@ const getCodeRoute = cache(async (lang: Lang, slug: string): Promise<CodeRouteRo
   if (!data) return null
   const row = data as { route_key: string | null; meta_title: string | null; meta_description: string | null }
   return { route_key: row.route_key ?? slug, meta_title: row.meta_title, meta_description: row.meta_description }
-})
+}, ["code-route"], publicCache("pages"))
 
-const getCodeRouteLangSlugs = cache(async (routeKey: string): Promise<LangSlugRow[]> => {
-  const supabase = await createClient()
+const getCodeRouteLangSlugs = unstable_cache(async (routeKey: string): Promise<LangSlugRow[]> => {
+  const supabase = createBuildClient()
   const { data, error } = await supabase
     .from("pages")
     .select("lang, slug")
@@ -116,12 +116,12 @@ const getCodeRouteLangSlugs = cache(async (routeKey: string): Promise<LangSlugRo
     return (fb as LangSlugRow[]) ?? []
   }
   return (data as LangSlugRow[]) ?? []
-})
+}, ["code-route-lang-slugs"], publicCache("pages"))
 
 // Returns the correct current slug for `lang` if `slug` was a code route slug that moved
-const getRedirectTargetForOldCodeSlug = cache(async (lang: Lang, slug: string): Promise<string | null> => {
+const getRedirectTargetForOldCodeSlug = unstable_cache(async (lang: Lang, slug: string): Promise<string | null> => {
   try {
-    const supabase = await createClient()
+    const supabase = createBuildClient()
     // Find the route_key of any code route that currently OR previously had this slug
     const { data: anyRow } = await supabase
       .from("pages")
@@ -145,10 +145,10 @@ const getRedirectTargetForOldCodeSlug = cache(async (lang: Lang, slug: string): 
   } catch {
     return null
   }
-})
+}, ["old-code-slug-redirect"], publicCache("pages"))
 
-async function getBlogPost(lang: Lang, slug: string): Promise<BlogPost | null> {
-  const supabase = await createClient()
+async function fetchBlogPost(lang: Lang, slug: string): Promise<BlogPost | null> {
+  const supabase = createBuildClient()
   const col = lang === "fi" ? "slug_fi" : lang === "en" ? "slug_en" : "slug_uk"
   const { data } = await supabase
     .from("blog_posts")
@@ -158,6 +158,7 @@ async function getBlogPost(lang: Lang, slug: string): Promise<BlogPost | null> {
     .single()
   return data as BlogPost | null
 }
+const getBlogPost = unstable_cache(fetchBlogPost, ["blog-post"], publicCache("blog"))
 
 interface StaticPageRow {
   id: string; slug: string; lang: string
@@ -166,16 +167,17 @@ interface StaticPageRow {
   is_published: boolean; is_code_route: boolean
 }
 
-async function getStaticPage(lang: Lang, slug: string): Promise<{ page: StaticPageRow | null; slugExists: boolean }> {
-  const supabase = await createClient()
+async function fetchStaticPage(lang: Lang, slug: string): Promise<{ page: StaticPageRow | null; slugExists: boolean }> {
+  const supabase = createBuildClient()
   const { data } = await supabase.from("pages").select("*").eq("slug", slug)
   if (!data || data.length === 0) return { page: null, slugExists: false }
   const row = data.find((r: StaticPageRow) => r.lang === lang && r.is_published && !r.is_code_route)
   return { page: (row as StaticPageRow) ?? null, slugExists: true }
 }
+const getStaticPage = unstable_cache(fetchStaticPage, ["static-page"], publicCache("pages"))
 
-async function getNewestCasinos(): Promise<SidebarCasino[]> {
-  const supabase = await createClient()
+async function fetchNewestCasinos(): Promise<SidebarCasino[]> {
+  const supabase = createBuildClient()
   const { data } = await supabase
     .from("casinos")
     .select("id, slug, name, logo_url, mene_slug, welcome_bonus_text, welcome_bonus_percent, welcome_bonus_max_amount, rating")
@@ -184,6 +186,7 @@ async function getNewestCasinos(): Promise<SidebarCasino[]> {
     .limit(6)
   return (data ?? []) as SidebarCasino[]
 }
+const getNewestCasinos = unstable_cache(fetchNewestCasinos, ["newest-casinos"], publicCache("casinos"))
 
 function stripHtml(html: string): string {
   return html.replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim()
@@ -204,8 +207,12 @@ function getBonusLabel(casino: SidebarCasino): string {
 
 interface PageProps {
   params: Promise<{ lang: string; slug: string }>
-  searchParams?: Promise<{ [key: string]: string | string[] | undefined }>
 }
+
+// ISR — served from the CDN, refreshed hourly or right after an admin edit
+// (revalidatePublicSite). Hub-specific query params like ?filter= are read
+// client-side so they don't force a per-request render.
+export const revalidate = 3600
 
 export async function generateStaticParams() {
   const db = createBuildClient()
@@ -298,11 +305,9 @@ function formatDate(iso: string | null, lang: Lang) {
   )
 }
 
-export default async function CatchAllPage({ params, searchParams }: PageProps) {
+export default async function CatchAllPage({ params }: PageProps) {
   const { lang: rawLang, slug } = await params
   const lang = (VALID_LANGS.includes(rawLang as Lang) ? rawLang : "fi") as Lang
-  const sp = searchParams ? await searchParams : {}
-  const initialFilter = typeof sp.filter === "string" ? sp.filter : null
 
   // ── 1. Code route ──────────────────────────────────────────────────────────
   const codeRoute = await getCodeRoute(lang, slug)
@@ -321,7 +326,7 @@ export default async function CatchAllPage({ params, searchParams }: PageProps) 
 
     switch (route_key) {
       case "nettikasinot":
-        return <NettikasinotHub lang={lang} initialFilter={initialFilter} />
+        return <NettikasinotHub lang={lang} />
       case "kasinopelit":
         return <KasinopelitHub lang={lang} />
       case "kasinobonukset":

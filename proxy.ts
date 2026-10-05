@@ -6,11 +6,6 @@ const VALID_LANGS = ["fi", "en", "uk"]
 export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl
 
-  // Surface the current locale as a request header — not-found.tsx has no
-  // access to the [lang] route param, so it reads this instead.
-  const langMatch = pathname.match(/^\/(fi|en|uk)(?:\/|$)/)
-  request.headers.set("x-slotsband-lang", langMatch ? langMatch[1] : "fi")
-
   // Language redirect for bare root — runs before Supabase session refresh.
   if (pathname === "/") {
     const cookie = request.cookies.get("slotsband-lang")?.value
@@ -26,8 +21,10 @@ export async function proxy(request: NextRequest) {
   return await updateSession(request)
 }
 
+// Only the routes that actually need it. The proxy runs as a Vercel Function
+// *before* the CDN cache, so matching every public page made each request
+// (bots included) cost a function invocation even when the page itself was
+// cached. Public pages don't read the Supabase session at all.
 export const config = {
-  matcher: [
-    "/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)",
-  ],
+  matcher: ["/", "/admin/:path*", "/api/admin/:path*"],
 }

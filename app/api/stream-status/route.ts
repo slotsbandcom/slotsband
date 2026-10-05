@@ -10,6 +10,11 @@ import { NextResponse } from "next/server"
 // quota despite modest traffic.
 export const dynamic = "force-dynamic"
 
+// The response is the same for every visitor, so let Vercel's CDN serve it:
+// all open tabs share one function invocation per 30s instead of each tab
+// costing one per poll. A manual override shows up within ~30s.
+const CDN_CACHE = { "Cache-Control": "public, s-maxage=30, stale-while-revalidate=30" }
+
 interface PlatformStatus {
   isLive: boolean
   viewers: number
@@ -195,7 +200,7 @@ export async function GET() {
     }
     return NextResponse.json(
       { kick: manualStatus, twitch: manualStatus, youtube: manualStatus, override: ov },
-      { headers: { "Cache-Control": "no-store" } }
+      { headers: CDN_CACHE }
     )
   }
 
@@ -204,6 +209,6 @@ export async function GET() {
 
   return NextResponse.json(
     { kick, twitch, youtube, override: ov },
-    { headers: { "Cache-Control": "no-store" } }
+    { headers: CDN_CACHE }
   )
 }

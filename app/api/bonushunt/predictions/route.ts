@@ -1,5 +1,6 @@
 import { createClient as createSupabaseClient } from "@supabase/supabase-js"
 import { NextRequest, NextResponse } from "next/server"
+import { revalidateTag } from "next/cache"
 
 function adminDb() {
   return createSupabaseClient(
@@ -21,7 +22,9 @@ export async function POST(req: NextRequest) {
   const game = typeof body.game === "string" ? body.game.trim() : ""
 
   if (!nickname) return NextResponse.json({ error: "Nickname is required" }, { status: 400 })
-  if (!Number.isFinite(amount) || amount < 0) return NextResponse.json({ error: "Valid amount is required" }, { status: 400 })
+  if (nickname.length > 40) return NextResponse.json({ error: "Nickname is too long" }, { status: 400 })
+  if (!Number.isFinite(amount) || amount < 0 || amount > 1e9) return NextResponse.json({ error: "Valid amount is required" }, { status: 400 })
+  if (game.length > 100) return NextResponse.json({ error: "Game name is too long" }, { status: 400 })
 
   const db = adminDb()
 
@@ -48,5 +51,8 @@ export async function POST(req: NextRequest) {
     .single()
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+  // The /bonushunt pages are cached — expire them so the client's
+  // router.refresh() right after submitting shows fresh data.
+  revalidateTag("bonushunt", { expire: 0 })
   return NextResponse.json({ success: true, data }, { status: 201 })
 }
