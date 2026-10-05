@@ -44,16 +44,17 @@ export async function GET(_req: NextRequest, { params }: Params) {
     .limit(1)
     .maybeSingle()
 
-  // Clicks per language
-  const { data: allClicks } = await db
-    .from("affiliate_clicks")
-    .select("lang")
-    .eq("casino_slug", slug)
+  // Clicks per language — counted in the DB (fetching rows capped at
+  // Supabase's 1000-row default). Clicks without a lang count as "fi".
+  const langCount = (lang: string | null) => {
+    const q = db.from("affiliate_clicks").select("*", { count: "exact", head: true }).eq("casino_slug", slug)
+    return (lang ? q.eq("lang", lang) : q.is("lang", null)).then(({ count }) => count ?? 0)
+  }
+  const [fi, en, uk, noLang] = await Promise.all([langCount("fi"), langCount("en"), langCount("uk"), langCount(null)])
 
   const byLangCount: Record<string, number> = {}
-  for (const row of allClicks ?? []) {
-    const l = (row.lang as string) || "fi"
-    byLangCount[l] = (byLangCount[l] ?? 0) + 1
+  for (const [l, n] of [["fi", fi + noLang], ["en", en], ["uk", uk]] as const) {
+    if (n > 0) byLangCount[l] = n
   }
   const totalForPct = Object.values(byLangCount).reduce((a, b) => a + b, 0)
   const byLangPct: Record<string, number> = {}

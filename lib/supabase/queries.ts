@@ -426,7 +426,7 @@ export async function getDashboardStats() {
     supabase.from("bonuses").select("id", { count: "exact" }),
     supabase.from("games").select("id", { count: "exact" }),
     supabase.from("newsletter_subscribers").select("id", { count: "exact" }).eq("is_active", true),
-    supabase.from("affiliate_clicks").select("id", { count: "exact" }),
+    supabase.from("affiliate_clicks").select("id", { count: "exact", head: true }),
   ])
 
   return {
