@@ -10,7 +10,7 @@ const TYPE_FI: Record<string, string> = { slot: "Kolikkopeli", live: "Live kasin
 
 const SITE_URL = "https://www.slotsband.com"
 
-export const revalidate = 3600
+export const revalidate = 86400
 
 interface GamePageProps { params: Promise<{ lang: string; slug: string }> }
 

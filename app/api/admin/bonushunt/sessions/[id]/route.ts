@@ -1,7 +1,7 @@
 import { createClient } from "@/lib/supabase/server"
 import { createClient as createSupabaseClient } from "@supabase/supabase-js"
 import { NextRequest, NextResponse } from "next/server"
-import { revalidatePublicSite } from "@/lib/supabase/public-cache"
+import { revalidateBonusHunt } from "@/lib/supabase/public-cache"
 
 function adminDb() {
   return createSupabaseClient(
@@ -40,7 +40,7 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
       .single()
 
     if (error) return NextResponse.json({ error: error.message }, { status: 500 })
-    revalidatePublicSite()
+    revalidateBonusHunt()
     return NextResponse.json({ success: true, data })
   }
 
@@ -54,7 +54,7 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
       .single()
 
     if (error) return NextResponse.json({ error: error.message }, { status: 500 })
-    revalidatePublicSite()
+    revalidateBonusHunt()
     return NextResponse.json({ success: true, data, tiedCandidates: [] })
   }
 
@@ -97,6 +97,6 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
     .single()
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
-  revalidatePublicSite()
+  revalidateBonusHunt()
   return NextResponse.json({ success: true, data, tiedCandidates })
 }

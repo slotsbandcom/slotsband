@@ -209,10 +209,10 @@ interface PageProps {
   params: Promise<{ lang: string; slug: string }>
 }
 
-// ISR — served from the CDN, refreshed hourly or right after an admin edit
+// ISR — served from the CDN, refreshed daily or right after an admin edit
 // (revalidatePublicSite). Hub-specific query params like ?filter= are read
 // client-side so they don't force a per-request render.
-export const revalidate = 3600
+export const revalidate = 86400
 
 export async function generateStaticParams() {
   const db = createBuildClient()

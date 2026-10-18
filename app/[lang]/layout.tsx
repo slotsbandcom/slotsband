@@ -15,8 +15,8 @@ export async function generateStaticParams() {
 }
 
 // Every public page under [lang] is ISR: served from the CDN, regenerated at
-// most hourly, and purged right away after admin edits (revalidatePublicSite).
-export const revalidate = 3600
+// most daily, and purged right away after admin edits (revalidatePublicSite).
+export const revalidate = 86400
 
 export async function generateMetadata({ params }: { params: Promise<{ lang: string }> }): Promise<Metadata> {
   const { lang } = await params

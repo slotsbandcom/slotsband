@@ -1,6 +1,6 @@
 import { createClient as createSupabaseClient } from "@supabase/supabase-js"
 import { NextRequest, NextResponse } from "next/server"
-import { revalidateTag } from "next/cache"
+import { revalidateBonusHunt } from "@/lib/supabase/public-cache"
 
 function adminDb() {
   return createSupabaseClient(
@@ -53,6 +53,6 @@ export async function POST(req: NextRequest) {
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
   // The /bonushunt pages are cached — expire them so the client's
   // router.refresh() right after submitting shows fresh data.
-  revalidateTag("bonushunt", { expire: 0 })
+  revalidateBonusHunt()
   return NextResponse.json({ success: true, data }, { status: 201 })
 }

@@ -368,7 +368,7 @@ async function fetchRaffles(): Promise<Raffle[]> {
 
   return rows
 }
-export const getRaffles = unstable_cache(fetchRaffles, ["raffles"], { revalidate: 300, tags: ["public", "raffles"] })
+export const getRaffles = unstable_cache(fetchRaffles, ["raffles"], { revalidate: 3600, tags: ["public", "raffles"] })
 
 // ─── Bonus Hunts ──────────────────────────────────────────────────────────────
 
@@ -409,7 +409,7 @@ async function fetchBonusHunts(supabase: ReturnType<typeof createBuildClient>): 
       .sort((a: any, b: any) => new Date(b.submitted_at).getTime() - new Date(a.submitted_at).getTime()),
   })) as BonusHunt[]
 }
-export const getBonusHunts = unstable_cache(() => fetchBonusHunts(createBuildClient()), ["bonus-hunts"], { revalidate: 60, tags: ["public", "bonushunt"] })
+export const getBonusHunts = unstable_cache(() => fetchBonusHunts(createBuildClient()), ["bonus-hunts"], { revalidate: 300, tags: ["public", "bonushunt"] })
 
 // Uncached, session-aware read for the admin panel.
 export async function getBonusHuntsUncached(): Promise<BonusHunt[]> {

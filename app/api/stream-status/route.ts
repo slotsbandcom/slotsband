@@ -11,9 +11,9 @@ import { NextResponse } from "next/server"
 export const dynamic = "force-dynamic"
 
 // The response is the same for every visitor, so let Vercel's CDN serve it:
-// all open tabs share one function invocation per 30s instead of each tab
-// costing one per poll. A manual override shows up within ~30s.
-const CDN_CACHE = { "Cache-Control": "public, s-maxage=30, stale-while-revalidate=30" }
+// all open tabs share one function invocation per minute instead of each tab
+// costing one per poll. A manual override shows up within ~1 min.
+const CDN_CACHE = { "Cache-Control": "public, s-maxage=60, stale-while-revalidate=120" }
 
 interface PlatformStatus {
   isLive: boolean
@@ -170,20 +170,20 @@ async function getOverride() {
 
 // The real stream state doesn't change second-to-second, but this was being
 // re-fetched from Twitch/YouTube/Kick by every visitor's tab independently
-// every 60s. Cache the combined result for 30s so concurrent visitors share
-// one set of external calls instead of one each.
-const getCachedAutoStatus = unstable_cache(
-  async () => {
-    const [twitch, youtube, kick] = await Promise.all([
-      getTwitchStatus(),
-      getYouTubeStatus(),
-      getKickStatus(),
-    ])
-    return { twitch, youtube, kick }
-  },
-  ["stream-auto-status"],
-  { revalidate: 30 }
-)
+// every 60s. Memoized in the function instance (Fluid reuses instances) rather
+// than unstable_cache: a 30s data-cache entry was a billed ISR write every 30s,
+// and the CDN (CDN_CACHE) already collapses visitors onto one invocation.
+const AUTO_STATUS_TTL_MS = 60_000
+let autoStatusCache: { at: number; value: Promise<Record<"twitch" | "youtube" | "kick", PlatformStatus>> } | null = null
+
+function getCachedAutoStatus() {
+  if (!autoStatusCache || Date.now() - autoStatusCache.at > AUTO_STATUS_TTL_MS) {
+    const value = Promise.all([getTwitchStatus(), getYouTubeStatus(), getKickStatus()])
+      .then(([twitch, youtube, kick]) => ({ twitch, youtube, kick }))
+    autoStatusCache = { at: Date.now(), value }
+  }
+  return autoStatusCache.value
+}
 
 // ─── Route handler ────────────────────────────────────────────────────────────
 

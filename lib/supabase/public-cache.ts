@@ -11,7 +11,7 @@ import { revalidatePath, revalidateTag } from "next/cache"
  * after admin writes for freshness.
  */
 export const PUBLIC_TAG = "public"
-export const PUBLIC_REVALIDATE = 3600
+export const PUBLIC_REVALIDATE = 86400
 
 export function publicCache(...tags: string[]) {
   return { revalidate: PUBLIC_REVALIDATE, tags: [PUBLIC_TAG, ...tags] }
@@ -27,4 +27,13 @@ export function publicCache(...tags: string[]) {
 export function revalidatePublicSite() {
   revalidateTag(PUBLIC_TAG, { expire: 0 })
   revalidatePath("/", "layout")
+}
+
+/**
+ * Bonus-hunt data is only shown on the /bonushunt pages, so its writes (admin
+ * slot/session edits during a stream, visitor predictions) expire just those
+ * instead of purging the whole site via revalidatePublicSite().
+ */
+export function revalidateBonusHunt() {
+  revalidateTag("bonushunt", { expire: 0 })
 }

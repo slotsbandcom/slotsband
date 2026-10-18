@@ -8,7 +8,7 @@ interface PageProps {
   params: Promise<{ lang: string }>
 }
 
-export const revalidate = 3600
+export const revalidate = 86400
 
 // Only fi/en/uk exist (generateStaticParams in [lang]/layout.tsx); any other
 // first path segment 404s without rendering.

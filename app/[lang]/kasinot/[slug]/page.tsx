@@ -7,7 +7,7 @@ import {
   getTermData,
 } from "@/lib/taxonomy-page-helpers"
 
-export const revalidate = 3600
+export const revalidate = 86400
 
 const TAX = "casino-category"
 interface Props { params: Promise<{ lang: string; slug: string }> }
