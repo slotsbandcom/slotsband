@@ -2,10 +2,12 @@ import type { MetadataRoute } from "next"
 
 // AI-training scrapers and SEO-tool crawlers: no search traffic in return for
 // the function invocations they cost. (Bytespider & co. often ignore this —
-// they're blocked in the Vercel Firewall too.)
+// they're blocked in the Vercel Firewall too.) AI search / user-fetch agents
+// (OAI-SearchBot, ChatGPT-User, PerplexityBot, Perplexity-User,
+// Claude-SearchBot, Claude-User) stay allowed: they cite the site and send
+// visitors.
 const BLOCKED_BOTS = [
   "GPTBot",
-  "ChatGPT-User",
   "CCBot",
   "ClaudeBot",
   "anthropic-ai",
@@ -13,7 +15,6 @@ const BLOCKED_BOTS = [
   "Bytespider",
   "Amazonbot",
   "meta-externalagent",
-  "PerplexityBot",
   "AhrefsBot",
   "SemrushBot",
   "MJ12bot",
