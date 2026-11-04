@@ -13,13 +13,23 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
     return NextResponse.redirect(new URL(`/${["fi", "en", "uk"].includes(lang) ? lang : "fi"}/nettikasinot`, request.url))
   }
 
+  // Short links work regardless of is_active: hidden casinos are only hidden
+  // from listings, their /mene/ link must still reach the affiliate URL.
   const supabase = createBuildClient()
-  const { data: casino } = await supabase
+  const { data: matches } = await supabase
     .from("casinos")
-    .select("id, slug, affiliate_url, mene_slug")
+    .select("id, slug, affiliate_url, mene_slug, is_active")
     .or(`mene_slug.eq.${slug},slug.eq.${slug}`)
-    .eq("is_active", true)
-    .single()
+    .limit(5)
+
+  // Prefer an exact mene_slug match, then an active casino, if several rows match.
+  const casino = (matches ?? [])
+    .filter((c) => c.affiliate_url)
+    .sort(
+      (a, b) =>
+        Number(b.mene_slug === slug) - Number(a.mene_slug === slug) ||
+        Number(b.is_active) - Number(a.is_active),
+    )[0]
 
   if (!casino) {
     return NextResponse.redirect(new URL(`/${lang}/nettikasinot`, request.url))
