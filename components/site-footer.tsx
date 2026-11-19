@@ -3,6 +3,7 @@ import type { Lang } from "@/lib/types"
 import type { RouteSlugMap } from "@/lib/supabase/route-slugs"
 import { TRANSLATIONS } from "@/lib/data"
 import { SlotsbandLogo } from "@/components/slotsband-logo"
+import { CookieSettingsButton } from "@/components/cookie-consent"
 
 function TwitchIcon() {
   return (
@@ -196,6 +197,10 @@ export function SiteFooter({ lang, navSlugs = {} }: SiteFooterProps) {
             <Link prefetch={false} href={`${base}/terms`} className="hover:text-white transition-colors">
               {t.terms}
             </Link>
+            <CookieSettingsButton
+              label={lang === "fi" ? "Evästeasetukset" : "Cookie settings"}
+              className="hover:text-white transition-colors"
+            />
           </div>
         </div>
       </div>

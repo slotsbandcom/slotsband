@@ -4,6 +4,7 @@ import type { Metadata, Viewport } from 'next'
 import { Inter, Hanken_Grotesk } from 'next/font/google'
 import { SWRProvider } from '@/components/swr-provider'
 import { MaterialSymbolsLoader } from '@/components/material-symbols-loader'
+import { CookieConsent, CONSENT_DEFAULTS_SCRIPT } from '@/components/cookie-consent'
 import './globals.css'
 
 const inter = Inter({
@@ -97,6 +98,8 @@ export default function RootLayout({
   return (
     <html lang="fi" className={`${inter.variable} ${hankenGrotesk.variable} bg-background`}>
       <head>
+        {/* Consent Mode v2 defaults — must run before gtag.js loads */}
+        <script id="consent-defaults" dangerouslySetInnerHTML={{ __html: CONSENT_DEFAULTS_SCRIPT }} />
         {/* Preconnect for Material Symbols (loaded async below) */}
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
@@ -106,6 +109,7 @@ export default function RootLayout({
           {children}
         </SWRProvider>
         <MaterialSymbolsLoader />
+        <CookieConsent />
         {process.env.NODE_ENV === 'production' && <Analytics />}
       </body>
       <GoogleAnalytics gaId="G-1L2BYG0R7E" />
