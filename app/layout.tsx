@@ -1,4 +1,5 @@
 import { Analytics } from '@vercel/analytics/next'
+import { GoogleAnalytics } from '@next/third-parties/google'
 import type { Metadata, Viewport } from 'next'
 import { Inter, Hanken_Grotesk } from 'next/font/google'
 import { SWRProvider } from '@/components/swr-provider'
@@ -107,6 +108,7 @@ export default function RootLayout({
         <MaterialSymbolsLoader />
         {process.env.NODE_ENV === 'production' && <Analytics />}
       </body>
+      <GoogleAnalytics gaId="G-1L2BYG0R7E" />
     </html>
   )
 }
